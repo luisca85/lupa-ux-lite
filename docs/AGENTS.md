@@ -1,12 +1,11 @@
 # Constitución de Lupa UX
 
-Propósito: herramienta local-first de diagnóstico y evaluación heurística de UX.
+Propósito: herramienta  de diagnóstico y evaluación heurística de UX.
 Permite cargar estudios, registrar hallazgos con evidencia anotada, armar user
 flows y user journeys, protopersonas, métricas, y generar un reporte navegable
 para el cliente (online y como página HTML autónoma para compartir).
 
 ## Principios
-- Simplicidad: una sola pantalla de app, sin build. Todo en un archivo HTML.
 - Local-first con backend opcional: sin API, los datos viven en el navegador
   (IndexedDB). Hosteado en Cloudflare, en D1 detrás de Cloudflare Access.
 - Sin dependencias externas en runtime: nada de CDNs para funcionar (solo fuentes
