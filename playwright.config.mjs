@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
-// Carpeta que se sirve: hoy "public"; con el build de Vite, "dist".
-const APP_DIR = process.env.APP_DIR || "public";
+// Carpeta que se sirve: el build de Vite (npm run test:e2e compila antes).
+const APP_DIR = process.env.APP_DIR || "dist";
 
 export default defineConfig({
   testDir: "tests/e2e",

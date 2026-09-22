@@ -1,19 +1,13 @@
-// Verifica la sintaxis del <script> principal de public/index.html y de la API.
+// Verifica la sintaxis de los módulos de src/ y de la API (node --check).
 // Uso: npm run check
-import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const html = readFileSync("public/index.html", "utf8");
-const start = html.indexOf("<script>");
-const end = html.lastIndexOf("</script>");
-if (start < 0 || end < 0) throw new Error("No se encontró el <script> principal");
-const dir = mkdtempSync(join(tmpdir(), "lupa-check-"));
-const appJs = join(dir, "app.js");
-writeFileSync(appJs, html.slice(start + "<script>".length, end));
-
-for (const f of [appJs, "functions/api/[[path]].js"]) {
-  execFileSync(process.execPath, ["--check", f], { stdio: "inherit" });
-}
-console.log("Sintaxis OK: public/index.html y functions/api");
+const walk = (d) => readdirSync(d).flatMap((f) => {
+  const p = join(d, f);
+  return statSync(p).isDirectory() ? walk(p) : p.endsWith(".js") ? [p] : [];
+});
+const files = [...walk("src"), ...walk("functions")];
+for (const f of files) execFileSync(process.execPath, ["--check", f], { stdio: "inherit" });
+console.log(`Sintaxis OK: ${files.length} archivos (src/ y functions/)`);

@@ -3,15 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "db:migrate:local": "wrangler d1 migrations apply lupaux --local",
-    "db:migrate:remote": "wrangler d1 migrations apply lupaux --remote",
-    "dev": "wrangler pages dev",
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "preview": "vite build && wrangler pages dev dist --port 8788",
     "check": "node scripts/check-syntax.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "vite build && playwright test",
+    "db:migrate:local": "wrangler d1 migrations apply lupaux --local",
+    "db:migrate:remote": "wrangler d1 migrations apply lupaux --remote"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "vite": "^8.3.0",
+    "vite-plugin-singlefile": "^2.3.3",
     "wrangler": "4.86.0"
   }
 }
