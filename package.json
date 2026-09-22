@@ -7,9 +7,11 @@
     "db:migrate:remote": "wrangler d1 migrations apply lupaux --remote",
     "dev": "wrangler pages dev",
     "check": "node scripts/check-syntax.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "wrangler": "4.86.0"
   }
 }
