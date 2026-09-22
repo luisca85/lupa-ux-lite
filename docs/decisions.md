@@ -51,3 +51,23 @@ Motivo: no guardar en el navegador creyendo que se guarda en el servidor.
 
 2026-09-22 - Wrangler fijado en 4.86.0 y compatibility_date 2026-05-01. Motivo: las
 versiones nuevas exigen Node 22 y el equipo usa Node 20.
+
+2026-09-22 - Modularización: módulos ES en `src/` + Vite con salida a UN solo HTML
+(`vite-plugin-singlefile`). Revierte "un solo archivo HTML, sin build". Motivo:
+mantenibilidad; el archivo único se conserva como salida del build, así sigue
+abriendo con doble clic y la página autónoma no cambia.
+
+2026-09-22 - Se quita el runtime de claude.ai (capacidades `db` y `downloads`).
+Reemplaza las decisiones de detección `window.claude` y `getDownloads()`. Las
+descargas son siempre nativas (`downloadFile`). Motivo: la app ya no se usa como
+artifact; menos caminos que mantener.
+
+2026-09-22 - `SR_boot` vive en `src/share/boot.js` y se importa con `?raw`, en vez
+de serializarlo con `toString()`. Motivo: el bundler no puede alterar el código
+que se incrusta en la página autónoma.
+
+2026-09-22 - Build sin minificar. Motivo: código legible para depurar en producción;
+el ahorro sería chico frente al peso de las imágenes.
+
+2026-09-22 - Regresión automatizada con Playwright (`tests/e2e`), en modo servidor
+e IndexedDB. Motivo: red de seguridad para refactors; reemplaza la prueba manual.

@@ -20,8 +20,9 @@ entre dispositivos y protegida con login, sin reescribir la lógica de la app.
 ## Dónde vive
 - `functions/api/[[path]].js`: rutas, validación, `authorize()` / `verifyAccess()`.
 - `migrations/0001_docs.sql`: tabla `docs`.
-- `public/index.html`: `makeHTTPAdapter`, detección en `init()`, `exportAllData`,
-  `importAllData`, aviso global de errores (`unhandledrejection`).
+- `src/data/backend.js`: `makeHTTPAdapter`, `initBackend()`.
+- `src/data/respaldo.js`: `exportAllData`, `importAllData`.
+- `src/main.js`: aviso global de errores (`unhandledrejection`) en `init()`.
 - `scripts/smoke.mjs`: prueba automática de la API.
 
 ## No tocar

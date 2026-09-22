@@ -18,8 +18,9 @@ el reporte, con precio, qué incluye, descuentos y precio de lanzamiento.
 
 ## Dónde vive
 `reporte.propuestas` dentro de cada estudio. Helpers: `normalizePropuesta`,
-`propLaunch`, `propDiscRows`, `propuestaCardHTML` (online) y `propCard` dentro de
-`SR_boot` (autónomo). `defaultPropuestas()` siembra las tres por defecto.
+`propLaunch`, `propDiscRows`, `propuestaCardHTML` (online) en
+`src/reportes/propuestas.js`, y `propCard` dentro de `SR_boot` en `src/share/boot.js`
+(autónomo). `defaultPropuestas()` siembra las tres por defecto.
 
 ## No tocar
 - El precio guardado es el precio FINAL con descuento. No guardar el "antes".

@@ -21,5 +21,6 @@ El reporte del cliente usa las clases `.cr-*` (mismo look en online y autónomo)
 ## No tocar
 - No reintroducir el reporte/preview PDF (se removió a propósito).
 - La lógica de render del reporte está duplicada entre online (`crPropuestas`,
-  `crDiagnostico`, etc.) y autónomo (`SR_boot`: `secProp`, `secDiag`). Cambiar una
+  `crDiagnostico`, etc., en `src/reportes/cliente.js`) y autónomo (`SR_boot` en
+  `src/share/boot.js`: `secProp`, `secDiag`). Cambiar una
   obliga a cambiar la otra.
