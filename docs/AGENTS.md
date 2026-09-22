@@ -37,6 +37,12 @@ para el cliente (online y como página HTML autónoma para compartir).
   nada de fuera de la función. La lógica de render se DUPLICA respecto del
   reporte online (`reportes/cliente.js`: crPropuestas, etc. vs secProp en boot.js);
   si cambia una, hay que cambiar la otra.
+- Migraciones silenciosas de datos viejos: `ensureReporte` (reportes/comun.js) y
+  `jrNormalizePaso` (journey). Datos reales ya guardados dependen de ellas: no
+  quitarlas; extenderlas al agregar campos.
+- Relaciones entre entidades guardadas en dos lados (hallazgo ↔ interacción de
+  flujo). Al borrar o renombrar, actualizar ambos (`cleanFlowMarkers`, renombre de
+  interacción). Ids del catálogo base (`nn1`…`nn10`): no renumerar.
 
 ## Definición de hecho
 - `npm run check` pasa, `npm run smoke` da "Todo OK" y `npm run test:e2e` pasa.

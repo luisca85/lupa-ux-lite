@@ -42,6 +42,21 @@ cargarse, solo dentro de funciones. Mantenerlo así.
 La página autónoma copia el CSS leyendo los `<style>` del documento (en el build y
 en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 
+## Features y su spec
+| Feature | Estado | Spec |
+|---|---|---|
+| Estudios (alta, edición, borrado) | Hecho | — (ver modelo de datos) |
+| Hallazgos con evidencia anotada | Hecho | `specs/hallazgos.md` |
+| Catálogo de heurísticas y sesgos | Hecho | `specs/catalogo.md` |
+| User Flows | Hecho | `specs/flujos.md` |
+| User Journeys | Hecho | `specs/journeys.md` |
+| Reportes (panel, online, texto plano, autónoma) | Hecho | `specs/reportes.md` |
+| Propuestas de trabajo | Hecho | `specs/propuestas.md` |
+| Protopersonas | Se cargan en Reportes; la pestaña propia es "Próximamente" | `specs/reportes.md` |
+| Métricas | No implementado (pestaña "Próximamente") | — |
+| Backend D1 + Access | Hecho | `specs/backend-d1.md` |
+| Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
+
 ## Modelo de datos (API tipo Firestore sobre rutas)
 Las colecciones tienen cantidad impar de segmentos; los documentos, par.
 - `estudios/{id}` — estudio. Incluye el objeto `reporte` embebido (resumen,
@@ -51,6 +66,8 @@ Las colecciones tienen cantidad impar de segmentos; los documentos, par.
 - `estudios/{id}/flujos/{fid}` — flujo o journey (journey = flujo con `tipo:"User Journey"`).
 - `estudios/{id}/flujos/{fid}/imgs/{imgId}` — imagen de una interacción del flujo.
 - `marca/perfil` — marca del autor (logo, contacto, servicio).
+- Relaciones: hallazgo ↔ interacción de flujo en dos lados (`node.markers[].hallazgoId`
+  y `hallazgo.flujoId/interaccionId`); paso de journey → `hallazgos:[ids]` y `flujos:[ids]`.
 - `cat_heur/{id}`, `cat_sesgo/{id}` — heurísticas y sesgos propios.
 
 Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.

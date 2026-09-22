@@ -80,8 +80,9 @@ En la pantalla Estudios: **Exportar datos** en la versión local (descarga un JS
 
 ## Límites conocidos
 
-- Cada documento (por ejemplo, una imagen con sus anotaciones) puede pesar hasta ~2 MB, el límite de fila de D1.
-  Si una imagen lo supera, la app muestra el error y no la guarda.
+- Cada documento puede pesar hasta ~2 MB (límite de fila de D1). Las imágenes se
+  comprimen a ~240 KB al cargarlas, así que en la práctica no se alcanza; si pasara,
+  la app muestra el error y no guarda.
 - Sin edición simultánea: si dos personas editan el mismo estudio a la vez, gana el último guardado.
 
 ## Compartir un diagnóstico con un cliente

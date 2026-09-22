@@ -71,3 +71,18 @@ el ahorro sería chico frente al peso de las imágenes.
 
 2026-09-22 - Regresión automatizada con Playwright (`tests/e2e`), en modo servidor
 e IndexedDB. Motivo: red de seguridad para refactors; reemplaza la prueba manual.
+
+Decisiones que el código ya traía, sembradas en retrospectiva (spec-lite, camino B):
+- Imágenes comprimidas a JPEG (máx. 1280 px, ~240 KB) con miniatura de 220 px
+  guardada en el documento del hallazgo; la imagen completa en un documento
+  aparte. Motivo (inferido): límites de almacenamiento y listas livianas. Con ese
+  tope, el límite de ~2 MB por fila de D1 no se alcanza con una imagen.
+- Anotaciones guardadas como datos (no quemadas en la imagen). Motivo (inferido):
+  poder re-editarlas.
+- Severidad con la escala de Nielsen 0–4, default 3, opcional.
+- Journey = flujo con `tipo:"User Journey"` en la misma colección. Motivo: A CONFIRMAR.
+- Relación hallazgo ↔ interacción guardada en ambos lados. Motivo (inferido):
+  mostrar los hallazgos en el diagrama y la interacción en el hallazgo sin consultas extra.
+- Catálogo propio global (no por estudio). Motivo: A CONFIRMAR.
+- Reporte online por hash `#reporte/{id}` (`reportLink`): heredado del uso en
+  claude.ai; hoy sin uso. A CONFIRMAR si se elimina.

@@ -14,6 +14,16 @@ para el cliente, un export de texto plano, y una página HTML autónoma para com
 - La sección Reportes usa un layout de columnas tipo mosaico (sin el visor PDF, que
   fue removido).
 
+## Contenido que se carga en la pestaña Reportes
+- Título del informe, resumen ejecutivo, objetivos, alcance, métricas y metas
+  (una línea por ítem), diagnóstico (intro, hallazgos clave, recomendaciones),
+  aviso de "muestra inicial", propuestas (ver `propuestas.md`).
+- Protopersonas: nombre, edad, título/arquetipo, ubicación, ocupación, bio,
+  objetivos, necesidades, dolores. Viven en `reporte.protopersonas`; la pestaña
+  "Protopersonas" del estudio todavía es un marcador de "Próximamente".
+- Marca del autor (global, `marca/perfil`): wordmark, logo, imagen de cabecera,
+  nombre, rol, sitio, email, teléfono, color, servicio (nombre, descripción, URL).
+
 ## Dirección visual
 Barra de acciones arriba; bloques de configuración en columnas (`.rpt-cols2`).
 El reporte del cliente usa las clases `.cr-*` (mismo look en online y autónomo).
@@ -24,3 +34,12 @@ El reporte del cliente usa las clases `.cr-*` (mismo look en online y autónomo)
   `crDiagnostico`, etc., en `src/reportes/cliente.js`) y autónomo (`SR_boot` en
   `src/share/boot.js`: `secProp`, `secDiag`). Cambiar una
   obliga a cambiar la otra.
+- `ensureReporte` completa campos faltantes y migra datos viejos (reemplaza el
+  seed viejo de 2 propuestas por las 3 actuales). No quitar esas migraciones.
+
+## Conocido
+- `reportLink()` (link `#reporte/{id}`) no se usa: era para compartir el reporte
+  online en claude.ai. Con Cloudflare Access, ese link pediría login al cliente.
+  A CONFIRMAR si se borra o se reemplaza por otra forma de compartir.
+- La página autónoma y el reporte online difieren en colores de severidad
+  (`RSEV` vs `--sev*`) y la autónoma no tiene filtros de hallazgos.
