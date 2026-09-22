@@ -1,0 +1,15 @@
+{
+  "name": "lupa-ux",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:migrate:local": "wrangler d1 migrations apply lupaux --local",
+    "db:migrate:remote": "wrangler d1 migrations apply lupaux --remote",
+    "dev": "wrangler pages dev",
+    "check": "node scripts/check-syntax.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.86.0"
+  }
+}
