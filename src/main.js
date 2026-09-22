@@ -55,7 +55,7 @@ const LS = {
 let DB=null, USE_DB=false;
 /* Adaptador IndexedDB con la MISMA API tipo Firestore que espera store/flowStore/
    brandStore (DB.collection(path).get() y DB.doc(path).get()/set()/delete()).
-   Es el backend de persistencia cuando la app corre fuera de claude.ai (self-hosted).
+   Es el backend de persistencia cuando no hay API (archivo local u hosting estático).
    Un único object store "docs" indexado por la ruta completa; las colecciones se
    resuelven por prefijo tomando solo los hijos directos. */
 function makeIDBAdapter(){
@@ -117,7 +117,7 @@ function makeHTTPAdapter(base){
     })
   };
 }
-/* Backend activo: "claude" (runtime de claude.ai), "server" (API + D1),
+/* Backend activo: "server" (API + D1),
    "idb" (IndexedDB del navegador) o "none" (sin persistencia disponible). */
 let DB_MODE="none";
 const store = {
@@ -1988,10 +1988,8 @@ function brandModal(){
   });
 }
 
-async function getDownloads(){
-  if(window.claude&&window.claude.use){ try{ return await window.claude.use("downloads"); }catch(e){ return null; } }
-  // Sin runtime de Claude (self-hosted): descarga nativa del navegador.
-  return { save: async ({filename,data})=>{
+/* Descarga nativa del navegador (Blob + <a download>). */
+function downloadFile({filename,data}){
     let blob;
     if(data instanceof Blob) blob=data;
     else if(data instanceof ArrayBuffer || ArrayBuffer.isView(data)) blob=new Blob([data]);
@@ -2000,8 +1998,6 @@ async function getDownloads(){
     const a=document.createElement("a"); a.href=url; a.download=filename||"descarga"; a.style.display="none";
     document.body.appendChild(a); a.click();
     setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1500);
-    return {status:"saved"};
-  }};
 }
 function printIco(){return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>';}
 function txtIco(){return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></svg>';}
@@ -2176,11 +2172,9 @@ function openPlainExport(est){
   document.getElementById("peClose").onclick=close;
   document.getElementById("peCopy").onclick=()=>copyPlain(text,msg);
   document.getElementById("peDownload").onclick=async()=>{
-    const dl=await getDownloads();
     const fname=((est.nombre||"reporte").replace(/[^\w\-]+/g,"_").slice(0,60)||"reporte")+".txt";
-    if(dl){ try{ await dl.save({filename:fname,data:text}); msg.textContent="Archivo .txt generado"; msg.className="hint ok"; }
-      catch(e){ if(e&&e.code==="declined"){ msg.textContent="Descarga cancelada"; msg.className="hint"; } else { msg.textContent="No se pudo descargar. Copiá el texto con el botón de al lado."; msg.className="hint"; } } }
-    else { msg.textContent="La descarga no está habilitada acá. Usá 'Copiar todo' (recargá el artifact si hiciera falta)."; msg.className="hint"; }
+    try{ downloadFile({filename:fname,data:text}); msg.textContent="Archivo .txt generado"; msg.className="hint ok"; }
+    catch(e){ msg.textContent="No se pudo descargar. Copiá el texto con el botón de al lado."; msg.className="hint"; }
   };
 }
 
@@ -2636,8 +2630,6 @@ async function collectShareData(est){
 }
 async function generateSharePage(est,btn){
   const msg=document.getElementById("rptCliMsg"); const setM=(t,ok)=>{ if(msg){msg.textContent=t;msg.className="hint"+(ok?" ok":"");} };
-  const dl=await getDownloads();
-  if(!dl){ setM("La descarga no está habilitada acá. Recargá el artifact e intentá de nuevo."); return; }
   const orig=btn?btn.innerHTML:""; if(btn){ btn.disabled=true; btn.innerHTML="Generando..."; }
   try{
     setM("Recolectando datos e imágenes...");
@@ -2647,8 +2639,8 @@ async function generateSharePage(est,btn){
     const html="<!doctype html><html lang=\"es\" data-theme=\"light\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>"+esc(D.est.nombre)+" · Diagnóstico UX</title><style>"+css+"</style></head><body style=\"margin:0;background:#faf9f5\"><div id=\"shareRoot\"></div><script>\n"+boot+"\n</scr"+"ipt></body></html>";
     const fname=((D.est.nombre||"reporte").replace(/[^\w\-]+/g,"_").slice(0,60)||"reporte")+"-reporte.html";
     setM("Preparando descarga...");
-    const r=await dl.save({filename:fname,data:html});
-    setM(r&&r.status==="delivered"?"Página enviada.":"Página HTML generada. Compartila con quien quieras.",true);
+    downloadFile({filename:fname,data:html});
+    setM("Página HTML generada. Compartila con quien quieras.",true);
   }catch(e){ console.error("generateSharePage",e); setM("No se pudo generar: "+((e&&(e.message||e.code))||e)); }
   finally{ if(btn){ btn.disabled=false; btn.innerHTML=orig; } }
 }
@@ -2662,9 +2654,8 @@ async function exportAllData(btn){
     if(btn)btn.disabled=true;
     const docs=await DB.dumpAll();
     const payload=JSON.stringify({app:"lupaux",version:1,exportedAt:new Date().toISOString(),docs});
-    const dl=await getDownloads();
     const fecha=new Date().toISOString().slice(0,10);
-    await dl.save({filename:"lupaux-respaldo-"+fecha+".json",data:new Blob([payload],{type:"application/json"})});
+    downloadFile({filename:"lupaux-respaldo-"+fecha+".json",data:new Blob([payload],{type:"application/json"})});
     toast("Respaldo exportado ("+docs.length+" documentos)");
   }catch(e){ toast("No se pudo exportar: "+e.message); }
   finally{ if(btn)btn.disabled=false; }
@@ -2696,7 +2687,6 @@ window.addEventListener("unhandledrejection",e=>{ const m=e.reason&&e.reason.mes
 async function init(){
   initTheme();
   document.getElementById("brandBtn").onclick=goHome;
-  try{ const db = window.claude && window.claude.use && await window.claude.use("db"); if(db){DB=db;USE_DB=true;DB_MODE="claude";} }catch(e){}
   // Hosteado con backend (Cloudflare Pages + D1): si /api/health responde, usamos el servidor.
   // Solo caemos a IndexedDB si la API NO existe (404 o respuesta que no es JSON, típico
   // de un hosting estático). Si la API existe pero falla, mostramos el error: guardar
@@ -2717,7 +2707,7 @@ async function init(){
   // Sin backend (archivo local u hosting estático): IndexedDB del navegador.
   if(!USE_DB && window.indexedDB){ try{ const idb=makeIDBAdapter(); await idb.ready(); DB=idb; USE_DB=true; DB_MODE="idb"; }catch(e){} }
   const badge=document.getElementById("localBadge");
-  badge.classList.toggle("hidden",DB_MODE==="claude");
+  badge.classList.remove("hidden");
   if(DB_MODE==="server"){ badge.textContent="servidor"; badge.title="Los datos se guardan en la base de datos del servidor"; }
   if(DB_MODE==="none"){ badge.textContent="almacenamiento limitado"; badge.title="IndexedDB no está disponible en este navegador: se usa localStorage (~5 MB, las imágenes pueden no entrar)"; }
   try{ state.customHeur=await store.listCustom("heur"); state.customSesgos=await store.listCustom("sesgo"); }catch(e){}
