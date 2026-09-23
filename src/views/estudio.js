@@ -4,7 +4,7 @@ import { STUDY_TABS, activeStudy, state } from "../core/state.js";
 import { esc, uid } from "../core/util.js";
 import { store } from "../data/store.js";
 import { renderFlujosInto } from "../flujos/flujos.js";
-import { renderReportesInto } from "../reportes/panel.js";
+import { renderProyectoInto, renderReportesInto } from "../reportes/panel.js";
 import { bigIco, chevL, pencil } from "../ui/iconos.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
 import { renderHallazgosInto } from "./hallazgos.js";
@@ -39,6 +39,7 @@ export function renderStudyShell(){
   if(state.studyTab==="hallazgos") renderHallazgosInto(c,est);
   else if(state.studyTab==="flujos") renderFlujosInto(c,est);
   else if(state.studyTab==="reportes") renderReportesInto(c,est);
+  else if(state.studyTab==="proyecto") renderProyectoInto(c,est);
   else renderSoon(c,state.studyTab);
 }
 function renderSoon(c,tab){

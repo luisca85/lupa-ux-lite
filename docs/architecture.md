@@ -29,10 +29,12 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
 - `journey/`: journey (editor de matriz y emociones), relaciones (sidebar).
-- `reportes/`: comun (marca, `ensureReporte`), propuestas, panel (pestaña Reportes),
-  texto-plano, cliente (reporte online).
-- `share/`: compartir (`collectShareData`, `generateSharePage`) y `boot.js`
-  (`SR_boot`, se importa con `?raw` y se incrusta como texto en la página autónoma).
+- `reportes/`: comun (marca, `ensureReporte`), propuestas, panel (pestañas Proyecto y
+  Reportes, link público), seleccion (`vistaCliente`: qué ve el cliente), publicar
+  (foto en `publicos/`, PIN, consentimientos), texto-plano, cliente (vista previa).
+- `share/`: compartir (`collectShareData`, `generateSharePage`, `montarVistaPrevia`,
+  `montarReportePublico`), publico (página `/r/{id}`: PIN + consentimiento) y
+  `boot.js` (`SR_boot`, único render del reporte del cliente; se importa con `?raw`).
 - `assets/figma/`: íconos SVG exportados del Figma; se usan como máscara (`.fig-ico` en
   `base.css`) para que tomen el color del tema. No editarlos.
 - `styles/`: base, reportes, flujos, journey, cliente. El orden de import en
@@ -60,6 +62,7 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
 | Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
 | Home y barra superior (rediseño Figma) | Hecho | `specs/home.md` |
+| Proyecto, qué ve el cliente, link público con PIN | Hecho | `specs/reportes.md` |
 | Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
 
 ## Modelo de datos (API tipo Firestore sobre rutas)
@@ -70,7 +73,12 @@ Las colecciones tienen cantidad impar de segmentos; los documentos, par.
 - `estudios/{id}/hallazgos/{hid}/imgs/{imgId}` — imagen del hallazgo (full + anotaciones).
 - `estudios/{id}/flujos/{fid}` — flujo o journey (journey = flujo con `tipo:"User Journey"`).
 - `estudios/{id}/flujos/{fid}/imgs/{imgId}` — imagen de una interacción del flujo.
-- `marca/perfil` — marca del autor (logo, contacto, servicio).
+- `marca/perfil` — marca del autor (logo, contacto, servicio, LinkedIn, bienvenida y
+  aclaraciones del reporte).
+- `publicos/{id}` — link público: `estId`, hash del PIN con sal, fallos/bloqueo y
+  últimos 10 consentimientos (nombre, fecha). `publicos/{id}/partes/{n}` — la foto del
+  reporte filtrado (JSON partido en trozos). En el estudio, `reporte.publico` guarda
+  id, PIN y sal (detrás de Access) y `reporte.ocultos` lo que el cliente no ve.
 - Relaciones: hallazgo ↔ interacción de flujo en dos lados (`node.markers[].hallazgoId`
   y `hallazgo.flujoId/interaccionId`); paso de journey → `hallazgos:[ids]` y `flujos:[ids]`.
 - `cat_heur/{id}`, `cat_sesgo/{id}` — heurísticas y sesgos propios.
@@ -85,7 +93,10 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
   par = doc, impar = colección. Documentos de hasta ~1,9 MB (límite de fila de D1).
 - Auth: `AUTH_MODE="access"` valida el JWT `Cf-Access-Jwt-Assertion` contra los
   certificados del team (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`); sin config → 503.
-  `authorize()` devuelve `{denied}` o `{user}`; toda ruta pasa por ella.
+  `authorize()` devuelve `{denied}` o `{user}`; toda ruta pasa por ella, salvo
+  `POST /api/publico` ({id, pin, nombre, acepto}): Bypass en Access, solo lee
+  `publicos/`, 401 igual para link o PIN inválido, 5 fallos → 15 min de bloqueo (429),
+  400 sin consentimiento, `no-store` + `noindex`.
   `AUTH_MODE="none"` solo para desarrollo local.
 
 ## Persistencia

@@ -30,13 +30,15 @@ para el cliente (online y como página HTML autónoma para compartir).
 ## Zonas sensibles (tocar con cuidado)
 - La capa `store` / `flowStore` / `brandStore` y los adaptadores `makeIDBAdapter`
   y `makeHTTPAdapter`, y la API en `functions/api`. Toda la validación de acceso
-  vive en `authorize()`: no agregar rutas que la salteen.
+  vive en `authorize()`: no agregar rutas que la salteen. ÚNICA excepción:
+  `POST /api/publico` (link público con PIN), que solo lee `publicos/` y exige PIN
+  + consentimiento; no ampliarla ni sumar otras (ver decisions.md).
   Un cambio mal hecho ahí corrompe o pierde datos del usuario.
-- `src/share/boot.js` (`SR_boot`) y `generateSharePage`: generan la página HTML
-  autónoma. `boot.js` se incrusta como TEXTO: no puede importar nada ni usar
-  nada de fuera de la función. La lógica de render se DUPLICA respecto del
-  reporte online (`reportes/cliente.js`: crPropuestas, etc. vs secProp en boot.js);
-  si cambia una, hay que cambiar la otra.
+- `src/share/boot.js` (`SR_boot`): el ÚNICO render del reporte del cliente (vista
+  previa, link público `/r/{id}` y página HTML autónoma). Se incrusta como TEXTO:
+  no puede importar nada ni usar nada de fuera de la función. No volver a duplicarlo.
+- `vistaCliente()` (`reportes/seleccion.js`): todo lo que llega al cliente pasa por
+  ahí; lo oculto no debe viajar.
 - Migraciones silenciosas de datos viejos: `ensureReporte` (reportes/comun.js) y
   `jrNormalizePaso` (journey). Datos reales ya guardados dependen de ellas: no
   quitarlas; extenderlas al agregar campos.
@@ -47,7 +49,8 @@ para el cliente (online y como página HTML autónoma para compartir).
 ## Definición de hecho
 - `npm run check` pasa, `npm run smoke` da "Todo OK" y `npm run test:e2e` pasa.
 - Las tres acciones críticas siguen funcionando (ver test de regresión abajo).
-- El reporte online, la página autónoma y el export de texto plano reflejan el cambio.
+- La vista previa (= link público y página autónoma, mismo `SR_boot`) y el export
+  de texto plano reflejan el cambio.
 
 ## Test de regresión (automatizado en `tests/e2e`, `npm run test:e2e`)
 1. Crear un estudio, agregar un hallazgo con imagen y anotación, recargar: persiste.

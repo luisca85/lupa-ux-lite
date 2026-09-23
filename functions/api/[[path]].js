@@ -93,11 +93,79 @@ async function authorize(request, env) {
   return { denied: json({ error: "No autorizado" }, 401) };
 }
 
+/* ---------- Link público del reporte ----------
+   ÚNICA ruta que no pasa por authorize(): en Cloudflare Access, /api/publico tiene
+   una política Bypass. Solo lee documentos publicos/{id} (la "foto" que publicó el
+   dueño) y exige el PIN de 6 dígitos; con 5 fallos bloquea el link 15 minutos.
+   Mismo error para link inexistente o PIN incorrecto (no revela qué links existen).
+   Con el PIN correcto, exige además el consentimiento (nombre + acepto): lo registra
+   en la foto (nombre y fecha, últimos 10) y recién ahí entrega el reporte. */
+const PUB_ID = /^[A-Za-z0-9-]{16,64}$/;
+const PUB_MAX_FALLOS = 5, PUB_BLOQUEO_MS = 15 * 60 * 1000, PUB_MAX_CONSENT = 10;
+
+async function sha256hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function mismoHex(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
+async function publico(request, env) {
+  if (request.method !== "POST") return json({ error: "Método no permitido" }, 405);
+  if (!env.DB) return json({ error: "Falta el binding D1 'DB'." }, 500);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "Pedido inválido" }, 400); }
+  const id = String((body && body.id) || ""), pin = String((body && body.pin) || "");
+  const noValido = () => json({ error: "Link o PIN incorrecto." }, 401);
+  if (!PUB_ID.test(id) || !/^\d{6}$/.test(pin)) return noValido();
+
+  const path = "publicos/" + id;
+  const row = await env.DB.prepare("SELECT data FROM docs WHERE path = ?").bind(path).first();
+  if (!row) return noValido();
+  const meta = JSON.parse(row.data), now = Date.now();
+  const bloqueado = () => json({ error: "Demasiados intentos. Probá de nuevo en unos minutos." }, 429);
+  if (meta.bloqueadoHasta && meta.bloqueadoHasta > now) return bloqueado();
+
+  const guardar = (m) => env.DB.prepare("UPDATE docs SET data = ?, updated_at = ? WHERE path = ?").bind(JSON.stringify(m), now, path).run();
+  if (!mismoHex(await sha256hex(meta.salt + ":" + pin), meta.pinHash)) {
+    meta.fallos = (meta.fallos || 0) + 1;
+    if (meta.fallos >= PUB_MAX_FALLOS) { meta.fallos = 0; meta.bloqueadoHasta = now + PUB_BLOQUEO_MS; }
+    await guardar(meta);
+    return meta.bloqueadoHasta > now ? bloqueado() : noValido();
+  }
+  meta.fallos = 0; meta.bloqueadoHasta = 0;
+
+  // Consentimiento obligatorio: sin nombre y aceptación, no se entrega el reporte.
+  const nombre = String((body && body.nombre) || "").replace(/\s+/g, " ").trim().slice(0, 80);
+  if (!nombre || body.acepto !== true) {
+    await guardar(meta);
+    return json({ error: "Para ver el reporte, escribí tu nombre y aceptá las condiciones de uso.", consentimiento: true }, 400);
+  }
+  meta.consentimientos = [...(Array.isArray(meta.consentimientos) ? meta.consentimientos : []), { nombre, fecha: now }].slice(-PUB_MAX_CONSENT);
+  await guardar(meta);
+
+  const { results } = await env.DB.prepare("SELECT data FROM docs WHERE parent = ? ORDER BY path").bind(path + "/partes").all();
+  const texto = results.map((r) => JSON.parse(r.data).t || "").join("");
+  return new Response(texto, {
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" },
+  });
+}
+
 /* ---------- Handler ---------- */
 export async function onRequest({ request, env, params }) {
   const route = (params.path || []).join("/");
   const url = new URL(request.url);
   const method = request.method;
+
+  // Link público: se atiende ANTES de authorize() a propósito (ver publico()).
+  if (route === "publico") {
+    try { return await publico(request, env); }
+    catch (e) { return json({ error: "Error del servidor" }, 500); }
+  }
 
   const { denied, user } = await authorize(request, env);
   if (denied) return denied;

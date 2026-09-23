@@ -8,6 +8,7 @@ export const state = {
   flowVP:{x:40,y:40,k:1}, marca:null
 };
 export const STUDY_TABS=[
+  {id:"proyecto",label:"Proyecto"},
   {id:"hallazgos",label:"Hallazgos"},
   {id:"flujos",label:"Flujos"},
   {id:"protopersonas",label:"Protopersonas"},

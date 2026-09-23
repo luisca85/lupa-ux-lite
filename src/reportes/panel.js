@@ -1,16 +1,18 @@
 import { render } from "../app/render.js";
 import { state } from "../core/state.js";
-import { esc } from "../core/util.js";
+import { esc, uid } from "../core/util.js";
 import { flowStore } from "../flujos/flujos.js";
 import { openClientReport } from "./cliente.js";
 import { brandStore, ensureReporte, marcaActual, saveReporte } from "./comun.js";
 import { PROP_DESC, normalizePropuesta, propMoney, propPriceLine } from "./propuestas.js";
 import { openPlainExport } from "./texto-plano.js";
+import { BLOQUES, estaOculto, setOculto } from "./seleccion.js";
+import { consentimientosDe, despublicarReporte, linkPublico, publicarReporte } from "./publicar.js";
 import { generateSharePage } from "../share/compartir.js";
 import { txtIco } from "../ui/descargas.js";
 import { pencil, plus, trash } from "../ui/iconos.js";
 import { loadBitmap, scaleImg } from "../ui/imagenes.js";
-import { openModal, toast } from "../ui/modales.js";
+import { openConfirm, openModal, toast } from "../ui/modales.js";
 
 export function renderReportesInto(c,est){
   if(state._flujosFor!==est.id){
@@ -29,13 +31,96 @@ export function renderReportesInto(c,est){
       <span id="rptCliMsg" class="hint"></span>
     </div>
     <div class="rpt-cols2">
-      <div class="rpt-group"><h4>Reporte para el cliente</h4>
-        <p class="rhint">Vista navegable de solo lectura. Elegí qué secciones ve el cliente.</p>
-        <div class="rpt-checks">${[["hallazgos","Hallazgos"],["flujos","Flujos"],["journeys","User Journeys"],["protopersonas","Protopersonas"],["diagnostico","Diagnóstico"],["propuestas","Propuestas de trabajo"],["contacto","Contacto / servicios"]].map(s=>`<label class="chk"><input type="checkbox" data-on="${s[0]}" ${r.online[s[0]]!==false?"checked":""}> ${s[1]}</label>`).join("")}</div>
-        <p class="rhint" style="margin-top:8px">La página para compartir es un archivo HTML autónomo, la abre cualquiera sin cuenta. Es una foto del momento: regeneralo si editás algo.</p></div>
-      <div class="rpt-group"><h4>Propuestas de trabajo <button class="btn ghost sm" id="rptAddProp">${plus()}</button></h4>
-        <p class="rhint">Se muestran al cliente. Reordenalas arrastrando o con las flechas.</p>
-        <div id="rptPropList" class="rpt-list"></div></div>
+      <div class="rpt-group rpt-pub"><h4>Link público</h4><div id="rptPub"></div></div>
+      <div class="rpt-group rpt-sel"><h4>Qué ve el cliente</h4>
+        <p class="rhint">Prendé o apagá secciones y elegí ítem por ítem. Lo que ocultes no se incluye en la vista previa, la página para compartir ni el link público. Lo nuevo aparece visible.</p>
+        <div id="rptSel"></div>
+        <p class="rhint" style="margin-top:10px">La información del proyecto (resumen, diagnóstico, protopersonas, propuestas y muestra) se carga en la pestaña <b>Proyecto</b>.</p></div>
+    </div>
+  </div>`;
+  c.querySelector("#rptBrand").onclick=()=>brandModal();
+  c.querySelector("#rptPlain").onclick=()=>openPlainExport(est);
+  renderSeleccion(c.querySelector("#rptSel"),est,r);
+  renderPublico(c.querySelector("#rptPub"),est,r);
+  c.querySelector("#rptCliPrev").onclick=()=>openClientReport(est.id);
+  c.querySelector("#rptShare").onclick=e=>generateSharePage(est,e.currentTarget);
+  window._rptSchedule=null;
+}
+/* Link público con PIN (foto del reporte; volver a publicar la actualiza). */
+function renderPublico(box,est,r){
+  const pub=r.publico, fecha=pub?new Date(pub.publicadoAt).toLocaleString("es-AR",{dateStyle:"medium",timeStyle:"short"}):"";
+  box.innerHTML=pub?`
+    <p class="rhint">Cualquiera con el link y el PIN ve el reporte en modo lectura, sin cuenta. Muestra la foto del ${esc(fecha)}: si cambiás algo, actualizá la publicación.</p>
+    <div class="pub-row"><label class="rlab">Link</label><div class="pub-val"><code id="pubLink">${esc(linkPublico(pub))}</code><button type="button" class="btn ghost sm" data-copy="pubLink">Copiar</button></div></div>
+    <div class="pub-row"><label class="rlab">PIN</label><div class="pub-val"><code id="pubPinVal" class="pub-pin">${esc(pub.pin)}</code><button type="button" class="btn ghost sm" data-copy="pubPinVal">Copiar</button></div></div>
+    <div class="pub-consent"><span class="rlab">Consentimientos</span><div id="pubCons" class="hint">Cargando...</div></div>
+    <div class="pub-acts">
+      <button type="button" class="btn primary sm" id="pubUpd">Actualizar publicación</button>
+      <button type="button" class="btn sm" id="pubPinNew">Generar PIN nuevo</button>
+      <button type="button" class="btn ghost sm danger" id="pubOff">Despublicar</button>
+      <span class="hint" id="pubMsg"></span>
+    </div>`:`
+    <p class="rhint">Generá un link para que el cliente vea el reporte en modo lectura con un PIN de 6 dígitos, sin crear cuenta. Se publica una foto de lo que elegiste abajo.</p>
+    <div class="pub-acts"><button type="button" class="btn primary sm" id="pubOn">Publicar reporte</button><span class="hint" id="pubMsg"></span></div>`;
+  const msg=box.querySelector("#pubMsg");
+  const run=async(btn,fn,ok)=>{
+    btn.disabled=true; msg.textContent="Publicando..."; msg.className="hint";
+    try{ await fn(); renderPublico(box,est,r); toast(ok); }
+    catch(e){ console.error("publicar",e); msg.textContent="No se pudo: "+((e&&e.message)||e); btn.disabled=false; }
+  };
+  const on=box.querySelector("#pubOn"); if(on) on.onclick=()=>run(on,()=>publicarReporte(est),"Reporte publicado");
+  const upd=box.querySelector("#pubUpd"); if(upd) upd.onclick=()=>run(upd,()=>publicarReporte(est),"Publicación actualizada");
+  const pn=box.querySelector("#pubPinNew"); if(pn) pn.onclick=()=>openConfirm("Generar PIN nuevo","El PIN actual deja de funcionar. Vas a tener que compartir el nuevo.",()=>run(pn,()=>publicarReporte(est,{nuevoPIN:true}),"PIN nuevo generado"),"Generar");
+  const off=box.querySelector("#pubOff"); if(off) off.onclick=()=>openConfirm("Despublicar reporte","El link deja de funcionar para todos. Podés volver a publicar después (con un link nuevo).",()=>run(off,()=>despublicarReporte(est),"Reporte despublicado"),"Despublicar");
+  const cons=box.querySelector("#pubCons");
+  if(cons) consentimientosDe(est).then(l=>{
+    cons.innerHTML=l.length?`<ul class="pub-cons-list">${l.slice().reverse().map(c=>`<li><b>${esc(c.nombre)}</b> · ${esc(new Date(c.fecha).toLocaleString("es-AR",{dateStyle:"medium",timeStyle:"short"}))}</li>`).join("")}</ul>`:"Todavía nadie abrió el link.";
+  }).catch(()=>{ cons.textContent="No se pudieron cargar."; });
+  box.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ const t=box.querySelector("#"+b.dataset.copy).textContent; try{ await navigator.clipboard.writeText(t); toast("Copiado"); }catch(_){ toast("No se pudo copiar"); } });
+}
+/* Qué ve el cliente: secciones (r.online) e ítems ocultos (r.ocultos). */
+function renderSeleccion(box,est,r){
+  const flows=state.flujos.filter(f=>f.tipo!=="User Journey"), jrs=state.flujos.filter(f=>f.tipo==="User Journey");
+  const secs=[
+    {on:null,tipo:"bloques",label:"Inicio (información del proyecto)",items:BLOQUES.map(([k,l])=>({id:k,t:l}))},
+    {on:"hallazgos",tipo:"hallazgos",label:"Hallazgos",items:state.hallazgos.map(h=>({id:h.id,t:h.titulo||"(sin título)",sub:h.tipo+(h.severidad!=null&&h.severidad!==""?" · Sev "+h.severidad:"")}))},
+    {on:"flujos",tipo:"flujos",label:"Flujos",items:flows.map(f=>({id:f.id,t:f.nombre}))},
+    {on:"journeys",tipo:"journeys",label:"User Journeys",items:jrs.map(f=>({id:f.id,t:f.nombre}))},
+    {on:"protopersonas",tipo:"protopersonas",label:"Protopersonas",items:r.protopersonas.map(p=>({id:p.id,t:p.nombre||"(sin nombre)"}))},
+    {on:"diagnostico",tipo:null,label:"Diagnóstico estratégico",items:null},
+    {on:"propuestas",tipo:"propuestas",label:"Propuestas de trabajo",items:r.propuestas.map(p=>({id:p.id,t:p.titulo||"(sin título)"}))},
+    {on:"contacto",tipo:null,label:"Contacto / servicios",items:null}
+  ];
+  const open=box._open||(box._open=new Set());
+  box.innerHTML=secs.map((sec,i)=>{
+    const secOn=sec.on?r.online[sec.on]!==false:true;
+    const items=sec.items||[], vis=items.filter(it=>!estaOculto(r,sec.tipo,it.id)).length;
+    const count=sec.items?(items.length?`${vis} de ${items.length}`:"vacío"):"";
+    return `<div class="sel-sec ${secOn?"":"off"}" data-i="${i}">
+      <div class="sel-row">
+        ${sec.on?`<label class="chk"><input type="checkbox" data-sec="${sec.on}" ${secOn?"checked":""}> ${esc(sec.label)}</label>`:`<span class="sel-fixed">${esc(sec.label)}</span>`}
+        <span class="sel-count">${count}</span>
+        ${items.length?`<button type="button" class="btn ghost sm sel-tog" data-tog="${i}" aria-expanded="${open.has(i)}">${open.has(i)?"Ocultar":"Elegir"}</button>`:""}
+      </div>
+      ${items.length&&open.has(i)?`<div class="sel-items">
+        <div class="sel-all"><button type="button" class="btn ghost sm" data-all="${i}">Todos</button><button type="button" class="btn ghost sm" data-none="${i}">Ninguno</button></div>
+        ${items.map(it=>`<label class="chk sel-item"><input type="checkbox" data-t="${sec.tipo}" data-id="${esc(it.id)}" ${estaOculto(r,sec.tipo,it.id)?"":"checked"} ${secOn?"":"disabled"}> <span>${esc(it.t)}${it.sub?` <small>${esc(it.sub)}</small>`:""}</span></label>`).join("")}
+      </div>`:""}
+    </div>`;
+  }).join("");
+  const redo=()=>{ saveReporte(est); renderSeleccion(box,est,r); };
+  box.querySelectorAll("[data-sec]").forEach(cb=>cb.onchange=()=>{ r.online[cb.dataset.sec]=cb.checked; redo(); });
+  box.querySelectorAll("[data-tog]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.tog; open.has(i)?open.delete(i):open.add(i); renderSeleccion(box,est,r); });
+  box.querySelectorAll("input[data-id]").forEach(cb=>cb.onchange=()=>{ setOculto(r,cb.dataset.t,cb.dataset.id,!cb.checked); redo(); });
+  const all=(i,oculto)=>{ const sec=secs[i]; sec.items.forEach(it=>setOculto(r,sec.tipo,it.id,oculto)); redo(); };
+  box.querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>all(+b.dataset.all,false));
+  box.querySelectorAll("[data-none]").forEach(b=>b.onclick=()=>all(+b.dataset.none,true));
+}
+/* Información general del proyecto (vive en estudio.reporte; se edita en la pestaña Proyecto). */
+export function renderProyectoInto(c,est){
+  const r=ensureReporte(est);
+  c.innerHTML=`<div class="rpt-wrap2">
+    <div class="rpt-cols2">
       <div class="rpt-group"><h4>Resumen ejecutivo</h4>
         <label class="rlab">Título del informe</label><textarea data-f="subtitulo" rows="2" placeholder="Subtítulo del informe">${esc(r.subtitulo)}</textarea>
         <label class="rlab">Introducción</label><textarea data-f="resumen" rows="3" placeholder="Panorama del informe...">${esc(r.resumen)}</textarea>
@@ -48,23 +133,21 @@ export function renderReportesInto(c,est){
         <label class="rlab">Recomendaciones prioritarias <button class="btn ghost sm" id="rptAddRec">${plus()}</button></label><div id="rptRecList" class="rpt-list"></div></div>
       <div class="rpt-group"><h4>Protopersonas <button class="btn ghost sm" id="rptAddPp">${plus()}</button></h4>
         <div id="rptPpList" class="rpt-list"></div></div>
+      <div class="rpt-group"><h4>Propuestas de trabajo <button class="btn ghost sm" id="rptAddProp">${plus()}</button></h4>
+        <p class="rhint">Se muestran al cliente. Reordenalas arrastrando o con las flechas.</p>
+        <div id="rptPropList" class="rpt-list"></div></div>
       <div class="rpt-group"><h4>Muestra inicial</h4>
         <label class="chk"><input type="checkbox" id="rptMuestraOn" ${r.muestra.on?"checked":""}> Mostrar aviso de "muestra inicial"</label>
         <textarea id="rptMuestraTxt" rows="3" style="margin-top:8px">${esc(r.muestra.texto||"")}</textarea></div>
     </div>
   </div>`;
   c.querySelectorAll("textarea[data-f]").forEach(ta=>ta.oninput=()=>{ r[ta.dataset.f]=ta.value; saveReporte(est); });
-  c.querySelector("#rptBrand").onclick=()=>brandModal();
-  c.querySelector("#rptPlain").onclick=()=>openPlainExport(est);
   c.querySelector("#rptAddPp").onclick=()=>protopersonaModal(est,null);
   c.querySelector("#rptAddHc").onclick=()=>diagBlockModal(est,"hallazgosClave","Hallazgo clave",null);
   c.querySelector("#rptAddRec").onclick=()=>diagBlockModal(est,"recomendaciones","Recomendación prioritaria",null);
   c.querySelector("#rptAddProp").onclick=()=>propuestaModal(est,null);
-  c.querySelectorAll("[data-on]").forEach(cb=>cb.onchange=()=>{ r.online[cb.dataset.on]=cb.checked; saveReporte(est); });
   c.querySelector("#rptMuestraOn").onchange=e=>{ r.muestra.on=e.target.checked; saveReporte(est); };
   c.querySelector("#rptMuestraTxt").oninput=e=>{ r.muestra.texto=e.target.value; saveReporte(est); };
-  c.querySelector("#rptCliPrev").onclick=()=>openClientReport(est.id,{preview:true});
-  c.querySelector("#rptShare").onclick=e=>generateSharePage(est,e.currentTarget);
   window._rptSchedule=null;
   renderPpList(est,c); renderDiagList(est,c,"hallazgosClave","#rptHcList"); renderDiagList(est,c,"recomendaciones","#rptRecList"); renderPropList(est,c);
 }
@@ -93,7 +176,7 @@ function protopersonaModal(est,idx){
     <div class="field"><label>Dolores / problemas <span class="opt">una por línea</span></label><textarea id="pp_dol">${esc((p.dolores||[]).join("\n"))}</textarea></div>
     <div class="field"><label>Foto <span class="opt">opcional</span></label><input type="file" id="pp_foto" accept="image/*"><div class="hint">Se recorta y comprime.</div></div>
   `,async()=>{
-    const rec={ nombre:document.getElementById("pp_n").value.trim(), edad:document.getElementById("pp_e").value.trim(),
+    const rec={ id:p.id||uid(), nombre:document.getElementById("pp_n").value.trim(), edad:document.getElementById("pp_e").value.trim(),
       titulo:document.getElementById("pp_t").value.trim(), ubicacion:document.getElementById("pp_u").value.trim(),
       ocupacion:document.getElementById("pp_o").value.trim(), bio:document.getElementById("pp_bio").value.trim(),
       necesidades:document.getElementById("pp_nec").value.split("\n").map(s=>s.trim()).filter(Boolean),
@@ -184,6 +267,7 @@ function propuestaModal(est,idx){
     </div>
   `,async()=>{
     const rec=normalizePropuesta({
+      id:p.id||uid(),
       titulo:document.getElementById("pr_t").value.trim(),
       tipo:document.querySelector("#pr_tipo .seg.on")?.dataset.t||"fixed",
       texto:document.getElementById("pr_x").value.trim(),
@@ -230,6 +314,10 @@ function brandModal(){
       <div class="field"><label>Año</label><input id="br_a" value="${esc(m.anio)}"></div></div>
     <div class="row2"><div class="field"><label>Email de contacto</label><input id="br_email" value="${esc(m.email||"")}" placeholder="hola@uxuaria.com"></div>
       <div class="field"><label>Teléfono / WhatsApp</label><input id="br_tel" value="${esc(m.tel||"")}" placeholder="+54 ..."></div></div>
+    <div class="field"><label>Perfil de LinkedIn <span class="opt">para pedir una recomendación en el reporte</span></label><input id="br_li" value="${esc(m.linkedin||"")}" placeholder="https://www.linkedin.com/in/tu-perfil"></div>
+    <div class="field"><label>Texto de bienvenida del reporte <span class="opt">vacío = texto por defecto</span></label><textarea id="br_bien" rows="3" placeholder="¡Hola! Gracias por tu tiempo y por el interés en este diagnóstico...">${esc(m.bienvenida||"")}</textarea></div>
+    <div class="field"><label>Aclaración "Hecho por una persona" <span class="opt">vacío = texto por defecto</span></label><textarea id="br_nia" rows="3" placeholder="Este diagnóstico no fue generado por una herramienta automática de IA...">${esc(m.notaIA||"")}</textarea></div>
+    <div class="field"><label>Aclaración "Diagnóstico inicial" <span class="opt">vacío = texto por defecto</span></label><textarea id="br_nini" rows="3" placeholder="Está basado en la información que compartieron y en lo que pude explorar...">${esc(m.notaInicial||"")}</textarea></div>
     <div class="field"><label>Servicio destacado <span class="opt">para el CTA del reporte online</span></label>
       <div class="row2"><input id="br_svcn" value="${esc(m.servicioNombre||"")}" placeholder="MV Rescue"><input id="br_svcu" value="${esc(m.servicioUrl||"")}" placeholder="URL del servicio (opcional)"></div>
       <textarea id="br_svcd" rows="2" placeholder="Qué es y a quién ayuda (editá con tus palabras)">${esc(m.servicioDesc||"")}</textarea></div>
@@ -239,7 +327,9 @@ function brandModal(){
       anio:document.getElementById("br_a").value.trim(), logo:m.logo||null, headerImg:m.headerImg||null, color:m.color||"",
       email:document.getElementById("br_email").value.trim(), tel:document.getElementById("br_tel").value.trim(),
       servicioNombre:document.getElementById("br_svcn").value.trim(), servicioUrl:document.getElementById("br_svcu").value.trim(),
-      servicioDesc:document.getElementById("br_svcd").value.trim() };
+      servicioDesc:document.getElementById("br_svcd").value.trim(),
+      linkedin:document.getElementById("br_li").value.trim(), bienvenida:document.getElementById("br_bien").value.trim(),
+      notaIA:document.getElementById("br_nia").value.trim(), notaInicial:document.getElementById("br_nini").value.trim() };
     const f=document.getElementById("br_logo").files[0];
     if(f){ try{ const im=await loadBitmap(f); rec.logo=scaleImg(im,480,0.85,0).dataUrl; if(im.close)im.close(); }catch(e){} }
     const hf=document.getElementById("br_head").files[0];

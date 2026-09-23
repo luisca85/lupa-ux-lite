@@ -92,6 +92,24 @@ funcionan en tema claro y oscuro aunque el SVG traiga colores fijos.
 pasan adentro del menú. Motivo: la barra del Figma no los muestra; en modo `idb`
 siguen en la barra porque no hay menú.
 
+2026-09-23 - Link público del reporte con PIN: `POST /api/publico` es la ÚNICA ruta
+fuera de `authorize()` (Access con Bypass solo en `/r/*` y `/api/publico`). Muestra una
+foto del reporte filtrado guardada al publicar (no los datos vivos); PIN de 6 dígitos
+con hash + sal; mismo error para link o PIN inválido; 5 fallos → bloqueo de 15 min.
+Motivo: el cliente tiene que ver el reporte sin cuenta, sin abrir el resto de la app.
+
+2026-09-23 - Consentimiento obligatorio para ver el link público (nombre + acepto),
+registrado del lado del servidor; se guardan los últimos 10 por link. Motivo: poder
+mencionar el diagnóstico en redes con constancia de aceptación.
+
+2026-09-23 - Un solo render del reporte del cliente: `SR_boot` (vista previa, link
+público y página autónoma). Se elimina el render aparte de `reportes/cliente.js` y la
+ruta `#reporte/{id}`. Motivo: la duplicación obligaba a cambiar todo dos veces.
+
+2026-09-23 - Información general del estudio (resumen, diagnóstico, protopersonas,
+propuestas, muestra) en una pestaña Proyecto; Reportes queda para la salida. Los datos
+siguen en `estudio.reporte` (sin migración). Motivo: separar contenido de entrega.
+
 2026-09-23 - Repositorio público en GitHub (`luisca85/lupa-ux-lite`). Motivo: decisión
 del autor; no hay secretos en el repo (la protección es Access, no ocultar IDs).
 
@@ -108,4 +126,4 @@ Decisiones que el código ya traía, sembradas en retrospectiva (spec-lite, cami
   mostrar los hallazgos en el diagrama y la interacción en el hallazgo sin consultas extra.
 - Catálogo propio global (no por estudio). Motivo: A CONFIRMAR.
 - Reporte online por hash `#reporte/{id}` (`reportLink`): heredado del uso en
-  claude.ai; hoy sin uso. A CONFIRMAR si se elimina.
+  claude.ai. Eliminado el 2026-09-23 (ver abajo).

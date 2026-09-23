@@ -93,7 +93,7 @@ lectura protegido con PIN y consentimiento.
   anotaciones embebidos), que abre sin cuenta ni red, con el mismo diseño del link
   público pero sin pedido de PIN ni consentimiento.
 - Dada la app, cuando se abre con `#reporte/{id}`, entonces NO abre un reporte: la
-  ruta y `reportLink()` se eliminan. (Hoy NO implementado: la ruta sigue activa.)
+  ruta y `reportLink()` se eliminan.
 
 ## Alcance
 Pestaña Proyecto; pestaña Reportes (acciones, qué ve el cliente, link público con

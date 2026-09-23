@@ -114,3 +114,41 @@
   .rpt-cornerph{display:none!important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ---- Qué ve el cliente (pestaña Reportes) ---- */
+.rpt-sel{grid-column:1/-1}
+.sel-sec{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:8px;background:var(--surface)}
+.sel-sec.off{opacity:.6}
+.sel-row{display:flex;align-items:center;gap:10px;min-height:32px}
+.sel-row .chk,.sel-fixed{flex:1;font-weight:500;font-size:14px}
+.sel-count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sel-items{display:flex;flex-direction:column;gap:2px;padding:6px 0 4px 26px;border-top:1px solid var(--line);margin-top:6px}
+.sel-all{display:flex;gap:6px;margin-bottom:4px}
+.sel-item{font-size:13.5px}
+.sel-item small{color:var(--muted);font-size:12px;margin-left:4px}
+
+/* ---- Link público (pestaña Reportes) ---- */
+.rpt-pub{grid-column:1/-1}
+.pub-row{display:flex;align-items:center;gap:12px;margin-top:8px}
+.pub-row .rlab{width:40px;margin:0}
+.pub-val{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.pub-val code{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:5px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pub-val code.pub-pin{font-size:16px;letter-spacing:.3em}
+.pub-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* ---- Página pública /r/{id}: pedido de PIN ---- */
+.pub-gate{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--canvas)}
+.pub-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-xl);padding:28px;display:flex;flex-direction:column;gap:14px}
+.pub-brand{display:flex;align-items:center;gap:8px}
+.pub-card h1{margin:4px 0 0;font-size:22px;font-weight:500;letter-spacing:-.5px}
+.pub-card p{margin:0;color:var(--muted);font-size:14px}
+.pub-card input{font-family:var(--mono);font-size:24px;letter-spacing:.5em;text-align:center;padding:10px;border:1px solid var(--input);border-radius:10px;background:var(--surface)}
+.pub-card .btn{justify-content:center}
+.pub-err{color:var(--prob)!important;min-height:1.2em}
+.pub-consent{margin-top:12px}
+.pub-cons-list{margin:4px 0 0;padding-left:18px;max-height:140px;overflow:auto;font-size:13px}
+.pub-lbl{font-size:13px;font-weight:500;margin-bottom:-8px}
+.pub-card .pub-nombre{font-family:var(--sans);font-size:15px;letter-spacing:0;text-align:left}
+.pub-terms{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.pub-terms p{font-size:12.5px!important;line-height:1.5}
+.pub-check{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;cursor:pointer}

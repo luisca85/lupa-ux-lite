@@ -24,12 +24,12 @@ export function openModal(title,bodyHtml,onSave,extraClass="",onClose=null){
     if(ok!==false)close(); else btn.disabled=false;
   };
 }
-export function openConfirm(title,msg,onYes){
+export function openConfirm(title,msg,onYes,yesLabel="Eliminar"){
   const root=document.getElementById("modalRoot");
   root.innerHTML=`<div class="modal-bg"><div class="modal" style="max-width:420px">
     <div class="modal-h"><h3>${esc(title)}</h3></div>
     <div class="modal-b"><p style="margin:0;color:var(--muted)">${msg}</p></div>
-    <div class="modal-f"><button class="btn ghost" id="cNo">Cancelar</button><button class="btn primary danger" id="cYes" style="background:var(--prob);border-color:var(--prob)">Eliminar</button></div>
+    <div class="modal-f"><button class="btn ghost" id="cNo">Cancelar</button><button class="btn primary danger" id="cYes" style="background:var(--prob);border-color:var(--prob)">${esc(yesLabel)}</button></div>
   </div></div>`;
   const close=()=>root.innerHTML="";
   root.querySelector(".modal-bg").onclick=e=>{if(e.target===root.querySelector(".modal-bg"))close();};
