@@ -21,8 +21,8 @@ migrations_dir = "migrations"
 # Los bindings no se heredan entre entornos: hay que repetir D1 acá.
 [env.production.vars]
 AUTH_MODE = "access"
-ACCESS_TEAM_DOMAIN = "https://REEMPLAZAR.cloudflareaccess.com"
-ACCESS_AUD = "REEMPLAZAR_CON_AUD_DE_LA_APP_DE_ACCESS"
+ACCESS_TEAM_DOMAIN = "https://tight-forest-2b64.cloudflareaccess.com"
+ACCESS_AUD = "1bc8e4aad1fce1a0ecb9b9af4004346d9fd1f10105b0cb444c74bb47bee2da79"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -34,8 +34,8 @@ migrations_dir = "migrations"
 # Mismo candado que producción, pero base APARTE: una rama nunca toca datos reales.
 [env.preview.vars]
 AUTH_MODE = "access"
-ACCESS_TEAM_DOMAIN = "https://REEMPLAZAR.cloudflareaccess.com"
-ACCESS_AUD = "REEMPLAZAR_CON_AUD_DE_LA_APP_DE_ACCESS"
+ACCESS_TEAM_DOMAIN = "https://tight-forest-2b64.cloudflareaccess.com"
+ACCESS_AUD = "1bc8e4aad1fce1a0ecb9b9af4004346d9fd1f10105b0cb444c74bb47bee2da79"
 
 [[env.preview.d1_databases]]
 binding = "DB"
