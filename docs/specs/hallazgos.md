@@ -32,6 +32,9 @@ oportunidades, observaciones) con evidencia visual anotada, y filtrarlo.
   pantalla y etiquetas).
 - Dada una miniatura en la lista, cuando se hace clic, entonces se abre el visor de
   imágenes del hallazgo.
+- Dado el modal con datos cargados, cuando guardar falla (por ejemplo, 413 en modo
+  `server`), entonces aparece un aviso con el error, el modal sigue abierto con lo
+  cargado y "Guardar" se puede volver a usar (vale para todo `openModal`).
 - Dado un hallazgo, cuando se elimina, entonces se borran sus imágenes y sus
   marcadores en las interacciones de flujos (`cleanFlowMarkers`).
 - Dado un hallazgo creado desde una interacción de flujo, cuando se guarda o se
@@ -64,8 +67,8 @@ de evidencia con varias imágenes, anotador y visor.
   ("Sin imágenes" y zona para pegar/arrastrar).
 - Carga: "Cargando imagen..." mientras baja la imagen completa en el modal.
 - Error: toast "No se pudo procesar la imagen"; "No se pudo abrir la imagen." en el
-  panel de evidencia; en modo `server`, toast global con el error del servidor (por
-  ejemplo, 413 si la imagen supera el límite).
+  panel de evidencia; si guardar falla, toast con el error (por ejemplo, 413 si la
+  imagen supera el límite) y el modal queda abierto para reintentar.
 
 ## Diseño
 N/A
@@ -86,6 +89,3 @@ completa + anotaciones en `.../hallazgos/{hid}/imgs/{imgId}`.
 - Borrar un hallazgo no lo quita de los pasos de journey (`paso.hallazgos:[ids]`):
   el contador del paso lo sigue contando aunque no se muestre.
 - Las métricas de Sev 3 y Sev 4 cuentan solo problemas, no oportunidades ni observaciones.
-- Si guardar falla (por ejemplo, 413 en modo `server`), aparece el toast pero el botón
-  "Guardar" del modal queda deshabilitado (`openModal` no captura el error): hay que
-  cerrar el modal y se pierden los cambios.

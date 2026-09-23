@@ -100,6 +100,7 @@ export function hzModal(h,ctx){
   const sel={tipo:h.tipo,sev:(h.severidad??""),heur:new Set(h.heuristicas||[]),sesgos:new Set(h.sesgos||[])};
   let imgs=(h.imgs||[]).map(im=>({...im})); let removed=[]; let pasteHandler=null; let act=-1; const MAXI=8;
   const origIds=new Set((h.imgs||[]).map(im=>im.id));
+  const hzId=h.id||uid(); // fijo al abrir: si guardar falla y se reintenta, no se duplica
   const left=`
     <div class="field"><label>Tipo de hallazgo</label>
       <div class="type-seg" id="typeSeg">${TIPOS.map(t=>`<button type="button" class="seg ${sel.tipo===t?'on':''}" data-t="${t}">${t}</button>`).join("")}</div></div>
@@ -130,7 +131,7 @@ export function hzModal(h,ctx){
   openModal(`${isNew?"Nuevo":"Editar"} hallazgo`,body,async()=>{
     const titulo=document.getElementById("z_tit").value.trim();
     if(!titulo){document.getElementById("z_tit").focus();return false;}
-    const rec={ id:h.id||uid(), tipo:sel.tipo, titulo,
+    const rec={ id:hzId, tipo:sel.tipo, titulo,
       pantalla:document.getElementById("z_pant").value.trim(),
       severidad:sel.sev===""?null:Number(sel.sev),
       descripcion:document.getElementById("z_desc").value.trim(),

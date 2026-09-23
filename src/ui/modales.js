@@ -17,7 +17,11 @@ export function openModal(title,bodyHtml,onSave,extraClass="",onClose=null){
   document.getElementById("mCancel").onclick=close;
   document.getElementById("mSave").onclick=async()=>{
     const btn=document.getElementById("mSave"); btn.disabled=true;
-    const ok=await onSave(); if(ok!==false)close(); else btn.disabled=false;
+    // Si onSave falla, el modal queda abierto con lo cargado para poder reintentar.
+    let ok;
+    try{ ok=await onSave(); }
+    catch(e){ console.error("openModal",e); toast((e&&e.message)||"No se pudo guardar. Probá de nuevo."); ok=false; }
+    if(ok!==false)close(); else btn.disabled=false;
   };
 }
 export function openConfirm(title,msg,onYes){
