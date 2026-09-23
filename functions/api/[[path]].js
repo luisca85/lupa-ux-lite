@@ -73,21 +73,24 @@ async function verifyAccess(request, env) {
   if (!ok) return false;
   const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
   const now = Math.floor(Date.now() / 1000);
-  return payload.iss === team && aud.includes(env.ACCESS_AUD) && payload.exp > now;
+  // Devuelve el payload verificado (trae el email de quien entró) o null.
+  return payload.iss === team && aud.includes(env.ACCESS_AUD) && payload.exp > now ? payload : null;
 }
 
-// Devuelve una Response de error si el pedido no está autorizado, o null si pasa.
+// Devuelve { denied } con una Response de error si el pedido no está autorizado,
+// o { user } con quién entró si pasa.
 async function authorize(request, env) {
   const mode = env.AUTH_MODE || "access";
-  if (mode === "none") return null;
+  if (mode === "none") return { user: { email: null, local: true } };
   if (mode !== "access" || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD)
-    return json({ error: "Acceso no configurado: definí ACCESS_TEAM_DOMAIN y ACCESS_AUD." }, 503);
+    return { denied: json({ error: "Acceso no configurado: definí ACCESS_TEAM_DOMAIN y ACCESS_AUD." }, 503) };
   try {
-    if (await verifyAccess(request, env)) return null;
+    const payload = await verifyAccess(request, env);
+    if (payload) return { user: { email: payload.email || null, local: false } };
   } catch (e) {
-    return json({ error: "Error validando Access: " + e.message }, 503);
+    return { denied: json({ error: "Error validando Access: " + e.message }, 503) };
   }
-  return json({ error: "No autorizado" }, 401);
+  return { denied: json({ error: "No autorizado" }, 401) };
 }
 
 /* ---------- Handler ---------- */
@@ -96,8 +99,12 @@ export async function onRequest({ request, env, params }) {
   const url = new URL(request.url);
   const method = request.method;
 
-  const denied = await authorize(request, env);
+  const { denied, user } = await authorize(request, env);
   if (denied) return denied;
+
+  // Quién está usando la app (sale del token de Access ya verificado).
+  if (route === "me" && method === "GET") return json(user);
+
   if (!env.DB) return json({ error: "Falta el binding D1 'DB'." }, 500);
 
   try {

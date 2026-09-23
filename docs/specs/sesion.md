@@ -26,13 +26,17 @@ login: sigue siendo Access, antes de que cargue la app.
   dice "Desarrollo local", el menú explica que en producción aparece el email, y no
   hay botón de cerrar sesión.
 - Dada la app en modo `idb` (sin API), cuando carga, entonces no aparece el chip.
-- Dada una pantalla chica (≤ 640 px), cuando se ve la barra, entonces el chip muestra
-  solo la inicial.
-- El badge "servidor" sigue en la barra, al lado del chip.
+- Dada una pantalla chica (≤ 640 px, probado en 375 y 320 px), cuando se ve la barra,
+  entonces todo entra sin scroll horizontal: el chip muestra solo la inicial, el
+  logo pierde "UX" (y el texto "Lupa" por debajo de 380 px), la navegación se
+  compacta y el badge de modo pasa a ser un punto (texto en su `title`). El menú del
+  usuario ocupa el ancho de la pantalla.
+- En pantallas grandes, el badge "servidor" sigue en la barra, al lado del chip; en
+  modo servidor el menú además dice "Datos guardados en el servidor".
 
 ## Alcance
 Ruta `GET /api/me`, `authorize()` devolviendo también quién entró, el chip con su
-menú en la barra superior y sus estilos.
+menú en la barra superior y sus estilos, y la barra compacta en pantallas chicas.
 
 ## Fuera de alcance / No tocar
 - Fuera de alcance: login propio, usuarios o roles en D1, datos por usuario, aviso
@@ -68,7 +72,8 @@ N/A
 `functions/api/[[path]].js` (`verifyAccess` devuelve el payload, `authorize` devuelve
 `{denied}` o `{user}`, ruta `me`), `src/ui/sesion.js` (`mountSesion`), el contenedor
 `#userSlot` en `index.html`, la llamada en `init()` de `src/main.js` y los estilos
-`.user-*` al final de `src/styles/base.css`.
+`.user-*` y la barra compacta (`@media (max-width:640px)`) al final de
+`src/styles/base.css`.
 
 ## Conocido
 - En local no hay JWT de Access: el email real y el logout solo se pueden probar en

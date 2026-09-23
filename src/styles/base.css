@@ -356,3 +356,31 @@ header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--g
   .hz-ev-body{min-height:440px}
   .hz-modal .modal-b{overflow-y:auto}
 }
+
+/* ---- Sesión (chip de usuario en la barra superior) ---- */
+.user-slot{position:relative}
+.user-chip{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;background:var(--surface);border:1px solid var(--line-strong);border-radius:20px;color:var(--ink);font-size:12.5px;max-width:240px}
+.user-chip:hover{border-color:var(--accent)}
+.user-av{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:12.5px}
+.user-av.lg{width:36px;height:36px;font-size:15px}
+.user-mail{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:260px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:0 12px 32px rgba(0,0,0,.14);padding:8px;z-index:30}
+.user-menu-h{display:flex;align-items:center;gap:10px;padding:8px 8px 12px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.user-menu-t{font-weight:600;font-size:13.5px;word-break:break-all}
+.user-menu-s{font-size:12px;color:var(--muted)}
+.user-menu-item{display:block;padding:8px 10px;border-radius:var(--radius-sm);color:var(--ink);text-decoration:none;font-size:13.5px}
+.user-menu-item:hover{background:var(--surface-2);color:var(--prob)}
+.user-menu-note{padding:6px 10px 8px;font-size:12.5px;color:var(--muted);line-height:1.45}
+/* Barra compacta en pantallas chicas: el badge de modo pasa a ser un punto (su texto
+   queda en el title y, en modo servidor, en el menú del usuario). */
+@media (max-width:640px){
+  .user-mail{display:none}.user-chip{padding:0 4px}
+  .top-in{gap:4px}
+  .brand{gap:6px}.brand small{display:none}
+  .topnav{margin-left:4px}.topnav button{padding:7px 8px;font-size:13px}
+  .badge-local{font-size:0;width:8px;height:8px;padding:0;border:none;background:var(--accent);flex:none}
+  .icon-btn#themeBtn{width:32px;height:32px}
+  .user-menu{position:fixed;left:12px;right:12px;top:64px;min-width:0}
+}
+@media (max-width:380px){.brand{font-size:0}}
+.user-menu-mode{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--muted);padding:2px 10px 8px}

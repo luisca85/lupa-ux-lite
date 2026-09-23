@@ -9,6 +9,7 @@ import { esc } from "./core/util.js";
 import { DB_MODE, initBackend } from "./data/backend.js";
 import { store } from "./data/store.js";
 import { openClientReport, parseReportHash } from "./reportes/cliente.js";
+import { mountSesion } from "./ui/sesion.js";
 import { brandStore } from "./reportes/comun.js";
 import { toast } from "./ui/modales.js";
 import { initTheme } from "./ui/tema.js";
@@ -28,6 +29,7 @@ async function init(){
   const badge=document.getElementById("localBadge");
   badge.classList.remove("hidden");
   if(DB_MODE==="server"){ badge.textContent="servidor"; badge.title="Los datos se guardan en la base de datos del servidor"; }
+  if(DB_MODE==="server") mountSesion();
   if(DB_MODE==="none"){ badge.textContent="almacenamiento limitado"; badge.title="IndexedDB no está disponible en este navegador: se usa localStorage (~5 MB, las imágenes pueden no entrar)"; }
   try{ state.customHeur=await store.listCustom("heur"); state.customSesgos=await store.listCustom("sesgo"); }catch(e){}
   // Router del reporte online. Robusto ante el redirect del visor (el hash

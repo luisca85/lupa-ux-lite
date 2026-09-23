@@ -25,7 +25,7 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
 - `app/render.js`: `view`, `render()`, navegación.
 - `views/`: home, estudio (shell + submenú), catálogo, hallazgos.
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
-  (motor de pines y dibujo), tema, descargas.
+  (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
 - `journey/`: journey (editor de matriz y emociones), relaciones (sidebar).
 - `reportes/`: comun (marca, `ensureReporte`), propuestas, panel (pestaña Reportes),
@@ -55,6 +55,7 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Protopersonas | Se cargan en Reportes; la pestaña propia es "Próximamente" | `specs/reportes.md` |
 | Métricas | No implementado (pestaña "Próximamente") | — |
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
+| Sesión visible (chip de usuario, logout de Access) | Hecho | `specs/sesion.md` |
 | Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
 
 ## Modelo de datos (API tipo Firestore sobre rutas)
@@ -74,12 +75,13 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
 
 ## API (functions/api)
 - `GET /api/health`, `GET|PUT|DELETE /api/doc?path=`, `GET /api/collection?path=`,
-  `GET /api/export`.
+  `GET /api/export`, `GET /api/me` (quién entró: email del JWT de Access verificado).
 - Tabla `docs(path PK, parent, data JSON, updated_at)`; las colecciones se resuelven
   con `WHERE parent = ?` (índice). Rutas validadas: segmentos `[A-Za-z0-9_.:-]`,
   par = doc, impar = colección. Documentos de hasta ~1,9 MB (límite de fila de D1).
 - Auth: `AUTH_MODE="access"` valida el JWT `Cf-Access-Jwt-Assertion` contra los
   certificados del team (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`); sin config → 503.
+  `authorize()` devuelve `{denied}` o `{user}`; toda ruta pasa por ella.
   `AUTH_MODE="none"` solo para desarrollo local.
 
 ## Persistencia
