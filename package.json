@@ -10,7 +10,8 @@
     "smoke": "node scripts/smoke.mjs",
     "test:e2e": "vite build && playwright test",
     "db:migrate:local": "wrangler d1 migrations apply lupaux --local",
-    "db:migrate:remote": "wrangler d1 migrations apply lupaux --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply lupaux --remote --env production",
+    "db:migrate:preview": "wrangler d1 migrations apply lupaux-preview --remote --env preview"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

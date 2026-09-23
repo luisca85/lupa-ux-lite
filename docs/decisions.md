@@ -72,6 +72,17 @@ el ahorro sería chico frente al peso de las imágenes.
 2026-09-22 - Regresión automatizada con Playwright (`tests/e2e`), en modo servidor
 e IndexedDB. Motivo: red de seguridad para refactors; reemplaza la prueba manual.
 
+2026-09-23 - Previews con base D1 aparte (`lupaux-preview`); producción usa `lupaux`.
+El `database_id` de la sección local de `wrangler.toml` identifica solo la base local.
+Motivo: una rama de prueba desplegada no debe leer ni escribir datos de clientes.
+
+2026-09-23 - Producción en `lupaux.uxuaria.com` (subdominio, no ruta `/lupaux`).
+Motivo: Pages y Access lo cubren sin proxy; una ruta exigiría un Worker y reescribir
+las rutas relativas de la API.
+
+2026-09-23 - Repositorio público en GitHub (`luisca85/lupa-ux-lite`). Motivo: decisión
+del autor; no hay secretos en el repo (la protección es Access, no ocultar IDs).
+
 Decisiones que el código ya traía, sembradas en retrospectiva (spec-lite, camino B):
 - Imágenes comprimidas a JPEG (máx. 1280 px, ~240 KB) con miniatura de 220 px
   guardada en el documento del hallazgo; la imagen completa en un documento

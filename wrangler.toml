@@ -9,10 +9,12 @@ compatibility_date = "2026-05-01"
 [vars]
 AUTH_MODE = "none"
 
+# El database_id de acá solo identifica la base LOCAL (.wrangler/). No cambiarlo:
+# otro valor arranca una base local vacía.
 [[d1_databases]]
 binding = "DB"
 database_name = "lupaux"
-database_id = "REEMPLAZAR_CON_DATABASE_ID"   # lo devuelve: npx wrangler d1 create lupaux
+database_id = "REEMPLAZAR_CON_DATABASE_ID"
 migrations_dir = "migrations"
 
 # --- Producción (rama main) ---
@@ -25,11 +27,11 @@ ACCESS_AUD = "REEMPLAZAR_CON_AUD_DE_LA_APP_DE_ACCESS"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "lupaux"
-database_id = "REEMPLAZAR_CON_DATABASE_ID"
+database_id = "9f07f91f-4ffd-4bff-ade2-f280b022dfc9"
 migrations_dir = "migrations"
 
 # --- Previews (otras ramas) ---
-# Misma base y mismo candado que producción.
+# Mismo candado que producción, pero base APARTE: una rama nunca toca datos reales.
 [env.preview.vars]
 AUTH_MODE = "access"
 ACCESS_TEAM_DOMAIN = "https://REEMPLAZAR.cloudflareaccess.com"
@@ -37,6 +39,6 @@ ACCESS_AUD = "REEMPLAZAR_CON_AUD_DE_LA_APP_DE_ACCESS"
 
 [[env.preview.d1_databases]]
 binding = "DB"
-database_name = "lupaux"
-database_id = "REEMPLAZAR_CON_DATABASE_ID"
+database_name = "lupaux-preview"
+database_id = "bccf1f61-6767-4d41-92b0-02100ae6adae"
 migrations_dir = "migrations"

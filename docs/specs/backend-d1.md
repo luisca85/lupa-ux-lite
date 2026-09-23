@@ -42,7 +42,8 @@ cliente, detección de modo al iniciar y respaldo Exportar/Importar.
 ## Dependencias
 - Cloudflare Pages Functions y D1 (binding `DB`, base `lupaux`), config en `wrangler.toml`.
 - Cloudflare Access (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`) en production y preview.
-- `wrangler` (dev, preview, migraciones `db:migrate:local` / `db:migrate:remote`).
+- `wrangler` (dev, preview, migraciones `db:migrate:local` / `db:migrate:remote` /
+  `db:migrate:preview`). Producción usa la base `lupaux`; previews, `lupaux-preview`.
 - Capa `store` / `flowStore` / `brandStore` de la app, que habla solo con `DB`.
 
 ## Estados (UI)

@@ -53,17 +53,20 @@ La primera vez, `npm run test:e2e` necesita el navegador de Playwright:
 
 1. **Iniciar sesión** en Cloudflare desde la terminal (abre el navegador):
    `npx wrangler login`
-2. **Crear la base D1**: `npx wrangler d1 create lupaux`.
-   Copiá el `database_id` que devuelve y reemplazá `REEMPLAZAR_CON_DATABASE_ID`
-   en las **tres** apariciones de `wrangler.toml`.
-3. **Crear las tablas** en la base remota: `npm run db:migrate:remote`
+2. **Crear las bases D1**: `npx wrangler d1 create lupaux` (producción) y
+   `npx wrangler d1 create lupaux-preview` (previews). Copiá cada `database_id` en su
+   sección de `wrangler.toml` (`env.production` y `env.preview`). El de la sección
+   local no se toca: identifica la base local.
+3. **Crear las tablas**: `npm run db:migrate:remote` (producción) y
+   `npm run db:migrate:preview` (previews).
 4. **Subir el repo a GitHub** y conectarlo: en Cloudflare, *Workers & Pages → Create →
    Pages → Connect to Git*, elegí el repo. Build command: `npm run build`. Build
    output directory: `dist`. Cloudflare lee `wrangler.toml` y conecta D1 solo, y
    toma la versión de Node de `.nvmrc`.
 5. **Proteger con Cloudflare Access** (obligatorio: sin esto la API responde 503):
    - *Zero Trust → Access → Applications → Add an application → Self-hosted*.
-   - Dominios: `lupa-ux.pages.dev` y `*.lupa-ux.pages.dev` (este último cubre los previews).
+   - Dominios: `lupaux.uxuaria.com`, `lupa-ux.pages.dev` y `*.lupa-ux.pages.dev`
+     (este último cubre los previews).
    - Policy: *Allow*, regla *Emails* con los correos habilitados. Login por código al email.
    - Copiá el **Application Audience (AUD) Tag** y tu **team domain**
      (`https://<equipo>.cloudflareaccess.com`) en `wrangler.toml`
