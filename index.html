@@ -10,16 +10,20 @@
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@800&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 
 <header class="top">
   <div class="top-in">
     <button class="brand" id="brandBtn" title="Ir a estudios" aria-label="Inicio">
-      <svg class="glass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/><path d="M10.5 7.8v5.4M7.8 10.5h5.4" opacity=".5"/></svg>
-      Lupa <small>UX</small>
+      <span class="brand-mark"><span class="fig-ico ico-view" aria-hidden="true"></span></span>
+      <span class="brand-txt"><b>uxuaria</b><small>Lupa Ux</small></span>
     </button>
-    <nav class="topnav" id="topNav"></nav>
     <div class="spacer"></div>
+    <nav class="topnav" id="topNav"></nav>
+    <label class="top-search" title="Buscar estudios">
+      <span class="fig-ico ico-search" aria-hidden="true"></span>
+      <input id="topSearch" type="search" placeholder="Buscar estudios" aria-label="Buscar estudios" autocomplete="off">
+    </label>
     <span class="badge-local hidden" id="localBadge" title="Los datos se guardan en este navegador">modo local</span>
     <div class="user-slot" id="userSlot"></div>
     <button class="icon-btn" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema">

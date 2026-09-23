@@ -21,10 +21,16 @@ export async function openStudy(id){
 }
 function renderTopbar(){
   const nav=document.getElementById("topNav");
-  const items=[["home","Estudios"],["catalogo","Catálogo"]];
+  const items=[["home","Estudios","ico-estudios"],["catalogo","Catálogo","ico-catalogo"]];
   const section = state.view==="study" ? "home" : state.view;
-  nav.innerHTML=items.map(i=>`<button data-v="${i[0]}" class="${section===i[0]?'on':''}">${i[1]}</button>`).join("");
+  nav.innerHTML=items.map(i=>`<button data-v="${i[0]}" class="${section===i[0]?'on':''}"><span class="fig-ico ${i[2]}" aria-hidden="true"></span>${i[1]}</button>`).join("");
   nav.querySelectorAll("button").forEach(b=>b.onclick=()=>{ b.dataset.v==="home"?goHome():goCatalogo(); });
+  // Buscador de la barra: filtra los estudios de la home (y lleva a ella si hace falta).
+  const q=document.getElementById("topSearch");
+  if(q){
+    if(q.value!==state.homeQuery) q.value=state.homeQuery;
+    q.oninput=()=>{ state.homeQuery=q.value; if(state.view!=="home"){ state.view="home"; } render(); q.focus(); };
+  }
 }
 function flowCleanup(){
   jrCleanupPop();

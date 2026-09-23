@@ -17,8 +17,10 @@
   --obs:#64748b; --obs-soft:#eef1f5;
   --shadow:0 1px 2px 0 rgb(0 0 0 / .05);
   --shadow-lg:0 10px 30px -6px rgb(0 0 0 / .18), 0 4px 10px -4px rgb(0 0 0 / .12);
-  --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
-  --display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  --sans:"Geist",system-ui,-apple-system,sans-serif;
+  --display:"Geist",system-ui,-apple-system,sans-serif;
+  --brand-font:"Inter",var(--sans);
+  --canvas:#f3f4f6; --radius-xl:14px;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
 :root:not([data-theme="light"]){
@@ -26,7 +28,7 @@
     --background:oklch(0.145 0 0); --foreground:oklch(0.985 0 0);
     --card:oklch(0.205 0 0); --primary:oklch(0.922 0 0); --primary-fg:oklch(0.205 0 0);
     --secondary:oklch(0.269 0 0); --border:oklch(1 0 0 / 12%); --input:oklch(1 0 0 / 18%); --ring:oklch(0.556 0 0);
-    --ground:oklch(0.145 0 0); --surface:var(--card); --surface-2:oklch(0.269 0 0);
+    --ground:oklch(0.145 0 0); --surface:var(--card); --surface-2:oklch(0.269 0 0); --canvas:oklch(0.145 0 0);
     --ink:var(--foreground); --muted:oklch(0.708 0 0); --faint:oklch(0.556 0 0);
     --line:var(--border); --line-strong:oklch(1 0 0 / 22%);
     --accent:var(--primary); --accent-strong:oklch(0.985 0 0); --accent-soft:oklch(0.269 0 0);
@@ -42,7 +44,7 @@
   --background:oklch(0.145 0 0); --foreground:oklch(0.985 0 0);
   --card:oklch(0.205 0 0); --primary:oklch(0.922 0 0); --primary-fg:oklch(0.205 0 0);
   --secondary:oklch(0.269 0 0); --border:oklch(1 0 0 / 12%); --input:oklch(1 0 0 / 18%); --ring:oklch(0.556 0 0);
-  --ground:oklch(0.145 0 0); --surface:var(--card); --surface-2:oklch(0.269 0 0);
+  --ground:oklch(0.145 0 0); --surface:var(--card); --surface-2:oklch(0.269 0 0); --canvas:oklch(0.145 0 0);
   --ink:var(--foreground); --muted:oklch(0.708 0 0); --faint:oklch(0.556 0 0);
   --line:var(--border); --line-strong:oklch(1 0 0 / 22%);
   --accent:var(--primary); --accent-strong:oklch(0.985 0 0); --accent-soft:oklch(0.269 0 0);
@@ -54,7 +56,7 @@
   --shadow-lg:0 10px 34px -6px rgb(0 0 0 / .55), 0 4px 10px -4px rgb(0 0 0 / .4);
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 h1,h2,h3,h4{font-family:var(--display);font-weight:600;margin:0;line-height:1.15;text-wrap:balance}
 button{font-family:inherit;font-size:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit;font-size:inherit;color:var(--ink)}
@@ -63,16 +65,32 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--ink)}
 input:focus,select:focus,textarea:focus,.field input:focus,.field select:focus,.field textarea:focus,.search input:focus{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in srgb,var(--ring) 35%,transparent)}
 
 /* Layout */
-.app{max-width:none;margin:0;padding:0 clamp(16px,3vw,40px) 80px}
-header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:0 clamp(16px,3vw,40px)}
-.top-in{max-width:none;margin:0;display:flex;align-items:center;gap:8px;height:60px}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em;background:none;border:none;padding:0;color:var(--ink);cursor:pointer}
-.brand .glass{width:26px;height:26px;flex:none;color:var(--accent)}
-.brand small{font-family:var(--mono);font-weight:400;font-size:10px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;padding-top:3px}
-.topnav{display:flex;gap:2px;margin-left:12px}
-.topnav button{background:none;border:none;padding:8px 13px;border-radius:8px;color:var(--muted);font-weight:500;cursor:pointer;font-size:14px}
-.topnav button:hover{color:var(--ink);background:var(--surface-2)}
-.topnav button.on{color:var(--accent);background:var(--accent-soft)}
+.app{max-width:none;margin:0;padding:0 clamp(16px,3vw,32px) 80px}
+header.top{position:sticky;top:0;z-index:20;background:var(--background);border-bottom:1px solid var(--line);padding:16px clamp(16px,3vw,32px)}
+.top-in{max-width:none;margin:0;display:flex;align-items:center;gap:16px;min-height:40px}
+/* Íconos del diseño (Figma) usados como máscara: forma exacta, color del texto. */
+.fig-ico{display:inline-block;width:16px;height:16px;flex:none;background:currentColor;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
+.ico-view{--m:url("../assets/figma/marca-view.svg")}
+.ico-estudios{--m:url("../assets/figma/nav-estudios.svg")}
+.ico-catalogo{--m:url("../assets/figma/nav-catalogo.svg")}
+.ico-search{--m:url("../assets/figma/buscar.svg")}
+.ico-chevron{--m:url("../assets/figma/chevron-down.svg")}
+.ico-plus{--m:url("../assets/figma/plus.svg")}
+.brand{display:flex;align-items:center;gap:8px;background:none;border:none;padding:8px 8px 8px 0;border-radius:10px;color:var(--ink);cursor:pointer;text-align:left}
+.brand-mark{width:32px;height:32px;margin:4px;border-radius:4px;background:var(--primary);color:var(--primary-fg);display:grid;place-items:center;flex:none}
+.brand-txt{display:flex;flex-direction:column;white-space:nowrap}
+.brand-txt b{font-family:var(--brand-font);font-weight:800;font-size:20px;line-height:20px;color:var(--ink)}
+.brand-txt small{font-size:12px;line-height:16px;color:var(--muted)}
+.topnav{display:flex;gap:0}
+.topnav button{display:flex;align-items:center;gap:8px;min-height:32px;background:none;border:none;padding:5.5px 8px;border-radius:10px;color:var(--ink);font-weight:500;cursor:pointer;font-size:14px;line-height:20px}
+.topnav button:hover{background:var(--surface-2)}
+.topnav button.on{background:var(--secondary)}
+.top-search{display:flex;align-items:center;gap:6px;width:260px;min-height:32px;padding:6px 10px;border:1px solid var(--input);border-radius:10px;color:var(--ink);cursor:text}
+.top-search .fig-ico{margin:2px}
+.top-search input{flex:1;min-width:0;border:none;background:none;padding:0;font-size:14px;line-height:20px;outline:none;box-shadow:none}
+.top-search:focus-within{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in srgb,var(--ring) 35%,transparent)}
+/* Con menú de usuario, el badge y el botón de tema pasan al menú. */
+.top-in:has(#userSlot:not(:empty)) #localBadge,.top-in:has(#userSlot:not(:empty)) #themeBtn{display:none}
 .spacer{flex:1}
 .badge-local{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:3px 9px;letter-spacing:.04em}
 .icon-btn{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-sm);width:36px;height:36px;display:grid;place-items:center;color:var(--muted)}
@@ -357,30 +375,61 @@ header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--g
   .hz-modal .modal-b{overflow-y:auto}
 }
 
-/* ---- Sesión (chip de usuario en la barra superior) ---- */
+/* ---- Sesión (menú de usuario en la barra superior) ---- */
 .user-slot{position:relative}
-.user-chip{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;background:var(--surface);border:1px solid var(--line-strong);border-radius:20px;color:var(--ink);font-size:12.5px;max-width:240px}
-.user-chip:hover{border-color:var(--accent)}
-.user-av{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:12.5px}
-.user-av.lg{width:36px;height:36px;font-size:15px}
-.user-mail{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-chip{display:flex;align-items:center;gap:6px;width:210px;min-height:36px;padding:8px 8px 8px 10px;background:none;border:none;border-radius:10px;color:var(--ink);text-align:left;cursor:pointer}
+.user-chip:hover{background:var(--surface-2)}
+.user-chip .ico-chevron{color:var(--muted)}
+.user-av{width:32px;height:32px;margin:4px;flex:none;border-radius:999px;display:grid;place-items:center;background:var(--secondary);color:var(--ink);font-weight:600;font-size:13px}
+.user-av.lg{width:36px;height:36px;margin:0;font-size:15px}
+.user-txt{flex:1;min-width:0;display:flex;flex-direction:column;margin-left:2px}
+.user-name{font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-mail{font-size:12px;line-height:16px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .user-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:260px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:0 12px 32px rgba(0,0,0,.14);padding:8px;z-index:30}
 .user-menu-h{display:flex;align-items:center;gap:10px;padding:8px 8px 12px;border-bottom:1px solid var(--line);margin-bottom:6px}
 .user-menu-t{font-weight:600;font-size:13.5px;word-break:break-all}
 .user-menu-s{font-size:12px;color:var(--muted)}
-.user-menu-item{display:block;padding:8px 10px;border-radius:var(--radius-sm);color:var(--ink);text-decoration:none;font-size:13.5px}
-.user-menu-item:hover{background:var(--surface-2);color:var(--prob)}
+.user-menu-mode{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--muted);padding:2px 10px 8px}
+.user-menu-item{display:block;width:100%;text-align:left;background:none;border:none;padding:8px 10px;border-radius:var(--radius-sm);color:var(--ink);text-decoration:none;font-size:13.5px;cursor:pointer}
+.user-menu-item:hover{background:var(--surface-2)}
+.user-menu-item.out:hover{color:var(--prob)}
 .user-menu-note{padding:6px 10px 8px;font-size:12.5px;color:var(--muted);line-height:1.45}
-/* Barra compacta en pantallas chicas: el badge de modo pasa a ser un punto (su texto
-   queda en el title y, en modo servidor, en el menú del usuario). */
+
+/* ---- Home (Figma: proyect Workspace 3) ---- */
+.home{display:flex;flex-direction:column;gap:24px;padding-top:32px}
+.home-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.home-title{margin:0;font-family:var(--sans);font-weight:500;font-size:26px;line-height:26px;letter-spacing:-1px;color:var(--ink)}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.kpi-card,.home-empty{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden}
+.kpi-card{min-height:153px;padding:13.5px 16px;display:flex;flex-direction:column;justify-content:center}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-xl);padding:16px;display:flex;flex-direction:column;gap:16px}
+.kpi p{margin:0}
+.kpi-l{font-size:12px;line-height:16px;font-weight:500;color:var(--muted)}
+.kpi-v{font-size:22px;line-height:26.4px;font-weight:500;letter-spacing:-.5px;color:var(--ink)}
+.kpi-d{font-size:12px;line-height:16px;color:var(--muted)}
+.home-empty{min-height:227px;display:flex;align-items:center;justify-content:center}
+.home-empty-in{display:flex;flex-direction:column;align-items:center;gap:32px;padding:16px;width:100%}
+.home-empty-t{display:flex;flex-direction:column;gap:8px;max-width:466px;text-align:center;color:var(--ink)}
+.home-empty-t p{margin:0}
+.home-empty-t .h{font-size:22px;line-height:26.4px;font-weight:500;letter-spacing:-.5px}
+.home-empty-t .s{font-size:12px;line-height:16px}
+.btn.home-cta{gap:6px;padding:6px 10px;border-radius:10px;font-size:14px;line-height:20px;background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+.home-list-head{display:flex;align-items:center;gap:8px}
+.home-list-head h2{margin:0;font-size:18px;font-weight:500;letter-spacing:-.3px}
+
+/* Barra y home en pantallas medianas y chicas */
+@media (max-width:1100px){.top-search{width:200px}}
+@media (max-width:900px){.top-search{display:none}.user-chip{width:auto;max-width:210px}}
+@media (max-width:720px){.kpi-grid{grid-template-columns:1fr}.kpi-card{min-height:0}}
 @media (max-width:640px){
-  .user-mail{display:none}.user-chip{padding:0 4px}
+  header.top{padding:10px 12px}
   .top-in{gap:4px}
-  .brand{gap:6px}.brand small{display:none}
-  .topnav{margin-left:4px}.topnav button{padding:7px 8px;font-size:13px}
+  .brand-txt small{display:none}.brand-txt b{font-size:17px}
+  .topnav button{padding:6px 7px;font-size:13px;gap:5px}
+  .user-txt,.user-chip .ico-chevron{display:none}.user-chip{padding:0;width:auto}
   .badge-local{font-size:0;width:8px;height:8px;padding:0;border:none;background:var(--accent);flex:none}
   .icon-btn#themeBtn{width:32px;height:32px}
   .user-menu{position:fixed;left:12px;right:12px;top:64px;min-width:0}
+  .home{padding-top:20px;gap:16px}
 }
-@media (max-width:380px){.brand{font-size:0}}
-.user-menu-mode{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--muted);padding:2px 10px 8px}
+@media (max-width:400px){.brand-txt{display:none}.topnav .fig-ico{display:none}}

@@ -17,22 +17,22 @@ login: sigue siendo Access, antes de que cargue la app.
 - Dada la API con `AUTH_MODE="none"` (desarrollo), cuando se pide `GET /api/me`,
   entonces responde `{email:null, local:true}`.
 - Dada la app en modo `server` con sesión de Access, cuando carga, entonces aparece a
-  la derecha de la barra un chip con la inicial y el email; al tocarlo se abre un
-  menú con el email, "Sesión de Cloudflare Access" y "Cerrar sesión".
+  la derecha de la barra el menú de usuario (avatar con la inicial, nombre de la
+  marca, email y flecha); al tocarlo se abre con el email, "Sesión de Cloudflare
+  Access" y "Cerrar sesión". (Formato visual: spec `home`.)
 - Dado el menú abierto, cuando se toca "Cerrar sesión", entonces navega a
   `/cdn-cgi/access/logout` (logout estándar de Access).
 - Dado el menú abierto, cuando se hace clic afuera o se aprieta Esc, entonces se cierra.
-- Dada la app en desarrollo local (`AUTH_MODE="none"`), cuando carga, entonces el chip
-  dice "Desarrollo local", el menú explica que en producción aparece el email, y no
+- Dada la app en desarrollo local (`AUTH_MODE="none"`), cuando carga, entonces el menú
+  de usuario dice "Desarrollo local" / "Sin login", el menú explica que en producción aparece el email, y no
   hay botón de cerrar sesión.
 - Dada la app en modo `idb` (sin API), cuando carga, entonces no aparece el chip.
-- Dada una pantalla chica (≤ 640 px, probado en 375 y 320 px), cuando se ve la barra,
-  entonces todo entra sin scroll horizontal: el chip muestra solo la inicial, el
-  logo pierde "UX" (y el texto "Lupa" por debajo de 380 px), la navegación se
-  compacta y el badge de modo pasa a ser un punto (texto en su `title`). El menú del
-  usuario ocupa el ancho de la pantalla.
-- En pantallas grandes, el badge "servidor" sigue en la barra, al lado del chip; en
-  modo servidor el menú además dice "Datos guardados en el servidor".
+- Dada una pantalla chica (≤ 640 px, probado en 375 px), cuando se ve la barra,
+  entonces todo entra sin scroll horizontal: el menú de usuario muestra solo la
+  inicial y se abre a lo ancho de la pantalla (resto de la barra: spec `home`).
+- Con menú de usuario, el badge de modo y el botón de tema pasan adentro del menú
+  ("Datos guardados en el servidor" y "Cambiar tema claro / oscuro"); sin él (modo
+  `idb`), siguen en la barra.
 
 ## Alcance
 Ruta `GET /api/me`, `authorize()` devolviendo también quién entró, el chip con su

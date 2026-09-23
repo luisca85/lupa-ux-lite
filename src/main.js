@@ -29,7 +29,6 @@ async function init(){
   const badge=document.getElementById("localBadge");
   badge.classList.remove("hidden");
   if(DB_MODE==="server"){ badge.textContent="servidor"; badge.title="Los datos se guardan en la base de datos del servidor"; }
-  if(DB_MODE==="server") mountSesion();
   if(DB_MODE==="none"){ badge.textContent="almacenamiento limitado"; badge.title="IndexedDB no está disponible en este navegador: se usa localStorage (~5 MB, las imágenes pueden no entrar)"; }
   try{ state.customHeur=await store.listCustom("heur"); state.customSesgos=await store.listCustom("sesgo"); }catch(e){}
   // Router del reporte online. Robusto ante el redirect del visor (el hash
@@ -42,6 +41,7 @@ async function init(){
   try{
     state.estudios=await store.listEstudios();
     state.marca=await brandStore.get();
+    if(DB_MODE==="server") mountSesion();
   }catch(e){
     view.innerHTML=`<div class="empty"><h3>No se pudieron cargar los datos</h3><p>${esc(e.message)}</p><button class="btn primary" onclick="location.reload()">Reintentar</button></div>`;
     return;

@@ -80,6 +80,18 @@ Motivo: una rama de prueba desplegada no debe leer ni escribir datos de clientes
 Motivo: Pages y Access lo cubren sin proxy; una ruta exigiría un Worker y reescribir
 las rutas relativas de la API.
 
+2026-09-23 - Tipografía Geist en toda la app (Inter ExtraBold solo en la marca
+"uxuaria"); reemplaza a IBM Plex Sans y Bricolage Grotesque. IBM Plex Mono sigue.
+Motivo: es la tipografía del rediseño en Figma; evita mezclar dos familias.
+
+2026-09-23 - Íconos del Figma como archivos SVG en `src/assets/figma/`, aplicados como
+máscara CSS con el color del texto. Motivo: se usan exactos (sin redibujarlos) y
+funcionan en tema claro y oscuro aunque el SVG traiga colores fijos.
+
+2026-09-23 - Con menú de usuario (modo servidor), el badge de modo y el botón de tema
+pasan adentro del menú. Motivo: la barra del Figma no los muestra; en modo `idb`
+siguen en la barra porque no hay menú.
+
 2026-09-23 - Repositorio público en GitHub (`luisca85/lupa-ux-lite`). Motivo: decisión
 del autor; no hay secretos en el repo (la protección es Access, no ocultar IDs).
 

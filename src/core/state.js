@@ -3,7 +3,7 @@ import { HEUR_NIELSEN, SESGOS_BASE } from "./catalogo-base.js";
 export const state = {
   view:"home", studyTab:"hallazgos", estudios:[], hallazgos:[], customHeur:[], customSesgos:[],
   activeId:null, catFilter:"todos", catQuery:"",
-  hzTipo:"todos", hzSev:"todos", hzHeur:"todos", hzQuery:"",
+  hzTipo:"todos", hzSev:"todos", hzHeur:"todos", hzQuery:"", homeQuery:"",
   flujos:[], _flujosFor:null, flowMode:"list", activeFlowId:null, activeNodeId:null,
   flowVP:{x:40,y:40,k:1}, marca:null
 };

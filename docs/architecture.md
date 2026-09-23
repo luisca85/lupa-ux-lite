@@ -23,7 +23,8 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   `store.js` (estudios, hallazgos, imágenes, catálogo propio), `respaldo.js`
   (exportar / importar datos).
 - `app/render.js`: `view`, `render()`, navegación.
-- `views/`: home, estudio (shell + submenú), catálogo, hallazgos.
+- `views/`: home (KPIs, estado vacío, lista filtrada por el buscador de la barra),
+  estudio (shell + submenú), catálogo, hallazgos.
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
   (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
@@ -32,6 +33,8 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   texto-plano, cliente (reporte online).
 - `share/`: compartir (`collectShareData`, `generateSharePage`) y `boot.js`
   (`SR_boot`, se importa con `?raw` y se incrusta como texto en la página autónoma).
+- `assets/figma/`: íconos SVG exportados del Figma; se usan como máscara (`.fig-ico` en
+  `base.css`) para que tomen el color del tema. No editarlos.
 - `styles/`: base, reportes, flujos, journey, cliente. El orden de import en
   `main.js` es el de la cascada.
 
@@ -55,7 +58,8 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Protopersonas | Se cargan en Reportes; la pestaña propia es "Próximamente" | `specs/reportes.md` |
 | Métricas | No implementado (pestaña "Próximamente") | — |
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
-| Sesión visible (chip de usuario, logout de Access) | Hecho | `specs/sesion.md` |
+| Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
+| Home y barra superior (rediseño Figma) | Hecho | `specs/home.md` |
 | Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
 
 ## Modelo de datos (API tipo Firestore sobre rutas)
