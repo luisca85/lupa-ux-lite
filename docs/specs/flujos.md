@@ -11,8 +11,7 @@ diagrama de interacciones conectadas, cada una con su imagen y sus hallazgos.
   `User Journey`) y descripción opcional, entonces aparece en la lista y se abre
   su editor (el journey abre su propio editor, ver `journeys.md`). Sin nombre no se crea.
 - Dado un flujo existente, cuando se edita, entonces el tipo se muestra fijo y no se
-  puede cambiar (así no se pierden nodos ni conexiones). (Hoy NO implementado; ver
-  `journeys.md`.)
+  puede cambiar (así no se pierden nodos ni conexiones).
 - Dado un flujo abierto, cuando se agrega una interacción, entonces aparece en el
   diagrama como "Interacción N" y se guarda.
 - Dado el diagrama, cuando se arrastra un nodo, el fondo o se usa la rueda / los

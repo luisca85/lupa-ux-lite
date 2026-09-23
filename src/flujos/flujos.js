@@ -75,13 +75,16 @@ export function flowModal(f,opts){
   openModal(`${isNew?"Nuevo":"Editar"} flujo`,`
     <div class="field"><label>Nombre del flujo</label><input id="fl_nombre" value="${esc(f.nombre||"")}" placeholder="Ej: Alta de cuenta y primer depósito"></div>
     <div class="field"><label>Tipo</label>
-      <select id="fl_tipo"><option value="User Flow" ${f.tipo==="User Flow"||!f.tipo?'selected':''}>User Flow</option><option value="User Journey" ${f.tipo==="User Journey"?'selected':''}>User Journey</option></select>
-      <span class="hint">User Flow: recorrido pantalla a pantalla, con diagrama e imágenes. User Journey: mapa de experiencia por etapas, con curva emocional.</span></div>
+      ${isNew?`<select id="fl_tipo"><option value="User Flow" selected>User Flow</option><option value="User Journey">User Journey</option></select>
+      <span class="hint">User Flow: recorrido pantalla a pantalla, con diagrama e imágenes. User Journey: mapa de experiencia por etapas, con curva emocional.</span>`
+      :`<div class="chip plat" id="fl_tipo_fijo" style="align-self:flex-start">${esc(f.tipo||"User Flow")}</div>
+      <span class="hint">El tipo se elige al crear y no se puede cambiar: cada tipo guarda contenido distinto y se perdería.</span>`}</div>
     <div class="field"><label>Descripción / escenario <span class="opt">opcional</span></label><textarea id="fl_desc" placeholder="Tarea, escenario o contexto de este flujo...">${esc(f.descripcion||"")}</textarea></div>
   `,async()=>{
     const nombre=document.getElementById("fl_nombre").value.trim();
     if(!nombre){document.getElementById("fl_nombre").focus();return false;}
-    const tipo=document.getElementById("fl_tipo").value||"User Flow";
+    // Al editar, el tipo no cambia: cambiarlo descartaría nodos/conexiones o etapas/pasos.
+    const tipo=isNew?(document.getElementById("fl_tipo").value||"User Flow"):(f.tipo||"User Flow");
     const rec={ id:f.id||uid(), nombre, tipo,
       descripcion:document.getElementById("fl_desc").value.trim(),
       createdAt:f.createdAt||Date.now() };

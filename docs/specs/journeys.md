@@ -12,7 +12,6 @@ una curva emocional, vinculando cada paso con hallazgos y user flows.
   y `carriles` por defecto, y se abre el editor de journey.
 - Dado un journey existente, cuando se edita desde el lápiz, entonces el tipo se
   muestra fijo y no se puede cambiar (así no se pierden etapas, pasos ni carriles).
-  (Hoy NO implementado: `flowModal` deja cambiar el tipo y arma el registro de cero.)
 - Dado un journey sin pasos, cuando se abre, entonces muestra "Journey vacío" con
   "Agregar paso"; al agregar, el paso nuevo hereda la etapa del último (o la primera
   etapa) y emoción Neutral.
@@ -44,7 +43,7 @@ una curva emocional, vinculando cada paso con hallazgos y user flows.
 
 ## Alcance
 Editor de journey: matriz, etapas, pasos, carriles, curva emocional, panel de
-relaciones por paso, y el bloqueo del tipo al editar.
+relaciones por paso, y el tipo fijo al editar (`flowModal`).
 
 ## Fuera de alcance / No tocar
 - Fuera de alcance: los user flows en sí (ver `flujos.md`) y el alta de hallazgos
