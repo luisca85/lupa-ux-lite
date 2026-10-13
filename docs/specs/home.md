@@ -1,12 +1,13 @@
 # Feature: Home y barra superior (rediseño Figma)  ·  id: home
 
-Historia de usuario: Como consultor/a UX, quiero que la primera pantalla me muestre de
-un vistazo cuántos diagnósticos, clientes y hallazgos tengo, y me lleve a crear el
-primer estudio si no hay ninguno, para arrancar a trabajar sin buscar dónde.
+Historia de usuario: Como consultor/a UX, quiero que la primera pantalla me muestre
+todos mis estudios en un panel y me deje crear uno nuevo con un solo clic, para
+arrancar a trabajar sin buscar dónde.
 
-Objetivo: aplicar el diseño de Figma "proyect Workspace 3" a la home (la primera
-página que recibe al usuario) y a la barra superior de toda la app, con datos reales
-y el estado vacío como caso principal.
+Objetivo: aplicar el diseño de Figma "proyect Workspace 3" a la barra superior de toda
+la app. La home se rediseñó después en la exploración `explorar/pagina-principal`: se
+quitó la sección "Diagnóstico" con sus indicadores y quedó un panel central de
+estudios.
 
 ## Criterios de aceptación
 - Dada cualquier pantalla, cuando se ve la barra superior, entonces muestra: la marca
@@ -21,37 +22,42 @@ y el estado vacío como caso principal.
 - Dado un texto en el buscador, cuando se escribe, entonces la home muestra solo los
   estudios cuyo nombre, cliente, URL o plataforma lo contienen; desde otra pantalla,
   escribir lleva a la home. Sin coincidencias: "Ningún estudio coincide con la búsqueda."
-- Dada la home, cuando se abre, entonces muestra el título "Diagnóstico" y tres
-  indicadores: Diagnósticos (estudios creados en los últimos 30 días), Clientes
-  (clientes distintos, sin distinguir mayúsculas) y Hallazgos (total de todos los
-  estudios, que se completa al terminar de contarlos).
-- Dado que no hay estudios, cuando se abre la home, entonces muestra la tarjeta
-  "Todavía no hay estudios" / "Creá tu primer estudio para empezar a evaluar un sitio
-  o app." con el botón "Crear estudio", que abre el alta de estudio.
-- Dado que hay estudios, cuando se abre la home, entonces debajo de los indicadores
-  aparece "Estudios" con "Nuevo estudio" y la grilla de tarjetas de siempre (con su
-  conteo de hallazgos, editar y borrar).
+- Dada la home, cuando se abre, entonces NO muestra el título "Diagnóstico" ni los
+  indicadores de Diagnósticos, Clientes y Hallazgos. Muestra un panel central:
+  una tarjeta con `--radius-xl`, un ancho máximo de 1440 px y 28 px de padding.
+- Dado el panel, cuando se lee su cabecera, entonces muestra el título "Estudios" y
+  debajo la cantidad ("3 estudios", "1 estudio"). Con texto en el buscador muestra
+  "{n} de {total} estudios coinciden con “{texto}”". Sin estudios muestra
+  "Todavía no hay estudios. Creá el primero para empezar a evaluar un sitio o app.".
 - Dado el backend con respaldo (`DB.dumpAll`), cuando se abre la home, entonces
-  "Exportar datos" e "Importar datos" aparecen a la derecha del título.
-- Dada la app en 1440 px, cuando se compara con el Figma, entonces coinciden: fondo
-  `#f3f4f6`, contenido con 32 px de margen y 24 px entre bloques, indicadores de
-  153 px de alto con 20 px entre ellos y tarjeta vacía de 227 px.
+  "Exportar datos" e "Importar datos" aparecen arriba a la derecha del panel.
+- Dado el panel, cuando hay estudios, entonces se listan como tarjetas en una grilla de
+  4 por fila. Pasa a 3 columnas por debajo de 1200 px, a 2 por debajo de 900 px y a 1
+  por debajo de 560 px. Cada tarjeta tiene su conteo de hallazgos, editar y borrar.
+- Dada la grilla, cuando se mira la primera posición, entonces hay una tarjeta vacía
+  que funciona como botón "Nuevo estudio": borde punteado, ícono "+" y el texto
+  "Cargá cliente, plataforma y URL", del mismo alto que un estudio (208 px). Al
+  tocarla se abre el alta de estudio. Aparece siempre: sin estudios, con estudios y
+  con búsqueda. En celular se ve como una fila compacta.
+- Dada una búsqueda sin coincidencias, cuando se ve la home, entonces queda la
+  tarjeta "Nuevo estudio" y debajo "Ningún estudio coincide con la búsqueda.".
 - Dado el tema oscuro, cuando se ve la home y la barra, entonces el fondo, las
   tarjetas, el texto y los íconos cambian de color y todo se lee.
 - Dada una pantalla chica (probado en 375 px), cuando se ve la home, entonces no hay
-  scroll horizontal: el buscador se oculta por debajo de 900 px, los indicadores van
-  en una columna por debajo de 720 px y la barra queda con marca, navegación e inicial.
+  scroll horizontal: el buscador se oculta por debajo de 900 px, la grilla va en una
+  columna y la barra queda con marca, navegación e inicial.
 - Toda la app usa la tipografía Geist (antes IBM Plex Sans y Bricolage Grotesque);
   IBM Plex Mono sigue para textos monoespaciados.
 
 ## Alcance
 Barra superior (`index.html`, `renderTopbar`), menú de usuario (`ui/sesion.js`), home
-(`views/home.js`), tokens y estilos nuevos en `base.css` (`--canvas`, `--radius-xl`,
+(`views/home.js`: panel de estudios y tarjeta "Nuevo estudio"), tokens y estilos nuevos en `base.css` (`--canvas`, `--radius-xl`,
 fuentes), íconos del Figma en `src/assets/figma/`.
 
 ## Fuera de alcance / No tocar
-- Fuera de alcance: rediseño de la vista de estudio, catálogo, hallazgos, flujos y
-  reportes (solo heredan la fuente y la barra); foto de usuario en el avatar; la nota
+- Fuera de alcance: rediseño de la vista de estudio (spec `proy`), catálogo,
+  hallazgos, flujos y reportes (solo heredan la fuente y la barra); volver a mostrar
+  indicadores en la home; foto de usuario en el avatar; la nota
   al pie ("Lupa UX · cada estudio agrupa…"), que no está en el Figma.
 - No editar los SVG del Figma: se usan como máscara (`.fig-ico`) para que tomen el
   color del tema.
@@ -64,28 +70,36 @@ fuentes), íconos del Figma en `src/assets/figma/`.
 - `marcaActual()` (nombre del menú de usuario) y `GET /api/me` (spec `ses`).
 
 ## Estados (UI)
-- Vacío: tarjeta "Todavía no hay estudios" con "Crear estudio"; con búsqueda sin
-  resultados, "Ningún estudio coincide con la búsqueda."
-- Carga: el indicador Hallazgos muestra "·" hasta terminar de contar. A CONFIRMAR:
-  indicador de carga al abrir la app (hoy se ve la pantalla vacía ~1 s).
-- Error: si falla el conteo de hallazgos de un estudio, cuenta 0 sin aviso.
+- Vacío: el panel con el texto "Todavía no hay estudios…" y solo la tarjeta
+  "Nuevo estudio". Con una búsqueda sin resultados, "Ningún estudio coincide con la
+  búsqueda.".
+- Carga: el conteo de hallazgos de cada tarjeta muestra "·" hasta terminar de contar.
+  A CONFIRMAR: indicador de carga al abrir la app (hoy se ve la pantalla vacía ~1 s).
+- Error: si falla el conteo de hallazgos de un estudio, su tarjeta queda en "·" sin aviso.
 
 ## Diseño
 Figma "Lupa-UX", frame "proyect Workspace 3":
 https://www.figma.com/design/UCD0n9KHtihWGtd8kR5Z5D/Lupa-UX?node-id=2045-1078
 
-Desvíos acordados respecto del Figma: avatar con inicial (no hay fotos), nombre desde
-la marca, "Exportar/Importar datos" junto al título, tema y badge dentro del menú de
-usuario, texto guía en el buscador, lista de estudios debajo de los indicadores
-cuando hay datos, y "Catálogo" / "mes" con la ortografía corregida.
+La home (panel de estudios) no sigue el Figma: se definió en la exploración
+`explorar/pagina-principal` (commit `fddbb98`), que sirve de referencia visual.
+
+Desvíos acordados respecto del Figma en la barra: avatar con inicial (no hay fotos),
+nombre desde la marca, tema y badge dentro del menú de usuario, texto guía en el
+buscador y "Catálogo" con la ortografía corregida.
 
 ## Definición de hecho
 - La de AGENTS.md: `npm run check`, `npm run smoke` y `npm run test:e2e` pasan.
-- Propio: comparar en 1440 px contra el Figma (estado vacío con base vacía), revisar
-  tema oscuro y 375 px sin scroll horizontal, y que el buscador filtre.
+- Propio:
+  - Comparar la barra en 1440 px contra el Figma.
+  - Ver la home con base vacía, con estudios y con una búsqueda sin coincidencias.
+  - Que la tarjeta "Nuevo estudio" abra el alta.
+  - Revisar el tema oscuro, la grilla en 1440, 1100, 800 y 375 px, y que en 375 px no
+    haya scroll horizontal.
+  - Actualizar `architecture.md` (descripción de `views/home.js`).
 
 ## Dónde vive
 `index.html` (barra), `src/app/render.js` (`renderTopbar`, buscador),
-`src/views/home.js` (`renderHome`, `kpiCard`), `src/ui/sesion.js` (menú de usuario),
+`src/views/home.js` (`renderHome`, `studyCard`), `src/ui/sesion.js` (menú de usuario),
 `src/core/state.js` (`homeQuery`), `src/styles/base.css` (tokens, `.fig-ico`, barra,
-`.home`, `.kpi*`, `.home-empty`) y `src/assets/figma/` (íconos).
+`.home`, `.home-panel`, `.hp-*`, `.study-add`, `.sa-*`) y `src/assets/figma/` (íconos).
