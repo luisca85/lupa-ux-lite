@@ -1,7 +1,7 @@
 import { goHome, openStudy, render, view } from "../app/render.js";
 import { ESTADOS, PLATAFORMAS } from "../core/catalogo-base.js";
 import { STUDY_TABS, activeStudy, state } from "../core/state.js";
-import { esc, uid } from "../core/util.js";
+import { LS, esc, uid } from "../core/util.js";
 import { store } from "../data/store.js";
 import { renderFlujosInto } from "../flujos/flujos.js";
 import { renderProyectoInto, renderReportesInto } from "../reportes/panel.js";
@@ -9,43 +9,73 @@ import { bigIco, chevL, pencil } from "../ui/iconos.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
 import { renderHallazgosInto } from "./hallazgos.js";
 import { renderHome } from "./home.js";
+import { renderResumenInto } from "./resumen.js";
 
 /* ============ Vista: Estudio (shell + submenú) ============ */
 export function renderStudyShell(){
   const est=activeStudy();
   if(!est){ state.view="home"; return renderHome(); }
+  const plegado=!!LS.get("lupa:side",false);
+  const tab=STUDY_TABS.find(t=>t.id===state.studyTab)||STUDY_TABS[0];
+  const navBtn=t=>`<button data-t="${t.id}" class="${tab.id===t.id?'on':''}" title="${t.label}"${tab.id===t.id?' aria-current="page"':''}>${bigIco(t.ico)}<span class="lb">${t.label}</span>${t.id==="hallazgos"?`<span class="cnt">${state.hallazgos.length}</span>`:""}</button>`;
   view.innerHTML=`
-    <div class="study-head">
-      <div class="sh-main">
-        <button class="btn ghost sm back" id="backHome">${chevL()} Estudios</button>
+    <div class="proj${plegado?' plegado':''}">
+    <header class="study-head">
+      <nav class="sh-crumbs" aria-label="Ruta">
+        <button class="sh-back" id="backHome">${chevL()} Estudios</button>
+        <span class="sep" aria-hidden="true">/</span>
+        <span class="cur">${esc(est.nombre)}</span>
+        <span class="sep" aria-hidden="true">/</span>
+        <span class="cur sec">${tab.label}</span>
+      </nav>
+      <div class="sh-row">
         <div class="sh-title">
-          <h2>${esc(est.nombre)}</h2>
-          <div class="sh-meta">
-            ${est.cliente?`<span class="who">${esc(est.cliente)}</span>`:""}
-            ${est.plataforma?`<span class="chip plat">${esc(est.plataforma)}</span>`:""}
-            ${est.estado?`<span class="chip estado" data-e="${esc(est.estado)}">${esc(est.estado)}</span>`:""}
-            ${est.url?`<a class="url" href="${esc(est.url)}" target="_blank" rel="noopener">${esc(est.url)}</a>`:""}
-          </div>
+          <h1>${esc(est.nombre)}</h1>
+          <dl class="sh-meta">
+            ${est.cliente?`<div class="mi"><dt>Cliente</dt><dd class="who">${esc(est.cliente)}</dd></div>`:""}
+            ${est.plataforma?`<div class="mi"><dt>Plataforma</dt><dd>${esc(est.plataforma)}</dd></div>`:""}
+            ${est.url?`<div class="mi"><dt>URL</dt><dd><a class="url" href="${esc(est.url)}" target="_blank" rel="noopener">${esc(est.url.replace(/^https?:\/\//,""))}</a></dd></div>`:""}
+          </dl>
+        </div>
+        <div class="sh-side">
+          ${est.estado?`<span class="sh-status" data-e="${esc(est.estado)}"><i aria-hidden="true"></i>${esc(est.estado)}</span>`:""}
+          <button class="btn sm" id="editStudy">${pencil()} Editar estudio</button>
         </div>
       </div>
-      <button class="btn ghost sm" id="editStudy">${pencil()} Editar estudio</button>
-    </div>
-    <nav class="subtabs" id="subtabs">${STUDY_TABS.map(t=>`<button data-t="${t.id}" class="${state.studyTab===t.id?'active':''}">${t.label}${t.id==="hallazgos"?`<span class="cnt">${state.hallazgos.length}</span>`:""}</button>`).join("")}</nav>
-    <div id="studyContent"></div>`;
+    </header>
+      <div class="proj-body">
+        <aside class="proj-side" aria-label="Navegación del proyecto">
+          <div class="ps-head">
+            <span class="ps-title">Menú del proyecto</span>
+            <button class="ps-toggle" id="sideToggle" title="${plegado?'Desplegar':'Plegar'} menú" aria-label="${plegado?'Desplegar':'Plegar'} menú" aria-expanded="${!plegado}">${bigIco("side")}</button>
+          </div>
+          <nav class="ps-nav" id="psNav">
+            <span class="ps-lab">Proyecto</span>
+            ${STUDY_TABS.filter(t=>!t.grupo).map(navBtn).join("")}
+            <span class="ps-lab">Salida</span>
+            ${STUDY_TABS.filter(t=>t.grupo==="salida").map(navBtn).join("")}
+          </nav>
+        </aside>
+        <section class="proj-main" id="studyContent"></section>
+      </div>
+    </div>`;
   document.getElementById("backHome").onclick=goHome;
   document.getElementById("editStudy").onclick=()=>studyModal(est);
-  document.getElementById("subtabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{state.studyTab=b.dataset.t;if(b.dataset.t==="flujos")state.flowMode="list";render();});
+  document.getElementById("sideToggle").onclick=()=>{ LS.set("lupa:side",!plegado); render(); };
+  document.getElementById("psNav").querySelectorAll("button").forEach(b=>b.onclick=()=>goStudyTab(b.dataset.t));
   const c=document.getElementById("studyContent");
-  if(state.studyTab==="hallazgos") renderHallazgosInto(c,est);
-  else if(state.studyTab==="flujos") renderFlujosInto(c,est);
-  else if(state.studyTab==="reportes") renderReportesInto(c,est);
-  else if(state.studyTab==="proyecto") renderProyectoInto(c,est);
-  else renderSoon(c,state.studyTab);
+  if(tab.id==="resumen") renderResumenInto(c,est);
+  else if(tab.id==="hallazgos") renderHallazgosInto(c,est);
+  else if(tab.id==="flujos") renderFlujosInto(c,est);
+  else if(tab.id==="reportes") renderReportesInto(c,est);
+  else if(tab.id==="proyecto") renderProyectoInto(c,est);
+  else renderSoon(c,tab.id);
 }
+export function goStudyTab(t){ state.studyTab=t; if(t==="flujos")state.flowMode="list"; render(); window.scrollTo(0,0); }
 function renderSoon(c,tab){
   const info={
     flujos:["flow","Flujos","Evaluá recorridos por tarea o escenario, no solo pantallas sueltas. Vas a poder armar escenarios y revisar cada paso del recorrido."],
-    protopersonas:["user","Protopersonas","Creá protopersonas a partir de la información del cliente para dar contexto a los hallazgos."],
+    protopersonas:["user","Protopersonas","Creá protopersonas a partir de la información del cliente para dar contexto a los hallazgos. Por ahora se cargan en Configuración."],
     metricas:["chart","Métricas","Métricas de usabilidad basadas en eficiencia y eficacia (tasa de éxito, tiempos, errores por tarea)."],
     reportes:["report","Reportes","Generá un reporte visual y textual con los hallazgos, oportunidades y recomendaciones del estudio."]
   }[tab];

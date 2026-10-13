@@ -24,7 +24,8 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   (exportar / importar datos).
 - `app/render.js`: `view`, `render()`, navegación.
 - `views/`: home (KPIs, estado vacío, lista filtrada por el buscador de la barra),
-  estudio (shell + submenú), catálogo, hallazgos.
+  estudio (subheader a lo ancho + sidebar plegable con `STUDY_TABS`), resumen (dashboard
+  del proyecto: problemas, hallazgos, protopersonas, flujos), catálogo, hallazgos.
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
   (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
@@ -62,7 +63,8 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
 | Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
 | Home y barra superior (rediseño Figma) | Hecho | `specs/home.md` |
-| Proyecto, qué ve el cliente, link público con PIN | Hecho | `specs/reportes.md` |
+| Proyecto con sidebar y dashboard de Resumen | Hecho | `specs/proyecto.md` |
+| Configuración (antes pestaña Proyecto), qué ve el cliente, link público con PIN | Hecho | `specs/reportes.md` |
 | Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
 
 ## Modelo de datos (API tipo Firestore sobre rutas)

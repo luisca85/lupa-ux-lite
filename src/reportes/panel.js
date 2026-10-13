@@ -35,7 +35,7 @@ export function renderReportesInto(c,est){
       <div class="rpt-group rpt-sel"><h4>Qué ve el cliente</h4>
         <p class="rhint">Prendé o apagá secciones y elegí ítem por ítem. Lo que ocultes no se incluye en la vista previa, la página para compartir ni el link público. Lo nuevo aparece visible.</p>
         <div id="rptSel"></div>
-        <p class="rhint" style="margin-top:10px">La información del proyecto (resumen, diagnóstico, protopersonas, propuestas y muestra) se carga en la pestaña <b>Proyecto</b>.</p></div>
+        <p class="rhint" style="margin-top:10px">La información del proyecto (resumen, diagnóstico, protopersonas, propuestas y muestra) se carga en <b>Configuración</b>.</p></div>
     </div>
   </div>`;
   c.querySelector("#rptBrand").onclick=()=>brandModal();
@@ -116,7 +116,7 @@ function renderSeleccion(box,est,r){
   box.querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>all(+b.dataset.all,false));
   box.querySelectorAll("[data-none]").forEach(b=>b.onclick=()=>all(+b.dataset.none,true));
 }
-/* Información general del proyecto (vive en estudio.reporte; se edita en la pestaña Proyecto). */
+/* Información general del proyecto (vive en estudio.reporte; se edita en Configuración, antes pestaña Proyecto). */
 export function renderProyectoInto(c,est){
   const r=ensureReporte(est);
   c.innerHTML=`<div class="rpt-wrap2">

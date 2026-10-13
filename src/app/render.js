@@ -14,7 +14,7 @@ export function goHome(){ state.view="home"; render(); }
 function goCatalogo(){ state.view="catalogo"; render(); }
 export async function openStudy(id){
   state.activeId=id; LS.set("lupa:active",id);
-  state.view="study"; state.studyTab="hallazgos";
+  state.view="study"; state.studyTab="resumen";
   state.hzTipo="todos"; state.hzSev="todos"; state.hzHeur="todos"; state.hzQuery="";
   state.hallazgos=await store.listHallazgos(id);
   render();
@@ -48,6 +48,8 @@ export function render(){
   document.getElementById("footNote").textContent = USE_DB
     ? "Lupa UX · cada estudio agrupa sus hallazgos, flujos, protopersonas, métricas y reportes. Los datos se guardan de forma persistente."
     : "Lupa UX · vista de trabajo local: los datos se guardan en este navegador. Publicada, guarda de forma persistente.";
+  document.body.classList.toggle("in-study",state.view==="study");
+  const top=document.querySelector("header.top"); if(top) document.documentElement.style.setProperty("--top-h",top.offsetHeight+"px");
   if(state.view==="catalogo") return renderCatalogo();
   if(state.view==="study") return renderStudyShell();
   return renderHome();

@@ -13,6 +13,7 @@ lectura protegido con PIN y consentimiento.
 ## Criterios de aceptación
 
 ### Pestaña Proyecto (información general del estudio)
+> Desde la spec `proy`, esta sección se llama **Configuración** en el sidebar del proyecto; el contenido no cambió.
 - Dado un estudio, cuando se abre, entonces la primera pestaña es "Proyecto" y
   contiene Resumen ejecutivo, Diagnóstico estratégico, Protopersonas, Propuestas de
   trabajo y Muestra inicial; los cambios se guardan solos (~600 ms) y sobreviven a

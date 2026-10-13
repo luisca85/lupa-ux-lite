@@ -73,10 +73,9 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
   - Con protopersonas cargadas (`estudio.reporte.protopersonas`), muestra hasta 4 cards
     con foto o inicial, nombre, arquetipo, edad y ocupación.
   - Sin protopersonas, muestra un punto de entrada con el texto guía y el botón
-    "Crear protopersona". A dónde lleva ese botón: A CONFIRMAR (en la exploración lleva a
-    Configuración, donde se cargan hoy).
-  - A dónde lleva tocar una card de protopersona mientras la sección siga como
-    "Próximamente": A CONFIRMAR.
+    "Crear protopersona", que lleva a Configuración (donde se cargan hoy).
+  - Tocar una card de protopersona, o "Editar", lleva a Configuración mientras la sección
+    Protopersonas siga como "Próximamente".
 - **Flujos:**
   - Lista hasta 5 flujos y journeys con ícono, nombre, tipo y la cantidad de
     interacciones (User Flow) o etapas (User Journey), más los hallazgos marcados si hay.
@@ -125,9 +124,8 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
   - La card Hallazgos muestra "Registrá el primer problema, oportunidad u observación.".
   - Protopersonas y Flujos muestran su punto de entrada.
 - Carga: la card Flujos muestra "Cargando flujos…" hasta que llega la lista.
-- Error:
-  - Si falla la carga de flujos, la card queda en "Cargando flujos…" sin aviso.
-    Qué mostrar en ese caso: A CONFIRMAR.
+- Error: si falla la carga de flujos, la card muestra "No se pudieron cargar los flujos."
+  con "Reintentar", que vuelve a pedirlos.
 
 ## Diseño
 N/A: el diseño se definió en la exploración (rama `explorar/subheader-estudio`, commits
