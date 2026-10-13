@@ -23,7 +23,7 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   `store.js` (estudios, hallazgos, imágenes, catálogo propio), `respaldo.js`
   (exportar / importar datos).
 - `app/render.js`: `view`, `render()`, navegación.
-- `views/`: home (KPIs, estado vacío, lista filtrada por el buscador de la barra),
+- `views/`: home (panel de estudios 4 por fila con la tarjeta "Nuevo estudio", filtrado por el buscador de la barra),
   estudio (subheader a lo ancho + sidebar plegable con `STUDY_TABS`), resumen (dashboard
   del proyecto: problemas, hallazgos, protopersonas, flujos), catálogo, hallazgos.
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
@@ -62,7 +62,7 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Métricas | No implementado (pestaña "Próximamente") | — |
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
 | Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
-| Home y barra superior (rediseño Figma) | Hecho | `specs/home.md` |
+| Home (panel de estudios) y barra superior (Figma) | Hecho | `specs/home.md` |
 | Proyecto con sidebar y dashboard de Resumen | Hecho | `specs/proyecto.md` |
 | Configuración (antes pestaña Proyecto), qué ve el cliente, link público con PIN | Hecho | `specs/reportes.md` |
 | Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
