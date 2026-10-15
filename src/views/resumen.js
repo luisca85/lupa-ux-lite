@@ -83,12 +83,12 @@ function cardHallazgos(hz){
 
 function cardProtopersonas(pps){
   return `<article class="dcard dc-pp">
-    ${dcHead("Protopersonas",pps.length?`${pps.length} ${pps.length===1?"protopersona":"protopersonas"} en el estudio`:"Le dan contexto a los hallazgos",pps.length?verTodo("proyecto","Editar"):"")}
-    ${pps.length?`<div class="pp-grid">${pps.slice(0,4).map(p=>`<button class="pp-card" data-go="proyecto" title="Editar en Configuración">
+    ${dcHead("Protopersonas",pps.length?`${pps.length} ${pps.length===1?"protopersona":"protopersonas"} en el estudio`:"Le dan contexto a los hallazgos",pps.length?verTodo("protopersonas","Editar"):"")}
+    ${pps.length?`<div class="pp-grid">${pps.slice(0,4).map(p=>`<button class="pp-card" data-go="protopersonas" title="Ver en Protopersonas">
         ${p.foto?`<img src="${p.foto}" alt="">`:`<span class="pp-av" aria-hidden="true">${esc((p.nombre||"?").charAt(0).toUpperCase())}</span>`}
         <span class="pp-tx"><b>${esc(p.nombre||"Protopersona")}</b>${p.titulo?`<span>${esc(p.titulo)}</span>`:""}<small>${[p.edad?esc(p.edad)+" años":"",esc(p.ocupacion||"")].filter(Boolean).join(" · ")}</small></span>
       </button>`).join("")}</div>`
-    :`<div class="dc-start">${bigIco("user")}<p>Todavía no hay protopersonas. Creá la primera a partir de lo que sabés del cliente y sus usuarios.</p><button class="btn sm" data-go="proyecto">${plus()} Crear protopersona</button></div>`}
+    :`<div class="dc-start">${bigIco("user")}<p>Todavía no hay protopersonas. Creá la primera a partir de lo que sabés del cliente y sus usuarios.</p><button class="btn sm" data-go="protopersonas">${plus()} Crear protopersona</button></div>`}
   </article>`;
 }
 

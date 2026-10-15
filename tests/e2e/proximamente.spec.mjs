@@ -18,6 +18,11 @@ test("Flujos y Protopersonas muestran Próximamente", async ({ page }, testInfo)
   }
   await expect(page.getByRole("button", { name: /Crear flujo|Nuevo flujo/ })).toHaveCount(0);
 
+  // Desde el Resumen, "Crear protopersona" lleva a Protopersonas (Próximamente), no a Configuración.
+  await page.locator("#psNav").getByRole("button", { name: /^Resumen/ }).click();
+  await page.getByRole("button", { name: "Crear protopersona" }).click();
+  await expect(page.locator(".soon-page")).toContainText("crear aquí las protopersonas");
+
   // Mientras Flujos esté en Próximamente, el formulario de Hallazgos no ofrece "Paso de flujo".
   await page.locator("#psNav").getByRole("button", { name: /^Hallazgos/ }).click();
   await page.locator("#wsUp").click();
