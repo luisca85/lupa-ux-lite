@@ -28,11 +28,21 @@ campos compactos). Sale de la exploración `explorar/layout-figma`.
 - El botón dentro de un estado vacío usa 10 px. Un cambio de radio se hace en el token,
   no componente por componente.
 
+### Severidad: un solo juego de colores en toda la app
+- `--sev0` #8b95a5 (No es problema), `--sev1` #5b8def (Cosmético), `--sev2` #d99a2b (Menor),
+  `--sev3` #e0703a (Mayor), `--sev4` #e5484d (Catástrofe). Los usan la escala de severidad
+  (el valor elegido toma su color), los filtros por severidad (borde de su color; el activo,
+  relleno), los pines y las tarjetas de hallazgos, el Resumen, el editor y el reporte del
+  cliente (`RSEV` en `share/boot.js` y `rptSevColor` en `reportes/comun.js` tienen los
+  mismos valores). Las etiquetas son las de `SEVERIDAD` (catalogo-base): nivel 4 =
+  "Catástrofe".
+
 ### Estado seleccionado
-- Dado un elemento seleccionado (chip de filtro activo, hallazgo elegido en el panel,
-  severidad elegida, botón principal del panel), cuando se ve, entonces usa `--sel`
-  (#1d5fd0; #3b82f6 en tema oscuro) con texto `--sel-fg` (blanco). Los bordes de campos
-  compactos usan `--line-input` (#d4d4d4).
+- Pestaña de pantalla activa (Button Group): fondo negro y texto blanco (invertido en tema
+  oscuro).
+- Chip "Todas", pin activo y botón principal del área de Hallazgos: `--sel` (#1d5fd0;
+  #3b82f6 en tema oscuro) con texto `--sel-fg` (blanco). Los bordes de campos compactos usan
+  `--line-input` (#d4d4d4).
 
 ### Componentes
 - **Botón (`.btn`):** radio 8, borde `--line`; `sm` con padding 4 × 10 px y 14 px.
@@ -45,7 +55,15 @@ campos compactos). Sale de la exploración `explorar/layout-figma`.
 - **Aviso (`.alert`):** borde, radio 10, padding 8 × 12, ícono de 16 px y texto 14 px.
 - **Chip de filtro (`.chip-f`):** 26 px de alto, pill, 12 px medium; activo en `--sel`.
 - **Escala de severidad (`.sev-scale`):** cinco botones 0–4 de 32 px, radio 4; el elegido
-  en `--sel`.
+  con el color de su severidad.
+- **Button Group de pantallas (`.ws-gbtn`):** botones unidos de 14 px medium, padding 6 × 10,
+  radio 10 en las puntas, borde `--line`; el nombre largo termina en "…".
+- **Botón "Nueva pantalla" (`.ws-new`):** azul #2563eb, 28 px de alto, radio 4, texto blanco
+  e ícono `mas.svg` a la derecha.
+- **Botones del popover y del panel de Hallazgos (`.btn-q`):** 34 px de alto, radio 4, borde
+  `--line-input`; `.btn-q.sel` en #1d5fd0.
+- **Herramientas del lienzo (`.ws-tool`, `.ws-zoom`):** blancas, borde `--line-input`,
+  radio 4; íconos `pantalla-cambiar.svg` y `eliminar.svg`.
 - **Campo compacto (`.pf`):** etiqueta 13 px y control con borde `--line-input`, radio 4,
   13 px; `.pf-row` pone dos campos por fila.
 
@@ -85,5 +103,6 @@ Componentes locales en el frame "Componentes · Lupa UX" (node 7:90).
 
 ## Dónde vive
 `src/styles/base.css`: bloques "Ajuste Figma …" (`--sel`, `.btn`, `.empty`, `.alert`,
-`.chip-f`, `.sev-scale`, `.pf`) y "Radios del DS" (`--r-*`). Íconos en
-`src/assets/figma/volver.svg` y `src/assets/figma/catalogo-abrir.svg`.
+`.chip-f`, `.sev-scale`, `.pf`), "Radios del DS" (`--r-*`) y "Hallazgos v2.1" (severidad,
+`.ws-*`, `.btn-q`). Íconos en `src/assets/figma/` (`volver`, `catalogo-abrir`, `mas`,
+`pantalla-cambiar`, `eliminar`, `nube`).

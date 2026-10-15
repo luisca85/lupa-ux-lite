@@ -1,148 +1,186 @@
-# Feature: Hallazgos con evidencia anotada  ·  id: hz
+# Feature: Hallazgos sobre pantallas (modelo v2)  ·  id: hz
 
-Historia de usuario: Como consultor/a UX, quiero registrar cada hallazgo con
-evidencia anotada, para fundamentar el diagnóstico ante el cliente.
+Historia de usuario: Como consultor/a UX, quiero cargar cada pantalla del producto una sola
+vez y marcar sobre ella cada hallazgo con un pin, para registrar la evaluación rápido y
+fundamentar el diagnóstico ante el cliente sin repetir imágenes.
 
-Objetivo: registrar lo observado en una evaluación heurística (problemas,
-oportunidades, observaciones) con evidencia visual anotada, y revisarlo y editarlo desde
-un panel con el catálogo a mano.
+Objetivo: la Pantalla pasa a ser una entidad del estudio y el hallazgo es siempre atómico
+(un pin o un comentario = un hallazgo). Se registra con un clic sobre la captura, se edita
+en un panel lateral y los datos v1 (imágenes dentro de cada hallazgo) se migran sin perder
+nada. Sale de la exploración `explorar/modelo-pantallas`.
+
+## Modelo de datos (v2)
+- **Pantalla** `estudios/{id}/pantallas/{pid}`: `nombre`, `origen` ("imagen" | "url"),
+  `url`, `orden`, `w`, `h`, `thumb` (220 px), `hash`, `createdAt`. La imagen completa va
+  aparte en `estudios/{id}/pantallas/{pid}/img/full` (`{base, w, h}`). No tiene hallazgos
+  propios: solo los recibe.
+- **Hallazgo** `estudios/{id}/hallazgos/{hid}`: `titulo`, `descripcion`, `recomendacion`,
+  `severidad` (0–4 o null), `catalogoIds` (heurísticas y sesgos, muchos a muchos con el
+  catálogo global), `pantallaId` (opcional), `pin {x, y}` (relativo 0–1, solo con pantalla),
+  `flujoId` + `pasoId` (interacción de un User Flow, opcional), `createdAt`, `modelo: 2`.
+  Se conservan los campos v1 que existan (`tipo`, `categoria`, `tags`, `pantalla` como
+  texto, `imgsV1`) aunque la interfaz no los edite.
+- **Catálogo**: global, no depende del estudio (sin cambios).
+- Reglas:
+  1. El hallazgo es atómico: nunca hay hallazgos dentro de hallazgos.
+  2. `pantallaId` y `pasoId` son independientes (uno, otro, ambos o ninguno).
+  3. `pin` solo existe si hay pantalla; se guarda relativo para que no se rompa al cambiar
+     el tamaño.
+  4. Sin pantalla = observación general del estudio (no es un error).
+  5. La numeración visible de los pines es por pantalla, en orden de creación.
+  6. Al quitar la pantalla se borra el pin; al asignar una pantalla sin pin, el pin va al
+     centro (0.5, 0.5).
+  7. Un hallazgo creado desde Hallazgos, desde una interacción de flujo o desde un paso de
+     journey tiene los mismos campos (`nuevoHallazgo`); solo cambia el contexto.
+- Severidad inicial de un hallazgo nuevo: **1** (`SEV_DEFAULT`).
 
 ## Criterios de aceptación
 
-### Sección Hallazgos: área de trabajo + panel
-- Dada la sección Hallazgos, cuando se abre, entonces se divide en un área de trabajo a la
-  izquierda y un panel de 480 px a la derecha (borde izquierdo `--line-input`). Juntos
-  ocupan el 100% del alto disponible: la página mide lo que la ventana y el panel y el
-  área de trabajo hacen scroll por dentro. Por debajo de 1000 px el panel pasa abajo y la
-  página vuelve a hacer scroll normal.
-- Dada el área de trabajo, cuando se ve, entonces arriba a la derecha está el botón azul
-  "Agregar hallazgo" (abre la página de alta) y debajo el estado vacío "Este estudio
-  todavía no tiene pantallas", con el texto guía y "Subir imagen", que también abre la
-  página de alta.
-- Dado el panel, cuando se ve, entonces muestra "Hallazgos" con la cantidad del estudio
-  ("18 en el estudio") y arriba a la derecha el botón "Catálogo →".
-- Dado el panel, cuando hay hallazgos, entonces muestra chips de filtro por tipo
-  (Todas, Problemas, Oportunidades, Observaciones; el activo en `--sel`) y la lista: cada
-  hallazgo con su número en un círculo, el título y la línea "Tipo · Sev. N · heurística".
-  La lista tiene un alto máximo (`min(330px, 38vh)`) y scroll propio.
-- Dado un hallazgo de la lista, cuando se lo toca, entonces queda seleccionado (borde y
-  número en `--sel`) y debajo aparece "Editar hallazgo N" con título, descripción,
-  severidad 0–4 (escala de botones; tocar la marcada la desmarca), tipo, pantalla y
-  "Entradas del catálogo" (heurística principal). Al abrir la sección queda seleccionado
-  el primero de la lista filtrada.
-- Dada la edición rápida, cuando se toca "Guardar cambios", entonces se guarda el
-  hallazgo conservando el resto de sus datos (imágenes, anotaciones, sesgos, etiquetas,
-  relación con flujos), aparece "Hallazgo actualizado" y la lista se refresca. Sin título
-  no se guarda. "Cancelar" descarta los cambios, "Más campos" abre el editor completo y el
-  ícono de papelera pide confirmación y elimina el hallazgo (con sus imágenes y sus
-  marcadores en flujos).
-- Dado el panel, cuando se toca "Catálogo →", entonces el catálogo reemplaza el contenido
-  del panel: botón de flecha para volver, "Catálogo", y chips Heurísticas / Sesgos y
-  patrones con la lista de cada uno (nombre, descripción y origen). La flecha vuelve a la
-  lista de hallazgos en el mismo panel.
-- Dado un estudio sin hallazgos, cuando se abre la sección, entonces el panel muestra
-  "Sin hallazgos todavía" / "Cuando agregues una pantalla, tus hallazgos aparecerán acá.".
+### Migración v1 → v2 (al abrir un estudio)
+- Dado un estudio con `modelo` < 2, cuando se lo abre (o se abre su vista previa), entonces
+  se migra una sola vez y se marca `modelo: 2`; abrirlo de nuevo no duplica nada.
+- Cada imagen de un hallazgo v1 se convierte en una Pantalla. Las imágenes idénticas
+  (hash exacto del archivo comprimido + comparación del contenido) se deduplican dentro
+  del estudio.
+- El hallazgo queda colgado de la pantalla de su **primera** imagen, con el pin en la
+  posición de su primer pin (convertida a coordenadas relativas) o al centro si no tenía.
+  El comentario de ese primer pin se suma a la descripción.
+- Cada imagen extra de un hallazgo crea otra pantalla con una **copia** del hallazgo anclada
+  ahí (`copiaDe`). Cada pin extra con comentario se convierte en un hallazgo nuevo de tipo
+  Observación, con el comentario como texto (`migradoDe`).
+- Las anotaciones que no son pines (flecha, texto, resaltador, lápiz) quedan quemadas en la
+  imagen de la pantalla: en v2 solo hay pines.
+- `heuristicas` + `sesgos` se unen en `catalogoIds`; `interaccionId` pasa a `pasoId`.
+- No se borra nada: los documentos `…/hallazgos/{hid}/imgs/{imgId}` quedan como respaldo
+  (`imgsV1` en el hallazgo). Si la migración falla, se avisa y el estudio se abre igual.
+- Toast al terminar: "Estudio actualizado: N pantallas creadas a partir de la evidencia".
 
-### Alta de hallazgo como página
-- Dado "Nuevo hallazgo" o "Agregar hallazgo" (sección Hallazgos o Resumen), cuando se
-  toca, entonces el alta se abre como página dentro del área de trabajo, no como modal:
-  "‹ Hallazgos" para volver, título "Nuevo hallazgo", el formulario en una tarjeta (datos
-  a la izquierda, evidencia a la derecha, fija al hacer scroll) y una barra fija abajo con
-  "Cancelar" y "Guardar hallazgo".
-- Dada la página de alta, cuando se guarda, entonces se vuelve a la sección Hallazgos con
-  el nuevo hallazgo. Cancelar, "‹ Hallazgos" o ir a otra sección la cierran sin guardar.
-- Editar un hallazgo existente ("Más campos", Resumen) y crearlo desde un flujo o un
-  journey siguen como modal, sobre el editor del diagrama.
+### Sección Hallazgos
+- Dada la sección, cuando se abre, entonces hay un área de trabajo a la izquierda y un panel
+  de 480 px a la derecha; juntos ocupan el 100% del alto disponible (la página mide lo que la
+  ventana). Por debajo de 1000 px el panel pasa abajo.
+- **Pestañas de pantallas** (Button Group): una por pantalla, unidas, radio 10 en las puntas,
+  14 px medium; la activa en negro con texto blanco (en tema oscuro, invertida). Las de
+  origen URL llevan la marca "URL". A la derecha, el botón azul "Nueva pantalla +" (28 px,
+  radio 4) abre el alta: subir imagen o pegar URL, más el nombre. Al crearla queda activa.
+- Cuando las pestañas no entran: flechas ‹ › a los costados (desplazan un bloque y se
+  desactivan en las puntas), desvanecido en el borde donde hay más, y el botón "Todas (N)"
+  con la lista de pantallas (número, nombre, marca URL y cantidad de hallazgos) para saltar
+  directo. Con teclado: ←/→ cambian de pantalla, Inicio/Fin van a la primera/última; en la
+  lista, ↑/↓, Enter y Esc. La pestaña activa siempre queda a la vista.
+- **Lienzo**: muestra la captura de la pantalla activa con sus pines numerados, sobre fondo
+  gris punteado (radio 14). Arriba a la derecha: "Cambiar pantalla" (nombre, URL o reemplazar
+  la imagen; los pines se mantienen) y "Eliminar pantalla" (confirma; sus hallazgos no se
+  borran: quedan sin pantalla).
+- El lienzo **no tiene scroll**: la imagen se ajusta para verse completa; la rueda o el
+  trackpad hacen zoom hacia el cursor (5%–600%), arrastrar mueve la vista y los controles
+  − / % / + / Ajustar (abajo a la derecha) cambian el zoom. Los pines y el popover no escalan.
+  El zoom y la posición se recuerdan por pantalla mientras se trabaja en el estudio.
+- **Carga rápida**: un clic sin arrastrar en cualquier punto de la captura crea un hallazgo
+  ahí y abre el popover junto al pin (hacia el lado con más espacio) con Descripción,
+  Severidad 0–4, "Guardar" y "Eliminar". Guardar lo registra, cierra el popover y deja listo
+  para el siguiente clic. En un hallazgo recién creado, "Eliminar" lo descarta.
+- Tocar un pin existente abre el mismo popover para editarlo; "Eliminar" lo borra con
+  confirmación. Esc o un clic afuera lo cierran.
+- **Panel**: "Hallazgos", el nombre de la pantalla en mayúsculas y "N en esta pantalla", con
+  el botón "Catálogo →". Filtros por severidad (Todas, No es problema, Cosmético, Menor,
+  Mayor, Catástrofe), cada uno con el borde de su color. Lista de la pantalla activa: número
+  en el color de su severidad, título y "Sev. N · etiqueta · heurística". La tarjeta
+  seleccionada toma el borde de su severidad.
+- Tocar una tarjeta abre en el panel "Editar hallazgo N": Severidad, Descripción,
+  Recomendación, Heurística relacionada, Pantalla y Paso de flujo, con "Guardar cambios",
+  "Cancelar" y la papelera. Al guardar se conservan los demás datos (tipo, categoría,
+  etiquetas, otras entradas del catálogo, respaldo v1).
+- Si el título no se escribió a mano, se arma con la primera línea de la descripción.
+- "Paso de flujo" lista las interacciones de los User Flows. Al asignarlo se guarda también
+  el marcador en la interacción (`node.markers`), para que el hallazgo siga apareciendo en
+  Flujos; al cambiarlo o quitarlo se actualizan los dos lados. **Mientras Flujos esté en
+  "Próximamente" (spec `proy`) el campo no se muestra** y el paso que ya tuviera se conserva.
+- **Catálogo en el panel**: "Catálogo →" reemplaza el contenido del panel por heurísticas y
+  sesgos (con su descripción y origen) y una flecha para volver a la lista.
+- Pegar una imagen (Ctrl/Cmd + V) en la sección crea una pantalla nueva, o completa la
+  captura de una pantalla de URL que todavía no la tiene.
+- Una pantalla de origen URL sin captura muestra la zona para pegarla o subirla (la captura
+  automática de la URL no existe todavía).
+- Los hallazgos sin pantalla (generales, o de una pantalla eliminada) no se muestran en esta
+  sección por ahora; siguen en el Resumen y en el reporte.
 
-### Editor (modal y página)
-- Dado el editor de hallazgo, cuando se guarda con título, entonces queda con
-  tipo (Problema / Oportunidad / Observación, default Problema), pantalla o paso,
-  etiquetas (separadas por coma), severidad Nielsen 0–4 (default 3; tocar la marcada
-  la desmarca y queda sin severidad), descripción, recomendación, y heurísticas y
-  sesgos del catálogo. Sin título no se guarda y el foco vuelve al título.
-- Dado el modal, cuando se agrega una imagen por archivo, arrastrándola o pegando del
-  portapapeles, entonces se comprime a JPEG (máx. 1280 px de ancho, ~240 KB) y se
-  genera una miniatura de 220 px.
-- Dado un hallazgo con 8 imágenes, cuando se intenta agregar otra, entonces avisa
-  "Máximo 8 imágenes por hallazgo" y no la agrega.
-- Dada una imagen abierta, cuando se anota, entonces se puede seleccionar/mover, poner
-  pin numerado con comentario, flecha, texto, resaltador y dibujo libre, elegir color
-  y grosor, deshacer y limpiar; la miniatura se regenera con las anotaciones encima.
-- Dado un hallazgo guardado con anotaciones, cuando se vuelve a abrir, entonces la
-  imagen base está limpia y las anotaciones siguen siendo editables.
-- Dado un hallazgo, cuando se quita una imagen y se guarda, entonces se borra su
-  imagen completa.
-- Dado el modal con datos cargados, cuando guardar falla (por ejemplo, 413 en modo
-  `server`), entonces aparece un aviso con el error, el modal sigue abierto con lo
-  cargado y "Guardar" se puede volver a usar (vale para todo `openModal`).
-- Dado un hallazgo, cuando se elimina, entonces se borran sus imágenes y sus
-  marcadores en las interacciones de flujos (`cleanFlowMarkers`).
-- Dado un hallazgo creado desde una interacción de flujo, cuando se guarda o se
-  edita, entonces conserva `flujoId`, `interaccionId` e `interaccionTitulo` y la
-  lista muestra el chip de la interacción.
+### Editor completo (Resumen "Nuevo hallazgo" y "Más campos")
+- La página de alta y el modal usan el mismo editor (`hzEditor`): título, ubicación o paso
+  (texto), etiquetas, severidad, descripción, recomendación, heurísticas y sesgos, y la
+  evidencia: elegir una pantalla del estudio o subir una imagen nueva (deduplicada) y ubicar
+  el pin con un clic. No muestra tipo ni categoría.
+- Si guardar falla, el editor queda abierto con lo cargado para reintentar.
+- Al eliminar un hallazgo se borran sus marcadores en las interacciones de flujos
+  (`cleanFlowMarkers`); la pantalla no se borra.
+
+### Otros módulos que no se rompen
+- Reporte del cliente (vista previa, link público y página autónoma): la evidencia de cada
+  hallazgo es su pantalla con su pin compuesto encima; `SR_boot` recibe el mismo formato.
+- Texto plano y relaciones de journey usan `catalogoIds` y la pantalla del hallazgo.
+- Borrar un estudio borra también sus pantallas.
 
 ## Alcance
-Sección Hallazgos del estudio: área de trabajo, panel derecho (lista, filtros por tipo,
-edición rápida, catálogo), página de alta, editor modal, panel de evidencia con varias
-imágenes y anotador.
+`src/data/pantallas.js` (modelo, store de pantallas, reglas, migración), `src/views/hallazgos-ws.js`
+(área de trabajo, popover, panel, alta de pantallas), `src/views/hallazgos.js` (editor,
+borrado), lectores adaptados (`share/compartir.js`, `reportes/texto-plano.js`,
+`journey/relaciones.js`, `ui/imagenes.js`, `flujos/*`, `data/store.js`) y `base.css`.
 
 ## Fuera de alcance / No tocar
-- Fuera de alcance: "pantallas" del estudio con pines sobre la imagen (Figma, vistas A, B
-  y C de Hallazgos): requiere un modelo de datos nuevo y va en una exploración aparte.
-  Hasta entonces el área de trabajo muestra el estado vacío. Categorías de hallazgo
-  (Interfaz, Comportamiento, Investigación): el dato no existe; el panel filtra por tipo.
-  Las métricas, la búsqueda y los filtros por severidad o heurística de la lista anterior
-  se reemplazan por el Resumen (spec `proy`) y el panel.
-- La relación con flujos se crea desde el flujo (ver `flujos.md`); con journeys,
-  desde el paso (ver `journeys.md`).
-- La miniatura se guarda en el hallazgo y la imagen completa aparte: la lista no
-  debe leer las imágenes completas.
-- Las anotaciones se guardan como datos (no quemadas en la imagen): la imagen
-  base queda limpia para re-editar.
+- Fuera de alcance: dónde ubicar los hallazgos sin pantalla (A CONFIRMAR); captura
+  automática de URLs (requiere Cloudflare Browser Rendering); herramientas de anotación
+  sobre la pantalla además de los pines; borrar los respaldos v1.
+- No tocar: el render de `SR_boot` (solo su paleta de severidad se alineó, spec `ds`);
+  las imágenes de las interacciones de flujo (siguen en `flujos/{fid}/imgs`).
 
 ## Dependencias
-- `store` (`listHallazgos`, `saveHallazgo`, `delHallazgo`, `getImg`, `putFull`,
-  `delFull`) sobre la capa `DB`.
-- Catálogo (`allHeur`, `allSesgos`, `heurById`, `sesgoById`).
-- `ui/imagenes.js` (`processImage`, visor), `ui/anotaciones.js` (`mountAnnotator`,
-  `compositeThumb`).
-- `flowStore` para limpiar marcadores al borrar.
+- Capa `DB` (`store`, `pantallaStore`, `flowStore`), `processImage`, `compositeDataUrl`.
+- Catálogo (`allHeur`, `allSesgos`, `heurById`, `catalogoIdsDe`, `heurDe`, `sesgosDe`).
+- `proximamente()` de `views/estudio.js` para ocultar el paso de flujo.
 
 ## Estados (UI)
-- Vacío: área de trabajo sin pantallas ("Este estudio todavía no tiene pantallas");
-  panel sin hallazgos ("Sin hallazgos todavía"); filtro sin resultados ("Ningún hallazgo
-  de este tipo."); hallazgo sin imágenes ("Sin imágenes" y zona para pegar/arrastrar).
-- Carga: "Cargando imagen..." mientras baja la imagen completa en el modal.
-- Error: si falla "Guardar cambios" del panel, toast "No se pudo guardar. Probá de nuevo."
-  y el botón vuelve a habilitarse; toast "No se pudo procesar la imagen"; "No se pudo abrir la imagen." en el
-  panel de evidencia; si guardar falla, toast con el error (por ejemplo, 413 si la
-  imagen supera el límite) y el modal queda abierto para reintentar.
+- Vacío: estudio sin pantallas ("Este estudio todavía no tiene pantallas" con "Subir
+  imagen"; el panel muestra el aviso "Cuando cargues una pantalla y ubiques un pin, el
+  hallazgo aparece en esta lista. Desde acá lo filtrás por severidad y lo editás.");
+  pantalla sin hallazgos; filtro sin resultados ("Ningún hallazgo con esta severidad.");
+  pantalla de URL sin captura.
+- Carga: el lienzo se arma cuando llega la imagen de la pantalla.
+- Error: "No se pudo guardar. Probá de nuevo." (el botón vuelve a habilitarse); "No se pudo
+  procesar la imagen"; migración fallida: aviso con el error y el estudio abre igual.
 
 ## Diseño
-Figma "Ux-Diagnostic-tool", frames "Lupa UX · Proyecto · Resumen" (panel de hallazgos):
-https://www.figma.com/design/TgoGlLsjt4rs2dH04TQnFL/Ux-Diagnostic-tool?node-id=29-3575 y
-https://www.figma.com/design/TgoGlLsjt4rs2dH04TQnFL/Ux-Diagnostic-tool?node-id=29-3102.
-Desvíos acordados: Catálogo arriba a la derecha del panel; filtros por tipo en vez de
-categoría; tipografía Geist (el Figma usa IBM Plex Sans en el panel). La página de alta se
-definió en la exploración `explorar/hallazgo-como-pagina`.
+Figma "Ux-Diagnostic-tool": "Lupa UX · Proyecto · empty state"
+https://www.figma.com/design/TgoGlLsjt4rs2dH04TQnFL/Ux-Diagnostic-tool?node-id=29-3102,
+"Lupa UX · Proyecto · nuevo hallazgo" (node 29:3575) y "Lupa UX · Proyecto · editar
+hallazgo" (node 37:5809). Desvíos acordados: flechas y menú "Todas" para pestañas que no
+entran; zoom en lienzo; tipografía Geist (el Figma usa IBM Plex Sans en el panel).
 
 ## Definición de hecho
-- La de AGENTS.md: `npm run check`, `npm run smoke` y `npm run test:e2e` pasan.
-- Propio: editar desde el panel y verificar que no se pierdan imágenes ni relaciones;
-  abrir y cerrar el catálogo en el panel; comprobar que el panel llegue al borde inferior
-  en 1440 × 900. Si el cambio toca imágenes o anotaciones, verificar que la miniatura, el
-  reporte online y la página compartida muestren las anotaciones, y que reabrir el
-  hallazgo las deje editables.
+- La de AGENTS.md: `npm run check`, `npm run smoke` y `npm run test:e2e` pasan (con Node 20,
+  ver `.nvmrc`).
+- Propio: abrir un estudio v1 real y verificar pantallas, copias y respaldo; crear dos
+  hallazgos seguidos con clic + Guardar; zoom y arrastre sin crear hallazgos; pestañas que
+  no entran (flechas, "Todas", teclado); vista previa del reporte con la evidencia.
 
 ## Dónde vive
-`src/views/hallazgos.js` (`renderHallazgosInto`, `renderHzPanel`, `renderPanelCatalogo`,
-`hzEditor`, `hzModal`, `openHzPage` / `renderHzPage`, borrado), `src/core/state.js`
-(`hzPage`, `hzSel`, `hzPanel`, `hzCatTab`), `src/ui/imagenes.js`
-(`processImage`, visor), `src/ui/anotaciones.js` (`mountAnnotator`, composición).
-Datos: `estudios/{id}/hallazgos/{hid}` (con `imgs:[{id,thumb,w,h}]`) y la imagen
-completa + anotaciones en `.../hallazgos/{hid}/imgs/{imgId}`.
+- `src/data/pantallas.js`: `pantallaStore`, `pantallaDesdeImagen`, `hashStr`, `normalizarPin`,
+  `pinNumero`, `nuevoHallazgo`, `migrarEstudio`, `prepararEstudio`, `MODELO`, `SEV_DEFAULT`.
+- `src/views/hallazgos-ws.js`: `renderWorkspace`, `renderStage`, `bindTabsOverflow`,
+  `renderCanvas` (zoom), `quickBox`/`bindQuick`, `renderPanel`, `renderForm`, `syncPaso`,
+  `pantallaModal`, `eliminarPantalla`, `renderPanelCatalogo`.
+- `src/views/hallazgos.js`: `hzEditor`, `hzModal`, `openHzPage`/`renderHzPage`,
+  `confirmDelHz`, `cleanFlowMarkers`.
+- `src/core/state.js`: `pantallas`, `hzGroup`, `hzQuick`, `hzForm`, `hzSevF`, `hzVP`,
+  `catalogoIdsDe`, `heurDe`, `sesgosDe`.
+- Pruebas: `tests/e2e/migracion.spec.mjs`, `tests/e2e/pantallas.spec.mjs`.
 
 ## Conocido
 - Borrar un hallazgo no lo quita de los pasos de journey (`paso.hallazgos:[ids]`):
   el contador del paso lo sigue contando aunque no se muestre.
 - Las métricas de Sev 3 y Sev 4 cuentan solo problemas, no oportunidades ni observaciones.
+- Los hallazgos nuevos se guardan con tipo "Problema" (la interfaz ya no edita el tipo),
+  así que el Resumen y el reporte que agrupan por tipo los cuentan como problemas.
+- Las copias que crea la migración aparecen en el reporte como hallazgos separados.
+- Una pantalla subida desde el editor queda en el estudio aunque se cancele el hallazgo.
+- El desplazamiento animado de las pestañas se reemplazó por uno instantáneo (el animado no
+  se movía en el navegador integrado).

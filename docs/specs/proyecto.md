@@ -41,8 +41,8 @@ reemplazó por la barra).
 - Dado un estudio abierto, cuando se ve debajo del subheader, entonces hay una barra de
   pestañas a todo el ancho (fondo `--background`, línea abajo, padding 5 × 20 px) con dos
   grupos separados por una línea vertical:
-  - **Proyecto:** Resumen, Flujos, Protopersonas y Hallazgos (con el contador de
-    hallazgos del estudio).
+  - **Proyecto:** Resumen, Hallazgos (con el contador de hallazgos del estudio), Flujos y
+    Protopersonas.
   - **Salida:** Métricas, Reportes y Configuración.
   Cada pestaña tiene ícono y texto en `--faint`. La activa va con fondo `--background`,
   borde `--line`, radio 6 y texto `--ink`, con `aria-current="page"`.
@@ -58,9 +58,17 @@ reemplazó por la barra).
   (antes era Hallazgos).
 - Configuración muestra lo que antes era la pestaña "Proyecto" (resumen ejecutivo,
   diagnóstico, protopersonas, propuestas y muestra), sin cambios de contenido.
-- Hallazgos, Flujos, Reportes, Métricas y Protopersonas muestran lo mismo que sus
-  pestañas de antes. Protopersonas y Métricas siguen como "Próximamente".
-- Hallazgos se arma como área de trabajo + panel derecho (spec `hz`).
+- Reportes muestra lo mismo que su pestaña de antes; Métricas sigue como "Próximamente".
+- Hallazgos se arma como área de trabajo con pantallas + panel derecho (spec `hz`).
+- **Flujos y Protopersonas están deshabilitadas provisionalmente** (lista `PROXIMAMENTE` en
+  `views/estudio.js`; el código y los datos se conservan). En la barra llevan la etiqueta
+  "Pronto" y, al entrar, muestran un aviso con una ilustración propia en SVG (usa los
+  tokens del tema), la etiqueta "Próximamente", una explicación ("Próximamente vas a poder
+  diagramar aquí los recorridos…" / "…crear aquí las protopersonas del estudio…"), tres
+  puntos con ícono sobre lo que va a permitir la sección y una nota sobre los datos
+  existentes (los flujos y journeys cargados siguen en el reporte; las protopersonas se
+  cargan en Configuración). En desarrollo o en las pruebas se habilitan con
+  `localStorage["lupa:habilitar"] = ["flujos","protopersonas"]`.
 
 ### Resumen (dashboard)
 - Dado el Resumen, cuando se abre, entonces muestra cuatro cards en una grilla de 12
@@ -148,7 +156,7 @@ estados: spec `ds`.
   acciones críticas siguen funcionando. La vista previa y el texto plano no cambian.
 - Propio:
   - Revisar en 1440 px, en tema oscuro y en 375 px (sin scroll horizontal).
-  - Recorrer las siete secciones desde la barra y volver al inicio con la flecha y con
+  - Recorrer las siete secciones desde la barra (Flujos y Protopersonas muestran el aviso) y volver al inicio con la flecha y con
     "Estudios" (la barra global reaparece).
   - Abrir un flujo y un journey desde el Resumen.
   - Que los filtros desde el Resumen lleguen aplicados a Hallazgos.
