@@ -57,31 +57,33 @@ function SR_boot(D){
   function sections(){
     const list=[{id:"presentacion",label:"Presentación",icon:crIco("home")}];
     if(on.hallazgos!==false)list.push({id:"hallazgos",label:"Hallazgos",icon:crIco("flag"),count:D.hallazgos.length});
-    if(on.flujos!==false&&D.flows.length)list.push({id:"flujos",label:"Flujos",icon:crIco("flow"),count:D.flows.length});
-    if(on.journeys!==false&&D.journeys.length)list.push({id:"journeys",label:"User Journeys",icon:crIco("chart"),count:D.journeys.length});
+    // Flujos y User Journeys: provisionalmente desactivados, con la etiqueta "Pronto".
+    if(on.flujos!==false)list.push({id:"flujos",label:"Flujos",icon:crIco("flow"),pronto:true});
+    if(on.journeys!==false)list.push({id:"journeys",label:"User Journeys",icon:crIco("chart"),pronto:true});
     if(on.protopersonas!==false&&D.report.protopersonas.length)list.push({id:"protopersonas",label:"Protopersonas",icon:crIco("user"),count:D.report.protopersonas.length});
     if(on.diagnostico!==false&&(D.report.diagIntro||D.report.hallazgosClave.length||D.report.recomendaciones.length))list.push({id:"diagnostico",label:"Diagnóstico",icon:crIco("report")});
-    if(on.propuestas!==false&&D.report.propuestas.length)list.push({id:"propuestas",label:"Trabajemos juntos",icon:crIco("spark")});
     if(on.contacto!==false)list.push({id:"contacto",label:"Contacto",icon:crIco("mail")});
     return list;
   }
   // Estructura tipo Sidebar de shadcn/ui: header, grupo "Reporte", footer con el autor,
   // botón para colapsar (escritorio) y panel lateral (celular).
   function shell(){
-    const secs=sections(); if(!secs.find(s=>s.id===V.section))V.section="presentacion";
+    const secs=sections(); if(V.section!=="gracias"&&!secs.find(s=>s.id===V.section&&!s.pronto))V.section="presentacion";
     const cur=secs.find(s=>s.id===V.section);
     const ini=(m.nombre||m.wordmark||"?").trim().charAt(0).toUpperCase();
     root.innerHTML='<div class="sb-wrap'+(V.sbCol?" sb-collapsed":"")+(V.sbOpen?" sb-open":"")+'">'
       +'<aside class="sb" aria-label="Secciones del reporte">'
         +'<div class="sb-header"><div class="sb-brand"><span class="sb-logo">'+(m.headerImg?'<img src="'+m.headerImg+'" alt="">':esc((m.wordmark||"u").charAt(0).toUpperCase()))+'</span><span class="sb-brand-t"><b>'+esc(D.est.nombre)+'</b><small>'+esc(D.est.cliente||"Diagnóstico UX")+'</small></span></div></div>'
         +'<div class="sb-content"><div class="sb-group"><div class="sb-group-label">Reporte</div><ul class="sb-menu">'
-          +secs.map(s=>'<li><button class="sb-btn'+(V.section===s.id?" is-active":"")+'" data-s="'+s.id+'" title="'+esc(s.label)+'">'+s.icon+'<span class="sb-t">'+esc(s.label)+'</span>'+(s.count!=null?'<span class="sb-badge">'+s.count+'</span>':'')+'</button></li>').join("")
+          +secs.map(s=>s.pronto?'<li><button class="sb-btn is-pronto" disabled aria-disabled="true" title="'+esc(s.label)+': próximamente">'+s.icon+'<span class="sb-t">'+esc(s.label)+'</span><span class="sb-pronto">Pronto</span></button></li>':'<li><button class="sb-btn'+(V.section===s.id?" is-active":"")+'" data-s="'+s.id+'" title="'+esc(s.label)+'">'+s.icon+'<span class="sb-t">'+esc(s.label)+'</span>'+(s.count!=null?'<span class="sb-badge">'+s.count+'</span>':'')+'</button></li>').join("")
         +'</ul></div></div>'
         +'<div class="sb-footer"><div class="sb-user"><span class="sb-av">'+esc(ini)+'</span><span class="sb-brand-t"><b>'+esc(m.nombre||"")+'</b><small>'+esc(m.wordmark||"")+'</small></span></div></div>'
       +'</aside><div class="sb-scrim" id="sbScrim"></div>'
-      +'<div class="sb-inset"><header class="sb-top"><button class="sb-trigger" id="sbTrig" aria-label="Mostrar u ocultar el menú">'+SVG(16,'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',2)+'</button><span class="sb-sep"></span><nav class="sb-crumb"><span>'+esc(m.wordmark||"Reporte")+'</span><span class="sb-crumb-sep">/</span><b>'+esc(cur?cur.label:"")+'</b></nav></header>'
-      +'<main class="cr-main sb-main" id="crMain"></main></div></div>';
-    root.querySelectorAll(".sb-btn").forEach(b=>b.onclick=()=>irA(b.dataset.s));
+      +'<div class="sb-inset"><header class="sb-top"><button class="sb-trigger" id="sbTrig" aria-label="Mostrar u ocultar el menú">'+SVG(16,'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',2)+'</button><span class="sb-sep"></span><nav class="sb-crumb"><span>'+esc(m.wordmark||"Reporte")+'</span><span class="sb-crumb-sep">/</span><b>'+esc(cur?cur.label:(V.section==="gracias"?"¡Gracias!":""))+'</b></nav></header>'
+      +'<main class="cr-main sb-main" id="crMain"></main></div>'
+      +(hayPropuestas()&&V.section!=="gracias"?'<button class="tj-fab" id="tjFab">'+crIco("spark")+'<span>Trabajemos juntos</span></button>':'')+'</div>';
+    root.querySelectorAll(".sb-btn[data-s]").forEach(b=>b.onclick=()=>irA(b.dataset.s));
+    const fab=document.getElementById("tjFab"); if(fab) fab.onclick=abrirPropuestas;
     document.getElementById("sbTrig").onclick=()=>{ if(matchMedia("(max-width:768px)").matches)V.sbOpen=!V.sbOpen; else V.sbCol=!V.sbCol; shell(); };
     document.getElementById("sbScrim").onclick=()=>{ V.sbOpen=false; shell(); };
     render(document.getElementById("crMain"));
@@ -99,7 +101,7 @@ function SR_boot(D){
     el.querySelector("#liSkip").onclick=close; el.onclick=e=>{ if(e.target===el) close(); };
   }
   function render(main){
-    ({presentacion:secPresentacion,hallazgos:secHz,flujos:secFlujos,journeys:secJourneys,protopersonas:secProto,diagnostico:secDiag,propuestas:secProp,contacto:secContacto}[V.section]||secPresentacion)(main);
+    ({gracias:secGracias,presentacion:secPresentacion,hallazgos:secHz,flujos:secFlujos,journeys:secJourneys,protopersonas:secProto,diagnostico:secDiag,propuestas:secProp,contacto:secContacto}[V.section]||secPresentacion)(main);
     const r=D.report, f=document.createElement("div"); f.className="cr-foot";
     f.innerHTML=((r.muestra&&r.muestra.on&&r.muestra.texto&&V.section!=="presentacion")?'<div class="cr-foot-note">'+esc(r.muestra.texto)+"</div>":"")+"<div>"+esc(m.wordmark)+(m.sitio?" · "+esc(m.sitio):"")+"</div>";
     main.appendChild(f); root.scrollTop=0; main.scrollTop=0; if(root.parentElement)root.parentElement.scrollTop=0; window.scrollTo(0,0);
@@ -136,10 +138,19 @@ function SR_boot(D){
         +(m.linkedin?'<div class="pr-li"><p>Si este diagnóstico te sirvió, me ayudaría mucho una recomendación en LinkedIn. Te recomiendo dejarla antes de ver el resto del reporte: en mi perfil, <b>Más</b> → <b>Recomendar</b>.</p><a class="btn primary" href="'+esc(crHref(m.linkedin))+'" target="_blank" rel="noopener">'+crIco("spark")+' Dejar recomendación en LinkedIn</a></div>':'')
       +'</div>';
   }
-  function hzRow(h){ const sev=(h.severidad!=null&&h.severidad!=="")?SEV[h.severidad]:null; const heur=(h.heur||[]).join(", ");
-    return '<button class="cr-row" data-hz="'+h.id+'"><span class="cr-row-sev" style="background:'+(sev?RSEV[h.severidad]:"var(--line-strong)")+'">'+(sev?h.severidad:"·")+'</span><span class="cr-row-main"><span class="cr-row-t">'+esc(h.titulo)+'</span>'+(heur?'<span class="cr-row-sub">'+esc(heur)+'</span>':'')+'</span>'+chevR+'</button>'; }
+  function hzCard(h){ const s=(h.severidad!=null&&h.severidad!=="")?+h.severidad:null, img=(h.imgs||[])[0];
+    return '<button class="hz-gcard" data-hz="'+h.id+'"><span class="hz-gimg">'+(img?'<img src="'+img.url+'" alt="">':'<span class="hz-gnoimg">'+camIco+'</span>')+'</span>'
+      +'<span class="hz-gbody">'+(s!=null?'<span class="hz-gsev" style="--c:'+RSEV[s]+'"><i></i>'+esc(SEV[s].l)+'</span>':'')
+      +'<span class="hz-gt">'+esc(h.titulo||"(sin título)")+'</span>'+(h.pantalla?'<span class="hz-gp">'+esc(h.pantalla)+'</span>':'')+'</span></button>'; }
   function secHz(main){ if(V.hzOpen)return hzDetail(main,V.hzOpen);
-    main.innerHTML='<h2>Hallazgos</h2><div class="cr-rows">'+(D.hallazgos.length?D.hallazgos.map(hzRow).join(""):'<div class="cr-empty">Sin hallazgos.</div>')+'</div>';
+    const sevDe=h=>(h.severidad!=null&&h.severidad!=="")?+h.severidad:null;
+    const niveles=[4,3,2,1,0].filter(n=>D.hallazgos.some(h=>sevDe(h)===n));
+    const f=V.hzFiltro!=null&&niveles.indexOf(V.hzFiltro)>=0?V.hzFiltro:null;
+    const lista=D.hallazgos.filter(h=>f==null||sevDe(h)===f).slice().sort((a,b)=>(sevDe(b)==null?-1:sevDe(b))-(sevDe(a)==null?-1:sevDe(a)));
+    main.innerHTML='<h2>Hallazgos</h2>'
+      +(niveles.length>1?'<div class="hz-filtros" role="group" aria-label="Filtrar por severidad"><button class="hz-f'+(f==null?" on":"")+'" data-f="">Todas <b>'+D.hallazgos.length+'</b></button>'+niveles.map(n=>'<button class="hz-f'+(f===n?" on":"")+'" data-f="'+n+'" style="--c:'+RSEV[n]+'" aria-pressed="'+(f===n)+'"><i></i>'+esc(SEV[n].l)+' <b>'+D.hallazgos.filter(h=>sevDe(h)===n).length+'</b></button>').join("")+'</div>':'')
+      +(lista.length?'<div class="hz-grid">'+lista.map(hzCard).join("")+'</div>':'<div class="cr-empty">Sin hallazgos.</div>');
+    main.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{ V.hzFiltro=b.dataset.f===""?null:+b.dataset.f; shell(); });
     main.querySelectorAll("[data-hz]").forEach(b=>b.onclick=()=>{V.hzOpen=b.dataset.hz;shell();});
   }
   function hzDetail(main,id,opts){ opts=opts||{}; const h=hzById[id]; if(!h){V.hzOpen=null;return secHz(main);}
@@ -233,7 +244,50 @@ function SR_boot(D){
   function secDiag(main){ const r=D.report; main.innerHTML='<h2>Diagnóstico estratégico</h2>'+(r.diagIntro?'<div class="cr-prose">'+para(r.diagIntro)+'</div>':'')+(r.hallazgosClave.length?'<h3>Hallazgos clave</h3>'+r.hallazgosClave.map(b=>'<div class="cr-block"><h4>'+esc(b.titulo)+'</h4><div class="cr-prose">'+para(b.texto)+'</div></div>').join(""):'')+(r.recomendaciones.length?'<h3>Recomendaciones prioritarias</h3>'+r.recomendaciones.map(b=>'<div class="cr-block"><h4>'+esc(b.titulo)+'</h4><div class="cr-prose">'+para(b.texto)+((b.bullets&&b.bullets.length)?'<ul>'+b.bullets.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':'')+'</div>'+(b.impacto?'<p class="cr-imp"><b>Impacto esperado:</b> '+esc(b.impacto)+'</p>':'')+'</div>').join(""):''); }
   function contactoCard(){ const svc=(m.servicioNombre||m.servicioDesc)?'<div class="cr-svc"><div class="cr-svc-badge">'+esc(m.servicioNombre||"Servicio")+'</div>'+(m.servicioDesc?'<p>'+esc(m.servicioDesc)+'</p>':'')+(m.servicioUrl?'<a class="cr-svc-link" href="'+crHref(m.servicioUrl)+'" target="_blank" rel="noopener">Conocer más</a>':'')+'</div>':'';
     return '<div class="cr-contact"><div class="cr-contact-main"><div class="cr-word">'+esc(m.wordmark)+'</div><div class="cr-contact-name">'+esc(m.nombre)+'</div><div class="cr-contact-rol">'+esc(m.rol)+'</div><div class="cr-contact-lines">'+(m.sitio?'<a href="'+crHref(m.sitio)+'" target="_blank" rel="noopener">'+esc(m.sitio)+'</a>':'')+(m.email?'<a href="mailto:'+esc(m.email)+'">'+esc(m.email)+'</a>':'')+(m.tel?'<span>'+esc(m.tel)+'</span>':'')+'</div></div>'+svc+'</div>'; }
-  function secProp(main){ main.innerHTML='<h2>Trabajemos juntos</h2><p class="cr-lead">Formas de seguir avanzando sobre este diagnóstico.</p><div class="cr-props">'+D.report.propuestas.map(propCard).join("")+'</div>'+contactoCard(); }
+  function secProp(main){ V.section="presentacion"; secPresentacion(main); }
+  function hayPropuestas(){ return on.propuestas!==false&&D.report.propuestas.length>0; }
+  function cerrarPropuestas(){ const el=document.getElementById("tjModal"); if(el) el.remove(); document.removeEventListener("keydown",tjKey); }
+  function tjKey(e){ if(e.key==="Escape") cerrarPropuestas(); }
+  function abrirPropuestas(){
+    cerrarPropuestas();
+    const ps=D.report.propuestas, el=document.createElement("div"); el.id="tjModal"; el.className="tj-bg";
+    el.innerHTML='<div class="tj-card" role="dialog" aria-modal="true" aria-labelledby="tjT"><button class="tj-x" id="tjX" aria-label="Cerrar">'+xIco+'</button>'
+      +'<div class="tj-head"><span class="pr-kicker">Trabajemos juntos</span><h2 id="tjT">Sigamos mejorando tu producto</h2><p>Elegí cómo querés avanzar sobre este diagnóstico. Reservás tu lugar y te escribo para coordinar los detalles.</p></div>'
+      +'<div class="tj-cols" style="--n:'+Math.min(ps.length,3)+'">'+ps.map((p,i)=>'<div class="tj-col'+(i===0&&ps.length>1?" destacada":"")+'">'+(i===0&&ps.length>1?'<span class="tj-badge">Recomendado</span>':'')+propCard(p)+'<button class="tj-res" data-res="'+i+'">Reservar ahora tu diagnóstico</button></div>').join("")+'</div>'
+      +'<p class="tj-err" id="tjErr" role="alert"></p></div>';
+    document.body.appendChild(el);
+    el.onclick=e=>{ if(e.target===el) cerrarPropuestas(); };
+    el.querySelector("#tjX").onclick=cerrarPropuestas;
+    document.addEventListener("keydown",tjKey);
+    el.querySelectorAll("[data-res]").forEach(b=>b.onclick=()=>reservar(ps[+b.dataset.res],b));
+    el.querySelector("#tjX").focus({preventScroll:true});
+  }
+  // En el link público avisa al consultor (POST /api/publico, mismo PIN); en la vista previa
+  // de la app y fuera de línea solo muestra la página de gracias.
+  async function reservar(p,btn){
+    const err=document.getElementById("tjErr"); if(err) err.textContent="";
+    if(D.publico){
+      btn.disabled=true; const t=btn.textContent; btn.textContent="Reservando…";
+      try{
+        const r=await fetch("/api/publico",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({accion:"reserva",id:D.publico.id,pin:D.publico.pin,nombre:D.publico.nombre,propuesta:{id:p.id||"",titulo:p.titulo||"",precio:priceLine(p)}})});
+        if(!r.ok) throw new Error("http "+r.status);
+      }catch(_){ btn.disabled=false; btn.textContent=t; if(err) err.textContent="No pudimos registrar la reserva. Revisá tu conexión y probá de nuevo."; return; }
+    }
+    V.reserva={titulo:p.titulo||"",precio:priceLine(p)}; cerrarPropuestas(); V.section="gracias"; shell();
+  }
+  const logoUx='<span class="ty-logo"><span class="ty-mark">'+SVG(18,'<path d="M21 17v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2"/><path d="M21 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><circle cx="12" cy="12" r="1"/><path d="M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0"/>',2)+'</span><span class="ty-word"><b>uxuaria</b><small>Lupa Ux</small></span></span>';
+  function secGracias(main){
+    const r=V.reserva||{}, nom=D.publico&&D.publico.nombre?D.publico.nombre.split(" ")[0]:"";
+    main.innerHTML='<div class="ty">'+logoUx
+      +'<div class="ty-check">'+SVG(30,'<path d="M20 6 9 17l-5-5"/>',2.4)+'</div>'
+      +'<h1>¡Gracias'+(nom?', '+esc(nom):'')+'! Tu reserva está confirmada</h1>'
+      +'<p class="ty-lead">Ya recibí tu decisión'+(r.titulo?' de avanzar con <b>'+esc(r.titulo)+'</b>':'')+'. Me voy a comunicar con vos muy pronto para coordinar los próximos pasos.</p>'
+      +(r.titulo?'<div class="ty-res"><span>Reservaste</span><b>'+esc(r.titulo)+'</b>'+(r.precio?'<em>'+esc(r.precio)+'</em>':'')+'</div>':'')
+      +'<ol class="ty-pasos"><li><b>Te escribo</b><span>Recibís un mensaje mío para coordinar una primera conversación.</span></li><li><b>Conversamos</b><span>Repasamos el diagnóstico y definimos prioridades juntos.</span></li><li><b>Arrancamos</b><span>Empezamos a transformar los hallazgos en mejoras concretas.</span></li></ol>'
+      +((m.email||m.tel)?'<p class="ty-cto">¿Querés adelantarte? '+(m.email?'<a href="mailto:'+esc(m.email)+'">'+esc(m.email)+'</a>':'')+(m.email&&m.tel?' · ':'')+(m.tel?esc(m.tel):'')+'</p>':'')
+      +'<button class="btn ty-back" id="tyBack">'+chevL+' Volver al reporte</button></div>';
+    main.querySelector("#tyBack").onclick=()=>{ V.section="presentacion"; shell(); };
+  }
   function secContacto(main){ main.innerHTML='<h2>Contacto</h2>'+contactoCard(); }
   document.documentElement.setAttribute("data-theme","light");
   shell();

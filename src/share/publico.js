@@ -45,7 +45,7 @@ export function abrirReportePublico(id){
     try{
       const r = await fetch("/api/publico", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ id, pin:pinEl.value, nombre:nomEl.value.trim(), acepto:acEl.checked }) });
       const ct = r.headers.get("content-type") || "";
-      if(r.ok && ct.includes("application/json")){ montarReportePublico(await r.json()); return; }
+      if(r.ok && ct.includes("application/json")){ montarReportePublico({ ...(await r.json()), publico:{ id, pin:pinEl.value, nombre:nomEl.value.trim() } }); return; }
       const msg = ct.includes("application/json") ? (await r.json()).error : "";
       err.textContent = msg || "No se pudo abrir el reporte.";
     }catch(_){ err.textContent = "Sin conexión. Probá de nuevo."; }

@@ -5,14 +5,12 @@ import { flowStore } from "../flujos/flujos.js";
 import { openClientReport } from "./cliente.js";
 import { brandStore, ensureReporte, marcaActual, saveReporte } from "./comun.js";
 import { PROP_DESC, normalizePropuesta, propMoney, propPriceLine } from "./propuestas.js";
-import { openPlainExport } from "./texto-plano.js";
 import { BLOQUES, estaOculto, setOculto } from "./seleccion.js";
-import { consentimientosDe, despublicarReporte, linkPublico, publicarReporte } from "./publicar.js";
-import { buildShareHtml, collectShareData, generateSharePage } from "../share/compartir.js";
-import { txtIco } from "../ui/descargas.js";
+import { actividadDe, despublicarReporte, firmaReporte, linkPublico, publicarReporte } from "./publicar.js";
+import { buildShareHtml, collectShareData } from "../share/compartir.js";
 import { pencil, plus, trash } from "../ui/iconos.js";
 import { loadBitmap, scaleImg } from "../ui/imagenes.js";
-import { openConfirm, openModal, toast } from "../ui/modales.js";
+import { openModal, toast } from "../ui/modales.js";
 
 /* ============ Reportes: panel de configuración (izquierda) + vista previa en vivo (derecha) ============
    La vista previa es la MISMA página autónoma que recibe el cliente (SR_boot), en un iframe:
@@ -24,19 +22,14 @@ export function renderReportesInto(c,est){
     return;
   }
   const r=ensureReporte(est);
-  const abiertas=state.rptOpen||(state.rptOpen={pub:true,sel:true,marca:false});
-  const sec=(id,titulo,sub,body)=>`<details class="rp-sec" data-sec="${id}" ${abiertas[id]?"open":""}><summary><span><b>${titulo}</b><small>${sub}</small></span></summary><div class="rp-body">${body}</div></details>`;
   c.classList.add("hz-ws-host");
   c.innerHTML=`<div class="rp-ws">
     <aside class="rp-panel" aria-label="Configuración del reporte">
-      <div class="rp-head"><h2>Reporte</h2><p>Configurá lo que ve tu cliente y publicalo. La vista previa se actualiza sola.</p></div>
-      ${sec("pub","Link público","Publicá el reporte con un PIN",`<div id="rptPub"></div>`)}
-      ${sec("sel","Qué ve el cliente","Secciones e ítems visibles",`<p class="rhint">Prendé o apagá secciones y elegí ítem por ítem. Lo que ocultes no aparece en la vista previa, la página para compartir ni el link público. Lo nuevo aparece visible.</p><div id="rptSel"></div><p class="rhint" style="margin-top:10px">El contenido del proyecto (resumen, diagnóstico, protopersonas, propuestas y muestra) se carga en <b>Configuración</b>.</p>`)}
-      ${sec("marca","Marca","Logo, datos de contacto y textos",`<div id="rptMarca"></div>`)}
-      <div class="rp-salidas"><span class="rlab">Otras salidas</span>
-        <button class="btn-q" id="rptShare">${txtIco()} Descargar página HTML</button>
-        <button class="btn-q" id="rptPlain">${txtIco()} Exportar en texto plano</button>
-        <span id="rptCliMsg" class="hint"></span></div>
+      <div class="rp-head"><h2>Reporte</h2><p>Elegí lo que ve tu cliente y compartilo. La vista previa se actualiza sola.</p></div>
+      <div class="rp-share" id="rptShareCard"></div>
+      <section class="rp-sec rp-sel" aria-labelledby="rpSelT"><div class="rp-sec-h"><b id="rpSelT">Qué ve el cliente</b><small>Secciones e ítems visibles</small></div>
+        <div class="rp-body"><p class="rhint">Prendé o apagá secciones y elegí ítem por ítem. Lo que ocultes no aparece en la vista previa ni en el link. Lo nuevo aparece visible.</p><div id="rptSel"></div>
+        <p class="rhint" style="margin-top:10px">El contenido del proyecto (resumen, diagnóstico, protopersonas, propuestas), la muestra y la marca se cargan en <b>Configuración</b>.</p></div></section>
     </aside>
     <section class="rp-preview" aria-label="Vista previa del reporte">
       <div class="rp-prev-bar"><span>Vista previa · así lo ve tu cliente</span><span class="rp-estado" id="rpEstado">Actualizando…</span><span class="grow"></span>
@@ -44,22 +37,21 @@ export function renderReportesInto(c,est){
       <div class="rp-frame-wrap"><iframe id="rpFrame" title="Vista previa del reporte del cliente"></iframe></div>
     </section>
   </div>`;
-  c.querySelectorAll(".rp-sec").forEach(d=>d.addEventListener("toggle",()=>{ abiertas[d.dataset.sec]=d.open; }));
-  c.querySelector("#rptPlain").onclick=()=>openPlainExport(est);
-  c.querySelector("#rptShare").onclick=e=>generateSharePage(est,e.currentTarget);
   c.querySelector("#rptFull").onclick=()=>openClientReport(est.id);
   renderSeleccion(c.querySelector("#rptSel"),est,r);
-  renderPublico(c.querySelector("#rptPub"),est,r);
-  renderMarca(c.querySelector("#rptMarca"),est);
-  // Vista previa en vivo: se reconstruye con un pequeño retraso después de cada cambio.
+  const card=c.querySelector("#rptShareCard"), ctx={firma:null};
+  renderCompartir(card,est,r,ctx);
+  // Vista previa en vivo: se reconstruye con un pequeño retraso después de cada cambio. De paso
+  // calcula la huella de lo que ve el cliente para saber si la publicación quedó desactualizada.
   let t=null, gen=0;
   const refrescar=async()=>{
     const fr=document.getElementById("rpFrame"); if(!fr) return;
     const yo=++gen, est0=document.getElementById("rpEstado"); if(est0){ est0.textContent="Actualizando…"; est0.classList.remove("ok"); }
     let estado=null, scroll=0;
-    try{ const w=fr.contentWindow; if(w&&w.__SRV){ const v=w.__SRV; estado={section:v.section,hzOpen:v.hzOpen,flowOpen:v.flowOpen,jrOpen:v.jrOpen,sbCol:v.sbCol}; scroll=(w.document.scrollingElement||w.document.documentElement).scrollTop; } }catch(_){}
+    try{ const w=fr.contentWindow; if(w&&w.__SRV){ const v=w.__SRV; estado={section:v.section,hzOpen:v.hzOpen,hzFiltro:v.hzFiltro,sbCol:v.sbCol,reserva:v.reserva,liVisto:v.liVisto}; scroll=(w.document.scrollingElement||w.document.documentElement).scrollTop; } }catch(_){}
     try{
       const D=await collectShareData(est); if(yo!==gen) return;
+      firmaReporte(D).then(f=>{ if(yo===gen){ ctx.firma=f; pintarEstado(card,r,ctx); } });
       fr.onload=()=>{ try{ (fr.contentDocument.scrollingElement||fr.contentDocument.documentElement).scrollTop=scroll; }catch(_){} const e=document.getElementById("rpEstado"); if(e){ e.textContent="Al día"; e.classList.add("ok"); } };
       fr.srcdoc=buildShareHtml({...D,preview:true,estado});
     }catch(err){ console.error("vista previa",err); const e=document.getElementById("rpEstado"); if(e) e.textContent="No se pudo actualizar la vista previa"; }
@@ -72,49 +64,99 @@ export function renderReportesInto(c,est){
   new ResizeObserver(ajustar).observe(wrap); ajustar();
   refrescar();
 }
-/* Link público con PIN (foto del reporte; volver a publicar la actualiza). Sin modales:
-   las acciones que no se pueden deshacer piden confirmación dentro del panel. */
-function renderPublico(box,est,r){
-  const pub=r.publico, fecha=pub?new Date(pub.publicadoAt).toLocaleString("es-AR",{dateStyle:"medium",timeStyle:"short"}):"";
-  const ayuda=`<details class="rp-ayuda" ${pub?"":"open"}><summary>Cómo funciona el link y el PIN</summary><ol>
-      <li><b>Publicá.</b> Se guarda una foto del reporte tal como se ve en la vista previa, con lo que elegiste en "Qué ve el cliente".</li>
-      <li><b>Compartí el link y el PIN por canales distintos</b>, por ejemplo el link por correo y el PIN por WhatsApp. Así nadie entra con solo uno de los dos.</li>
-      <li><b>Tu cliente abre el link</b>, escribe el PIN de 6 dígitos, su nombre y acepta que el diagnóstico pueda mencionarse. Lo ve en modo lectura, sin crear cuenta. Cada acceso queda en "Consentimientos".</li>
-      <li><b>Si cambiás algo</b>, tocá "Actualizar publicación": el link sigue siendo el mismo, pero muestra la versión nueva.</li>
-      <li><b>Seguridad:</b> después de 5 PIN incorrectos el acceso se bloquea 15 minutos. "Generar PIN nuevo" deja inválido el anterior y "Despublicar" desactiva el link.</li>
-    </ol></details>`;
-  box.innerHTML=pub?`
-    <div class="pub-ok"><span class="pub-dot" aria-hidden="true"></span>Publicado · foto del ${esc(fecha)}</div>
-    <div class="pub-row"><label class="rlab">Link</label><div class="pub-val"><code id="pubLink">${esc(linkPublico(pub))}</code><button type="button" class="btn-q" data-copy="pubLink">Copiar</button></div></div>
-    <div class="pub-row"><label class="rlab">PIN</label><div class="pub-val"><code id="pubPinVal" class="pub-pin">${esc(pub.pin)}</code><button type="button" class="btn-q" data-copy="pubPinVal">Copiar</button></div></div>
-    <div class="pub-acts"><button type="button" class="btn-q sel" id="pubUpd">Actualizar publicación</button><button type="button" class="btn-q" id="pubPinNew">Generar PIN nuevo</button><button type="button" class="btn-q pub-danger" id="pubOff">Despublicar</button></div>
-    <div class="pub-confirm" id="pubConfirm" hidden></div>
-    <span class="hint" id="pubMsg"></span>
-    ${ayuda}
-    <div class="pub-consent"><span class="rlab">Consentimientos</span><div id="pubCons" class="hint">Cargando...</div></div>`:`
-    <p class="rhint">Generá un link para que tu cliente vea el reporte en modo lectura con un PIN de 6 dígitos, sin crear cuenta.</p>
-    <div class="pub-acts"><button type="button" class="btn-q sel" id="pubOn">Publicar reporte</button></div>
-    <span class="hint" id="pubMsg"></span>
-    ${ayuda}`;
-  const msg=box.querySelector("#pubMsg");
-  const run=async(btn,fn,ok)=>{
-    btn.disabled=true; msg.textContent="Publicando..."; msg.className="hint";
-    try{ await fn(); renderPublico(box,est,r); toast(ok); }
-    catch(e){ console.error("publicar",e); msg.textContent="No se pudo: "+((e&&e.message)||e); btn.disabled=false; }
+/* Compartir: tarjeta fija con el botón, la etiqueta de estado y la ayuda. Compartir publica o
+   actualiza solo si hace falta (mismo link y PIN) y abre el modal con el link y el PIN. */
+const fechaCorta=ts=>new Date(ts).toLocaleString("es-AR",{dateStyle:"medium",timeStyle:"short"});
+function estadoPub(r,ctx){
+  const pub=r.publico; if(!pub) return "no";
+  if(!pub.firma||!ctx.firma) return pub.firma?"ok":"desconocido";
+  return pub.firma===ctx.firma?"ok":"cambios";
+}
+function pintarEstado(card,r,ctx){
+  const tag=card.querySelector("#rpTag"); if(!tag) return;
+  const e=estadoPub(r,ctx), pub=r.publico;
+  const [cls,txt]={no:["no","Sin publicar"],ok:["ok","Publicado"],desconocido:["ok","Publicado"],cambios:["warn","Cambios sin publicar"]}[e];
+  tag.className="rp-tag "+cls; tag.textContent=txt;
+  const sub=card.querySelector("#rpTagSub");
+  if(sub) sub.textContent=e==="no"?"Compartir genera un link con PIN para tu cliente."
+    :e==="cambios"?"Tu cliente todavía ve la foto del "+fechaCorta(pub.publicadoAt)+" (al compartir se actualiza sola)"
+    :"Foto del "+fechaCorta(pub.publicadoAt);
+}
+function renderCompartir(card,est,r,ctx){
+  card.innerHTML=`<div class="rp-share-row">
+      <button type="button" class="rp-share-btn" id="rpShare"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Compartir</button>
+      <span class="rp-tag" id="rpTag" role="status"></span><span class="grow"></span>
+      <button type="button" class="rp-help-btn" id="rpHelp" aria-label="Cómo funciona el link y el PIN" aria-expanded="false" aria-controls="rpHelpPop">?</button>
+    </div>
+    <p class="rp-share-sub" id="rpTagSub"></p>
+    <div class="rp-help-pop" id="rpHelpPop" role="dialog" aria-label="Ayuda del link público" hidden></div>`;
+  pintarEstado(card,r,ctx);
+  const btn=card.querySelector("#rpShare");
+  btn.onclick=async()=>{
+    const e=estadoPub(r,ctx);
+    if(e!=="ok"){
+      btn.disabled=true; const tag=card.querySelector("#rpTag"); tag.className="rp-tag"; tag.textContent=r.publico?"Actualizando…":"Publicando…";
+      try{ await publicarReporte(est); ctx.firma=r.publico.firma; }
+      catch(err){ console.error("publicar",err); toast("No se pudo publicar: "+((err&&err.message)||err)); btn.disabled=false; pintarEstado(card,r,ctx); return; }
+      btn.disabled=false; pintarEstado(card,r,ctx);
+    }
+    abrirModalCompartir(est,r,()=>{ renderCompartir(card,est,r,ctx); });
   };
-  const confirmar=(texto,si,fn)=>{ const cf=box.querySelector("#pubConfirm"); cf.hidden=false;
+  const help=card.querySelector("#rpHelp"), pop=card.querySelector("#rpHelpPop");
+  const cerrar=()=>{ pop.hidden=true; help.setAttribute("aria-expanded","false"); document.removeEventListener("mousedown",fuera); document.removeEventListener("keydown",esc_); };
+  const fuera=e=>{ if(!pop.contains(e.target)&&e.target!==help) cerrar(); };
+  const esc_=e=>{ if(e.key==="Escape"){ cerrar(); help.focus(); } };
+  help.onclick=()=>{ if(!pop.hidden) return cerrar();
+    pop.hidden=false; help.setAttribute("aria-expanded","true"); pintarAyuda(pop,est,r);
+    document.addEventListener("mousedown",fuera); document.addEventListener("keydown",esc_); };
+}
+function pintarAyuda(pop,est,r){
+  pop.innerHTML=`<h4>Cómo funciona el link y el PIN</h4><ol>
+      <li><b>Compartir</b> guarda una foto del reporte tal como se ve en la vista previa y te da un link y un PIN de 6 dígitos. Si cambiaste algo, la foto se actualiza sola en el mismo link.</li>
+      <li><b>Mandá el link y el PIN por canales distintos</b>, por ejemplo el link por correo y el PIN por WhatsApp. Así nadie entra con solo uno de los dos.</li>
+      <li><b>Tu cliente abre el link</b>, escribe el PIN, su nombre y acepta las condiciones. Lo ve en modo lectura, sin crear cuenta.</li>
+      <li><b>Si reserva una propuesta</b> en "Trabajemos juntos", te llega un correo y queda en la lista de reservas.</li>
+      <li><b>Seguridad:</b> con 5 PIN incorrectos el acceso se bloquea 15 minutos. "Generar PIN nuevo" invalida el anterior y "Despublicar" desactiva el link.</li>
+    </ol>
+    <div class="rp-act"><span class="rlab">Reservas</span><div id="hpRes" class="hint">${r.publico?"Cargando...":"Todavía no publicaste el reporte."}</div></div>
+    <div class="rp-act"><span class="rlab">Consentimientos</span><div id="hpCons" class="hint">${r.publico?"Cargando...":"—"}</div></div>`;
+  if(!r.publico) return;
+  actividadDe(est).then(({consentimientos,reservas})=>{
+    const res=pop.querySelector("#hpRes"), cons=pop.querySelector("#hpCons"); if(!res) return;
+    res.innerHTML=reservas.length?`<ul class="pub-cons-list">${reservas.slice().reverse().map(x=>`<li><b>${esc(x.nombre)}</b> reservó ${esc(x.propuesta&&x.propuesta.titulo||"")} · ${esc(fechaCorta(x.fecha))}</li>`).join("")}</ul>`:"Todavía no hay reservas.";
+    cons.innerHTML=consentimientos.length?`<ul class="pub-cons-list">${consentimientos.slice().reverse().map(x=>`<li><b>${esc(x.nombre)}</b> · ${esc(fechaCorta(x.fecha))}</li>`).join("")}</ul>`:"Todavía nadie abrió el link.";
+  }).catch(()=>{ const res=pop.querySelector("#hpRes"); if(res) res.textContent="No se pudo cargar la actividad."; });
+}
+function abrirModalCompartir(est,r,alCerrar){
+  const root=document.getElementById("modalRoot"), pub=r.publico; if(!pub) return;
+  root.innerHTML=`<div class="modal-bg"><div class="modal sh-modal" role="dialog" aria-modal="true" aria-labelledby="shT">
+    <div class="modal-h"><h3 id="shT">Compartir reporte</h3><button class="icon-btn" id="shX" aria-label="Cerrar" style="width:32px;height:32px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+    <div class="modal-b">
+      <div class="pub-ok"><span class="pub-dot" aria-hidden="true"></span>Publicado y al día · foto del ${esc(fechaCorta(pub.publicadoAt))}</div>
+      <div class="pub-row"><label class="rlab" for="shLink">Link</label><div class="pub-val"><code id="shLink">${esc(linkPublico(pub))}</code><button type="button" class="btn-q" data-copy="shLink">Copiar</button></div></div>
+      <div class="pub-row"><label class="rlab" for="shPin">PIN</label><div class="pub-val"><code id="shPin" class="pub-pin">${esc(pub.pin)}</code><button type="button" class="btn-q" data-copy="shPin">Copiar</button></div></div>
+      <p class="rhint">Mandá el link y el PIN por canales distintos.</p>
+      <div class="pub-confirm" id="shConfirm" hidden></div>
+      <span class="hint" id="shMsg"></span>
+    </div>
+    <div class="modal-f sh-f"><button type="button" class="btn-q" id="shPinNew">Generar PIN nuevo</button><button type="button" class="btn-q pub-danger" id="shOff">Despublicar</button><span class="grow"></span><button type="button" class="btn-q sel" id="shOk">Listo</button></div>
+  </div></div>`;
+  const onKey=e=>{ if(e.key==="Escape") close(); };
+  const close=()=>{ root.innerHTML=""; document.removeEventListener("keydown",onKey); alCerrar&&alCerrar(); };
+  document.addEventListener("keydown",onKey);
+  const bg=root.querySelector(".modal-bg"); bg.onclick=e=>{ if(e.target===bg) close(); };
+  root.querySelector("#shX").onclick=close; root.querySelector("#shOk").onclick=close;
+  root.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ const t=root.querySelector("#"+b.dataset.copy).textContent; try{ await navigator.clipboard.writeText(t); toast("Copiado"); }catch(_){ toast("No se pudo copiar"); } });
+  const msg=root.querySelector("#shMsg");
+  const confirmar=(texto,si,fn)=>{ const cf=root.querySelector("#shConfirm"); cf.hidden=false;
     cf.innerHTML=`<p>${texto}</p><div class="pub-acts"><button type="button" class="btn-q pub-danger" id="cfSi">${si}</button><button type="button" class="btn-q" id="cfNo">Cancelar</button></div>`;
     cf.querySelector("#cfNo").onclick=()=>{ cf.hidden=true; cf.innerHTML=""; };
-    cf.querySelector("#cfSi").onclick=e=>fn(e.currentTarget); cf.querySelector("#cfSi").focus(); };
-  const on=box.querySelector("#pubOn"); if(on) on.onclick=()=>run(on,()=>publicarReporte(est),"Reporte publicado");
-  const upd=box.querySelector("#pubUpd"); if(upd) upd.onclick=()=>run(upd,()=>publicarReporte(est),"Publicación actualizada");
-  const pn=box.querySelector("#pubPinNew"); if(pn) pn.onclick=()=>confirmar("El PIN actual deja de funcionar. Vas a tener que compartir el nuevo.","Generar PIN nuevo",b=>run(b,()=>publicarReporte(est,{nuevoPIN:true}),"PIN nuevo generado"));
-  const off=box.querySelector("#pubOff"); if(off) off.onclick=()=>confirmar("El link deja de funcionar para todos. Podés volver a publicar después (con un link nuevo).","Despublicar",b=>run(b,()=>despublicarReporte(est),"Reporte despublicado"));
-  const cons=box.querySelector("#pubCons");
-  if(cons) consentimientosDe(est).then(l=>{
-    cons.innerHTML=l.length?`<ul class="pub-cons-list">${l.slice().reverse().map(c=>`<li><b>${esc(c.nombre)}</b> · ${esc(new Date(c.fecha).toLocaleString("es-AR",{dateStyle:"medium",timeStyle:"short"}))}</li>`).join("")}</ul>`:"Todavía nadie abrió el link.";
-  }).catch(()=>{ cons.textContent="No se pudieron cargar."; });
-  box.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ const t=box.querySelector("#"+b.dataset.copy).textContent; try{ await navigator.clipboard.writeText(t); toast("Copiado"); }catch(_){ toast("No se pudo copiar"); } });
+    cf.querySelector("#cfSi").onclick=async e=>{ e.currentTarget.disabled=true; msg.textContent="Un momento…";
+      try{ await fn(); }catch(err){ console.error("compartir",err); msg.textContent="No se pudo: "+((err&&err.message)||err); e.currentTarget.disabled=false; } };
+    cf.querySelector("#cfSi").focus(); };
+  root.querySelector("#shPinNew").onclick=()=>confirmar("El PIN actual deja de funcionar. Vas a tener que compartir el nuevo.","Generar PIN nuevo",async()=>{ await publicarReporte(est,{nuevoPIN:true}); toast("PIN nuevo generado"); abrirModalCompartir(est,r,alCerrar); });
+  root.querySelector("#shOff").onclick=()=>confirmar("El link deja de funcionar para todos. Podés volver a compartir después (con un link nuevo).","Despublicar",async()=>{ await despublicarReporte(est); toast("Reporte despublicado"); close(); });
+  root.querySelector("#shOk").focus();
 }
 /* Qué ve el cliente: secciones (r.online) e ítems ocultos (r.ocultos). */
 function renderSeleccion(box,est,r){
@@ -174,6 +216,7 @@ export function renderProyectoInto(c,est){
       <div class="rpt-group"><h4>Propuestas de trabajo <button class="btn ghost sm" id="rptAddProp">${plus()}</button></h4>
         <p class="rhint">Se muestran al cliente. Reordenalas arrastrando o con las flechas.</p>
         <div id="rptPropList" class="rpt-list"></div></div>
+      <div class="rpt-group rpt-marca"><h4>Marca</h4><p class="rhint">Logo, datos de contacto y textos del reporte. Valen para todos los estudios.</p><div id="rptMarca"></div></div>
       <div class="rpt-group"><h4>Muestra inicial</h4>
         <label class="chk"><input type="checkbox" id="rptMuestraOn" ${r.muestra.on?"checked":""}> Mostrar aviso de "muestra inicial"</label>
         <textarea id="rptMuestraTxt" rows="3" style="margin-top:8px">${esc(r.muestra.texto||"")}</textarea></div>
@@ -187,6 +230,7 @@ export function renderProyectoInto(c,est){
   c.querySelector("#rptMuestraOn").onchange=e=>{ r.muestra.on=e.target.checked; saveReporte(est); };
   c.querySelector("#rptMuestraTxt").oninput=e=>{ r.muestra.texto=e.target.value; saveReporte(est); };
   window._rptSchedule=null;
+  renderMarca(c.querySelector("#rptMarca"),est);
   renderPpList(est,c); renderDiagList(est,c,"hallazgosClave","#rptHcList"); renderDiagList(est,c,"recomendaciones","#rptRecList"); renderPropList(est,c);
 }
 function renderPpList(est,c){

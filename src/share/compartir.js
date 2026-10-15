@@ -9,7 +9,6 @@ import { jrDefaultCarriles, jrNormalizePaso } from "../journey/journey.js";
 import { ensureReporte, marcaActual } from "../reportes/comun.js";
 import { vistaCliente } from "../reportes/seleccion.js";
 import { compositeDataUrl } from "../ui/anotaciones.js";
-import { downloadFile } from "../ui/descargas.js";
 import { x } from "../ui/iconos.js";
 
 const PIN_COLOR={Problema:"#e5484d",Oportunidad:"#12a594","Observación":"#64748b"};
@@ -49,28 +48,13 @@ export async function collectShareData(est){
     hallazgos:hzOut, flows:flowsOut, journeys:jOut
   };
 }
-/* HTML autónomo del reporte del cliente (SR_boot + datos + CSS). Lo usan la descarga de la
-   página y la vista previa en vivo de la pestaña Reportes (en un iframe, con D.preview). */
+/* HTML autónomo del reporte del cliente (SR_boot + datos + CSS). Lo usa la vista previa en
+   vivo de la pestaña Reportes (en un iframe, con D.preview). */
 export function buildShareHtml(D){
   const css=[...document.querySelectorAll("style")].map(s=>s.textContent).join("\n");
   const boot="("+SR_BOOT_SRC.trim()+")("+JSON.stringify(D).replace(/<\//g,"<\\/")+");";
   return "<!doctype html><html lang=\"es\" data-theme=\"light\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>"+esc(D.est.nombre)+" · Diagnóstico UX</title><style>"+css+"</style></head><body style=\"margin:0;background:#faf9f5\"><div id=\"shareRoot\"></div><script>\n"+boot+"\n</scr"+"ipt></body></html>";
 }
-export async function generateSharePage(est,btn){
-  const msg=document.getElementById("rptCliMsg"); const setM=(t,ok)=>{ if(msg){msg.textContent=t;msg.className="hint"+(ok?" ok":"");} };
-  const orig=btn?btn.innerHTML:""; if(btn){ btn.disabled=true; btn.innerHTML="Generando..."; }
-  try{
-    setM("Recolectando datos e imágenes...");
-    const D=await collectShareData(est);
-    const html=buildShareHtml(D);
-    const fname=((D.est.nombre||"reporte").replace(/[^\w\-]+/g,"_").slice(0,60)||"reporte")+"-reporte.html";
-    setM("Preparando descarga...");
-    downloadFile({filename:fname,data:html});
-    setM("Página HTML generada. Compartila con quien quieras.",true);
-  }catch(e){ console.error("generateSharePage",e); setM("No se pudo generar: "+((e&&(e.message||e.code))||e)); }
-  finally{ if(btn){ btn.disabled=false; btn.innerHTML=orig; } }
-}
-
 /* Renderiza el reporte del cliente (el mismo SR_boot de la página autónoma) dentro
    de la página actual. Lo usa el link público /r/{id}. */
 export function montarReportePublico(D){
