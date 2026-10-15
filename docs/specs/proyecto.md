@@ -1,21 +1,33 @@
-# Feature: Proyecto con sidebar y dashboard de Resumen  ·  id: proy
+# Feature: Proyecto: subheader, barra de secciones y dashboard de Resumen  ·  id: proy
 
 Historia de usuario: Como consultor/a UX, quiero entrar a un estudio y ver de un vistazo
-sus problemas, protopersonas, flujos y hallazgos, con un menú lateral para moverme entre
-secciones, para saber dónde está el trabajo sin recorrer pestaña por pestaña.
+sus problemas, protopersonas, flujos y hallazgos, con una barra de secciones para moverme
+entre ellas, para saber dónde está el trabajo sin recorrer pantalla por pantalla.
 
-Objetivo: reemplazar la cabecera con pestañas de la vista de estudio por un subheader
-a lo ancho, un sidebar negro en caja (plegable) y una página de Resumen como home del
-proyecto. Sale de la exploración `explorar/subheader-estudio`.
+Objetivo: vista de estudio a 100% de ancho, con un subheader de borde a borde, una barra
+de secciones clara y una página de Resumen como home del proyecto, según el Figma
+"Ux-Diagnostic-tool". Sale de las exploraciones `explorar/subheader-estudio`,
+`explorar/hallazgo-como-pagina` y `explorar/layout-figma` (el sidebar de la primera se
+reemplazó por la barra).
 
 ## Criterios de aceptación
 
+### Layout
+- Dado un estudio abierto, cuando se ve la página, entonces no hay barra global (marca,
+  buscador, usuario): se vuelve al inicio desde las migas. Al volver a la home, la barra
+  global reaparece.
+- Dado cualquier ancho, cuando se ve el estudio, entonces el subheader, la barra de
+  secciones y el área de trabajo ocupan el 100% del ancho, sin márgenes laterales ni caja
+  centrada. El área de trabajo tiene fondo `--surface-2` y 20 px de padding (12 px por
+  debajo de 760 px).
+
 ### Subheader
-- Dado un estudio abierto, cuando se ve la parte de arriba, entonces el subheader ocupa
-  todo el ancho del contenido, dentro de una tarjeta, y muestra:
-  - Migas de pan `‹ Estudios / {nombre} / {sección}`. "‹ Estudios" vuelve a la home y
-    es el único botón de esa línea. La sección activa va en el color del texto y las
-    demás migas en gris.
+- Dado un estudio abierto, cuando se ve la parte de arriba, entonces el subheader va de
+  borde a borde, con fondo de tarjeta y una línea abajo (sin radio ni sombra), y muestra:
+  - Migas: un botón de ícono con flecha (28 px, fondo `--surface-2`, radio 8, ícono
+    `src/assets/figma/volver.svg`), la marca (cuadro de 22 px) + "Estudios", y después
+    `/ {nombre} / {sección}`. La flecha y "Estudios" vuelven a la home. La sección activa
+    va en el color del texto y las demás migas en gris.
   - El título del estudio como `h1` de 28 px (24 px por debajo de 640 px).
   - Debajo, los datos con etiqueta y separados por líneas finas:
     **Cliente**, **Plataforma** y **URL**. Si un dato falta, no aparece. La URL se ve
@@ -25,26 +37,21 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
 - Dado el subheader, cuando se mira el estado, entonces no comparte estilo con la
   plataforma (la plataforma es texto, no chip).
 
-### Sidebar
-- Dado un estudio abierto, cuando se ve debajo del subheader, entonces a la izquierda
-  hay una caja negra (`#0a0a0a`, en tema claro y oscuro) con bordes redondeados
-  (`--radius-xl`) y sombra, a 24 px del subheader y del panel de trabajo. Ocupa
-  `clamp(220px, 20vw, 280px)` y el panel de trabajo usa el resto.
-- Dado el sidebar, cuando se lo lee, entonces arriba dice "Menú del proyecto" con el
-  botón para plegar, y debajo dos grupos:
-  - **Proyecto:** Resumen, Flujos, Protopersonas, Hallazgos (con el contador de
-    hallazgos del estudio) y Configuración.
-  - **Salida:** Métricas y Reportes.
-  Cada ítem tiene ícono. El activo va en blanco con texto negro y `aria-current="page"`.
-- Dado un ítem del sidebar, cuando se lo toca, entonces muestra esa sección en el
-  panel de trabajo, actualiza las migas y lleva el scroll arriba. Flujos abre la lista.
-- Dado el botón de plegar, cuando se lo toca, entonces el sidebar queda en 64 px, solo
-  con íconos (con `title`) y una línea entre Proyecto y Salida; tocarlo de nuevo lo
-  despliega. La preferencia se recuerda en el navegador (`LS` `lupa:side`).
-- Dado un scroll largo, cuando se baja, entonces el sidebar queda fijo debajo de la
-  barra global (sticky, a 16 px) y no se superpone con ella.
-- Dada una pantalla de 760 px o menos, cuando se ve el estudio, entonces el sidebar
-  pasa a íconos (56 px), sin título ni botón de plegar, y no hay scroll horizontal.
+### Barra de secciones
+- Dado un estudio abierto, cuando se ve debajo del subheader, entonces hay una barra de
+  pestañas a todo el ancho (fondo `--background`, línea abajo, padding 5 × 20 px) con dos
+  grupos separados por una línea vertical:
+  - **Proyecto:** Resumen, Flujos, Protopersonas y Hallazgos (con el contador de
+    hallazgos del estudio).
+  - **Salida:** Métricas, Reportes y Configuración.
+  Cada pestaña tiene ícono y texto en `--faint`. La activa va con fondo `--background`,
+  borde `--line`, radio 6 y texto `--ink`, con `aria-current="page"`.
+- Dada una pestaña, cuando se la toca, entonces muestra esa sección en el área de trabajo,
+  actualiza las migas y lleva el scroll arriba. Flujos abre la lista.
+- Dado un scroll largo, cuando se baja, entonces la barra queda fija arriba (sticky).
+- Dada una pantalla de 640 px o menos, cuando se ve la barra, entonces las pestañas
+  muestran solo el ícono salvo la activa, la barra se desliza de costado y no hay scroll
+  horizontal de la página.
 
 ### Secciones
 - Dado un estudio, cuando se lo abre, entonces la sección inicial es **Resumen**
@@ -53,7 +60,7 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
   diagnóstico, protopersonas, propuestas y muestra), sin cambios de contenido.
 - Hallazgos, Flujos, Reportes, Métricas y Protopersonas muestran lo mismo que sus
   pestañas de antes. Protopersonas y Métricas siguen como "Próximamente".
-- Las pestañas horizontales (`.subtabs`) desaparecen de la vista de estudio.
+- Hallazgos se arma como área de trabajo + panel derecho (spec `hz`).
 
 ### Resumen (dashboard)
 - Dado el Resumen, cuando se abre, entonces muestra cuatro cards en una grilla de 12
@@ -64,9 +71,11 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
   - Muestra una barra de problemas por severidad, ordenada de Sev 4 a Sev 0 igual que su
     leyenda, con el conteo de cada nivel.
   - Muestra los 4 problemas de mayor severidad.
-  - Tocar un número, una severidad de la leyenda o "Ver hallazgos" lleva a Hallazgos con
-    ese filtro aplicado. Tocar un problema abre su edición.
-- **Hallazgos (acceso rápido):** muestra el botón "Nuevo hallazgo" (abre el alta) y los
+  - Tocar un número o una severidad de la leyenda lleva a Hallazgos con el filtro de tipo
+    aplicado en el panel (la severidad lleva a Problemas). "Ver hallazgos" lleva a
+    Hallazgos. Tocar un problema abre su edición.
+- **Hallazgos (acceso rápido):** muestra el botón "Nuevo hallazgo" (abre la página de alta,
+  spec `hz`) y los
   últimos 4 registrados por fecha de creación, que se abren al tocarlos. "Ver todos"
   lleva a Hallazgos.
 - **Protopersonas:**
@@ -84,16 +93,16 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
 
 ### Temas y regresión
 - Dado el tema oscuro, cuando se ve el estudio, entonces el subheader, las cards y el
-  texto se leen. El sidebar sigue negro y se distingue del fondo por su borde.
+  texto se leen; la barra de secciones y el área de trabajo usan los tokens del tema.
 - El test e2e se adapta a que el estudio abre en Resumen. En el Resumen, el mismo
   hallazgo puede aparecer en "Prioritarios" y en "Últimos registrados".
 
 ## Alcance
-- La vista de estudio (`views/estudio.js`): subheader, sidebar y navegación.
+- La vista de estudio (`views/estudio.js`): subheader, barra de secciones y navegación.
 - La nueva vista `views/resumen.js`.
 - `STUDY_TABS` y el `studyTab` inicial (`core/state.js`, `openStudy`).
-- La clase `in-study` y la variable `--top-h` (`app/render.js`).
-- Los íconos `grid`, `gear` y `side` en `bigIco`.
+- La clase `in-study` (oculta la barra global) y la variable `--top-h` (`app/render.js`).
+- Los íconos `grid` y `gear` en `bigIco`; `volver.svg` en `src/assets/figma/`.
 - Los estilos de `base.css`.
 - El ajuste del test e2e.
 
@@ -101,7 +110,7 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
 - Fuera de alcance:
   - La sección propia de Protopersonas (sigue "Próximamente").
   - Métricas.
-  - Rediseñar el contenido de Hallazgos, Flujos, Configuración o Reportes.
+  - Rediseñar el contenido de Flujos, Configuración o Reportes (Hallazgos: spec `hz`).
   - La home y la barra global (spec `home`).
 - No tocar:
   - Los datos: no cambia ningún modelo ni ruta. Las protopersonas se siguen leyendo de
@@ -115,7 +124,6 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
   `hzModal`, `ensureReporte` (protopersonas), `SEVERIDAD` y `TIPOS`.
 - Las vistas `renderHallazgosInto`, `renderFlujosInto`, `renderProyectoInto`
   (Configuración) y `renderReportesInto`.
-- `LS` para la preferencia del sidebar.
 
 ## Estados (UI)
 - Vacío:
@@ -128,16 +136,20 @@ proyecto. Sale de la exploración `explorar/subheader-estudio`.
   con "Reintentar", que vuelve a pedirlos.
 
 ## Diseño
-N/A: el diseño se definió en la exploración (rama `explorar/subheader-estudio`, commits
-`105a859`, `5c5c74d` y `c15c46b`), que sirve de referencia visual.
+Figma "Ux-Diagnostic-tool", frames "Lupa UX · Proyecto · Resumen":
+https://www.figma.com/design/TgoGlLsjt4rs2dH04TQnFL/Ux-Diagnostic-tool?node-id=29-3102 y
+https://www.figma.com/design/TgoGlLsjt4rs2dH04TQnFL/Ux-Diagnostic-tool?node-id=29-3575
+(de este se toma el orden de pestañas, con Configuración al final). El dashboard de Resumen
+no está en el Figma: se definió en la exploración `explorar/subheader-estudio`. Radios y
+estados: spec `ds`.
 
 ## Definición de hecho
 - La de AGENTS.md: `npm run check`, `npm run smoke` y `npm run test:e2e` pasan. Las tres
   acciones críticas siguen funcionando. La vista previa y el texto plano no cambian.
 - Propio:
   - Revisar en 1440 px, en tema oscuro y en 375 px (sin scroll horizontal).
-  - Plegar y desplegar el sidebar, y recargar: se mantiene.
-  - Recorrer las siete secciones desde el sidebar.
+  - Recorrer las siete secciones desde la barra y volver al inicio con la flecha y con
+    "Estudios" (la barra global reaparece).
   - Abrir un flujo y un journey desde el Resumen.
   - Que los filtros desde el Resumen lleguen aplicados a Hallazgos.
   - Actualizar `architecture.md` (módulo `views/resumen.js` y fila de la tabla de features).
@@ -148,5 +160,5 @@ N/A: el diseño se definió en la exploración (rama `explorar/subheader-estudio
 - `src/core/state.js`: `STUDY_TABS`.
 - `src/app/render.js`: `openStudy`, `in-study`, `--top-h`.
 - `src/ui/iconos.js`: `bigIco`.
-- `src/styles/base.css`: `.study-head`, `.sh-*`, `.proj*`, `.ps-*`, `.dash`, `.dc*`,
+- `src/styles/base.css`: `.study-head`, `.sh-*`, `.proj*`, `.pt-*`, `.dash`, `.dc*`,
   `.dp-*`, `.pp-*`, `.fl-*`.

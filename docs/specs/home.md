@@ -10,9 +10,8 @@ quitó la sección "Diagnóstico" con sus indicadores y quedó un panel central 
 estudios.
 
 ## Criterios de aceptación
-- Dada cualquier pantalla, cuando se ve la barra superior, entonces muestra: la marca
+- Dada una pantalla fuera de un estudio, cuando se ve la barra superior, entonces muestra: la marca
   (cuadro con el ícono "view", "uxuaria" en Inter ExtraBold 20 px y "Lupa Ux" debajo),
-  la navegación "Estudios" y "Catálogo" con sus íconos (la sección activa con fondo),
   un buscador de 260 px con texto guía "Buscar estudios" y, en modo `server`, el menú
   de usuario (avatar con la inicial, nombre, email y flecha).
 - Dado el menú de usuario abierto, cuando se lo usa, entonces ofrece "Datos guardados
@@ -23,8 +22,13 @@ estudios.
   estudios cuyo nombre, cliente, URL o plataforma lo contienen; desde otra pantalla,
   escribir lleva a la home. Sin coincidencias: "Ningún estudio coincide con la búsqueda."
 - Dada la home, cuando se abre, entonces NO muestra el título "Diagnóstico" ni los
-  indicadores de Diagnósticos, Clientes y Hallazgos. Muestra un panel central:
-  una tarjeta con `--radius-xl`, un ancho máximo de 1440 px y 28 px de padding.
+  indicadores de Diagnósticos, Clientes y Hallazgos. Muestra un panel de estudios a 100%
+  de ancho, pegado a la barra, sin radio ni márgenes laterales, con una línea abajo y
+  padding 28 × 32 px (18 × 16 px por debajo de 560 px).
+- Dada la barra superior, cuando se ve, entonces no muestra la navegación "Estudios" /
+  "Catálogo" (Figma "Ux-Diagnostic-tool"): la marca lleva a la home y el Catálogo se abre
+  desde el panel de Hallazgos (spec `hz`). Dentro de un estudio la barra no aparece
+  (spec `proy`).
 - Dado el panel, cuando se lee su cabecera, entonces muestra el título "Estudios" y
   debajo la cantidad ("3 estudios", "1 estudio"). Con texto en el buscador muestra
   "{n} de {total} estudios coinciden con “{texto}”". Sin estudios muestra
@@ -36,7 +40,8 @@ estudios.
   por debajo de 560 px. Cada tarjeta tiene su conteo de hallazgos, editar y borrar.
 - Dada la grilla, cuando se mira la primera posición, entonces hay una tarjeta vacía
   que funciona como botón "Nuevo estudio": borde punteado, ícono "+" y el texto
-  "Cargá cliente, plataforma y URL", del mismo alto que un estudio (208 px). Al
+  "Cargá cliente, plataforma y URL", del mismo alto que un estudio (208 px) y radio 6
+  como las tarjetas (spec `ds`). Al
   tocarla se abre el alta de estudio. Aparece siempre: sin estudios, con estudios y
   con búsqueda. En celular se ve como una fila compacta.
 - Dada una búsqueda sin coincidencias, cuando se ve la home, entonces queda la
