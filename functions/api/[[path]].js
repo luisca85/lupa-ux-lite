@@ -139,6 +139,9 @@ async function publico(request, env) {
   }
   meta.fallos = 0; meta.bloqueadoHasta = 0;
 
+  // Reserva desde "Trabajemos juntos": exige el mismo PIN, la registra y avisa por correo.
+  if (body.accion === "reserva") return reservar(body, meta, guardar, env, now);
+
   // Consentimiento obligatorio: sin nombre y aceptación, no se entrega el reporte.
   const nombre = String((body && body.nombre) || "").replace(/\s+/g, " ").trim().slice(0, 80);
   if (!nombre || body.acepto !== true) {
@@ -153,6 +156,46 @@ async function publico(request, env) {
   return new Response(texto, {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" },
   });
+}
+
+/* ---------- Reservas ("Reservar ahora tu diagnóstico" en el reporte del cliente) ----------
+   Se guardan en la foto (últimas 20, se conservan al actualizar la publicación) y se avisa
+   por correo con Resend si está configurado: RESEND_API_KEY (secreto), RESERVA_TO (por
+   defecto info@uxuaria.com), RESERVA_CC (opcional) y RESERVA_FROM (remitente de un dominio
+   verificado en Resend). Si el correo falla, la reserva igual queda registrada. */
+const PUB_MAX_RESERVAS = 20;
+const txt = (v, n) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n);
+
+async function reservar(body, meta, guardar, env, now) {
+  const nombre = txt(body.nombre, 80), p = body.propuesta || {};
+  const propuesta = { id: txt(p.id, 64), titulo: txt(p.titulo, 140), precio: txt(p.precio, 60) };
+  if (!nombre || !propuesta.titulo) { await guardar(meta); return json({ error: "Faltan datos de la reserva." }, 400); }
+  const reserva = { nombre, propuesta, fecha: now };
+  meta.reservas = [...(Array.isArray(meta.reservas) ? meta.reservas : []), reserva].slice(-PUB_MAX_RESERVAS);
+  await guardar(meta);
+  let enviado = false;
+  try { enviado = await avisarReserva(env, meta, reserva); } catch (e) { enviado = false; }
+  return json({ ok: true, enviado });
+}
+
+async function avisarReserva(env, meta, r) {
+  if (!env.RESEND_API_KEY) return false;
+  const to = (env.RESERVA_TO || "info@uxuaria.com").split(",").map((x) => x.trim()).filter(Boolean);
+  const cc = (env.RESERVA_CC || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const estudio = meta.estNombre || "un estudio", cliente = meta.estCliente ? " (" + meta.estCliente + ")" : "";
+  const fecha = new Date(r.fecha).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "long", timeStyle: "short" });
+  const asunto = "Nueva reserva: " + r.propuesta.titulo + " · " + r.nombre;
+  const html = "<h2>Nueva reserva desde el reporte</h2>"
+    + "<p><b>" + esc(r.nombre) + "</b> reservó <b>" + esc(r.propuesta.titulo) + "</b>" + (r.propuesta.precio ? " (" + esc(r.propuesta.precio) + ")" : "") + ".</p>"
+    + "<p>Estudio: " + esc(estudio + cliente) + "<br>Fecha: " + esc(fecha) + "</p>"
+    + "<p>Le prometimos que le escribís pronto.</p>";
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
+    body: JSON.stringify({ from: env.RESERVA_FROM || "Lupa UX <reservas@uxuaria.com>", to, cc: cc.length ? cc : undefined, subject: asunto, html }),
+  });
+  return res.ok;
 }
 
 /* ---------- Handler ---------- */

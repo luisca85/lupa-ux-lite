@@ -43,7 +43,7 @@ reemplazó por la barra).
   grupos separados por una línea vertical:
   - **Proyecto:** Resumen, Hallazgos (con el contador de hallazgos del estudio), Flujos y
     Protopersonas.
-  - **Salida:** Métricas, Reportes y Configuración.
+  - **Salida:** Reportes y Configuración (Métricas está oculta; spec `rpt`).
   Cada pestaña tiene ícono y texto en `--faint`. La activa va con fondo `--background`,
   borde `--line`, radio 6 y texto `--ink`, con `aria-current="page"`.
 - Dada una pestaña, cuando se la toca, entonces muestra esa sección en el área de trabajo,
@@ -56,9 +56,7 @@ reemplazó por la barra).
 ### Secciones
 - Dado un estudio, cuando se lo abre, entonces la sección inicial es **Resumen**
   (antes era Hallazgos).
-- Configuración muestra lo que antes era la pestaña "Proyecto" (resumen ejecutivo,
-  diagnóstico, protopersonas, propuestas y muestra), sin cambios de contenido.
-- Reportes muestra lo mismo que su pestaña de antes; Métricas sigue como "Próximamente".
+- Reportes y Configuración: ver spec `rpt`. Métricas queda oculta en la barra.
 - Hallazgos se arma como área de trabajo con pantallas + panel derecho (spec `hz`).
 - **Flujos y Protopersonas están deshabilitadas provisionalmente** (lista `PROXIMAMENTE` en
   `views/estudio.js`; el código y los datos se conservan). En la barra llevan la etiqueta
@@ -90,9 +88,9 @@ reemplazó por la barra).
   - Con protopersonas cargadas (`estudio.reporte.protopersonas`), muestra hasta 4 cards
     con foto o inicial, nombre, arquetipo, edad y ocupación.
   - Sin protopersonas, muestra un punto de entrada con el texto guía y el botón
-    "Crear protopersona", que lleva a Configuración (donde se cargan hoy).
-  - Tocar una card de protopersona, o "Editar", lleva a Configuración mientras la sección
-    Protopersonas siga como "Próximamente".
+    "Crear protopersona", que lleva a la sección Protopersonas ("Próximamente").
+  - Tocar "Editar" también lleva a la sección Protopersonas. Ya no se cargan en
+    Configuración (spec `rpt`); las guardadas se siguen mostrando.
 - **Flujos:**
   - Lista hasta 5 flujos y journeys con ícono, nombre, tipo y la cantidad de
     interacciones (User Flow) o etapas (User Journey), más los hallazgos marcados si hay.

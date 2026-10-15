@@ -4,7 +4,8 @@ import { STUDY_TABS, activeStudy, state } from "../core/state.js";
 import { LS, esc, uid } from "../core/util.js";
 import { store } from "../data/store.js";
 import { renderFlujosInto } from "../flujos/flujos.js";
-import { renderProyectoInto, renderReportesInto } from "../reportes/panel.js";
+import { renderProyectoInto } from "../reportes/configuracion.js";
+import { renderReportesInto } from "../reportes/panel.js";
 import { bigIco, pencil } from "../ui/iconos.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
 import { renderHallazgosInto } from "./hallazgos.js";
@@ -15,7 +16,7 @@ import { renderResumenInto } from "./resumen.js";
 export function renderStudyShell(){
   const est=activeStudy();
   if(!est){ state.view="home"; return renderHome(); }
-  const tab=STUDY_TABS.find(t=>t.id===state.studyTab)||STUDY_TABS[0];
+  const tab=STUDY_TABS.find(t=>t.id===state.studyTab&&!t.oculta)||STUDY_TABS[0];
   const navBtn=t=>`<button data-t="${t.id}" class="${tab.id===t.id?'on':''}" title="${t.label}${proximamente(t.id)?" · Próximamente":""}"${tab.id===t.id?' aria-current="page"':''}>${bigIco(t.ico)}<span class="lb">${t.label}</span>${t.id==="hallazgos"?`<span class="cnt">${state.hallazgos.length}</span>`:""}${proximamente(t.id)?`<span class="pronto">Pronto</span>`:""}</button>`;
   view.innerHTML=`
     <div class="proj">
@@ -47,7 +48,7 @@ export function renderStudyShell(){
         <nav class="proj-tabs" id="psNav" aria-label="Secciones del proyecto">
           <div class="pt-group" role="group" aria-label="Proyecto">${STUDY_TABS.filter(t=>!t.grupo).map(navBtn).join("")}</div>
           <span class="pt-sep" aria-hidden="true"></span>
-          <div class="pt-group" role="group" aria-label="Salida">${STUDY_TABS.filter(t=>t.grupo==="salida").map(navBtn).join("")}</div>
+          <div class="pt-group" role="group" aria-label="Salida">${STUDY_TABS.filter(t=>t.grupo==="salida"&&!t.oculta).map(navBtn).join("")}</div>
         </nav>
         <section class="proj-main" id="studyContent"></section>
       </div>

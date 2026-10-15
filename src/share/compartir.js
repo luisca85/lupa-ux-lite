@@ -9,10 +9,11 @@ import { jrDefaultCarriles, jrNormalizePaso } from "../journey/journey.js";
 import { ensureReporte, marcaActual } from "../reportes/comun.js";
 import { vistaCliente } from "../reportes/seleccion.js";
 import { compositeDataUrl } from "../ui/anotaciones.js";
-import { downloadFile } from "../ui/descargas.js";
 import { x } from "../ui/iconos.js";
 
 const PIN_COLOR={Problema:"#e5484d",Oportunidad:"#12a594","Observación":"#64748b"};
+// Composiciones pantalla+pin ya hechas: la vista previa en vivo reconstruye el reporte seguido.
+const _compCache=new Map();
 export async function collectShareData(est){
   // Solo lo que el cliente puede ver: lo oculto o desmarcado no se incrusta en el HTML.
   const v=vistaCliente(ensureReporte(est),state.hallazgos,state.flujos), r=v.r, m=marcaActual();
@@ -25,7 +26,9 @@ export async function collectShareData(est){
     const imgs=[], p=h.pantallaId?pantallas.find(x=>x.id===h.pantallaId):null;
     if(p){ try{ const d=await pantallaImg(p.id); if(d&&d.base){ const n=pinNumero(h,state.hallazgos)||1, w=d.w||p.w, hh=d.h||p.h;
       const pin=h.pin||{x:0.5,y:0.5};
-      const url=await compositeDataUrl({base:d.base,w,h:hh,ann:[{t:"pin",x:pin.x*w,y:pin.y*hh,n,color:PIN_COLOR[h.tipo]||"#e2483d"}]},0.82);
+      const color=PIN_COLOR[h.tipo]||"#e2483d", k=[est.id,p.id,d.base.length,d.base.slice(-32),pin.x,pin.y,n,color].join("|");
+      let url=_compCache.get(k);
+      if(!url){ url=await compositeDataUrl({base:d.base,w,h:hh,ann:[{t:"pin",x:pin.x*w,y:pin.y*hh,n,color}]},0.82); _compCache.set(k,url); if(_compCache.size>300) _compCache.delete(_compCache.keys().next().value); }
       imgs.push({url,pins:[]}); } }catch(e){} }
     hzOut.push({ id:h.id, tipo:h.tipo, severidad:(h.severidad!=null&&h.severidad!=="")?h.severidad:null, titulo:h.titulo||"", pantalla:h.pantalla||(p?p.nombre:""), descripcion:h.descripcion||"", recomendacion:h.recomendacion||"", heur:heurDe(h).map(x=>x.nombre), sesgos:sesgosDe(h).map(x=>x.nombre), tags:h.tags||[], imgs });
   }
@@ -40,28 +43,18 @@ export async function collectShareData(est){
   return {
     brand:{wordmark:m.wordmark,headerImg:m.headerImg||null,nombre:m.nombre,rol:m.rol,sitio:m.sitio,email:m.email||"",tel:m.tel||"",servicioNombre:m.servicioNombre||"",servicioDesc:m.servicioDesc||"",servicioUrl:m.servicioUrl||"",linkedin:m.linkedin||"",bienvenida:m.bienvenida||"",notaIA:m.notaIA||"",notaInicial:m.notaInicial||""},
     est:{nombre:est.nombre||"",cliente:est.cliente||"",plataforma:est.plataforma||"",fecha:est.fecha||""},
-    report:{resumen:r.resumen||"",objetivos:r.objetivos||"",alcance:r.alcance||"",diagIntro:r.diagIntro||"",muestra:r.muestra||{on:false,texto:""},online:r.online||{},propuestas:r.propuestas||[],hallazgosClave:r.hallazgosClave||[],recomendaciones:r.recomendaciones||[],protopersonas:r.protopersonas||[]},
+    report:{resumen:r.resumen||"",objetivos:r.objetivos||"",alcance:r.alcance||"",diagIntro:r.diagIntro||"",muestra:r.muestra||{on:false,texto:""},online:r.online||{},propuestas:r.propuestas||[],hallazgosClave:r.hallazgosClave||[],recomendaciones:r.recomendaciones||[],protopersonas:[]},
     metrics:{total:hz.length,problemas:byT("Problema"),oportunidades:byT("Oportunidad"),sevAlta:sevN(3)+sevN(4)},
     hallazgos:hzOut, flows:flowsOut, journeys:jOut
   };
 }
-export async function generateSharePage(est,btn){
-  const msg=document.getElementById("rptCliMsg"); const setM=(t,ok)=>{ if(msg){msg.textContent=t;msg.className="hint"+(ok?" ok":"");} };
-  const orig=btn?btn.innerHTML:""; if(btn){ btn.disabled=true; btn.innerHTML="Generando..."; }
-  try{
-    setM("Recolectando datos e imágenes...");
-    const D=await collectShareData(est);
-    const css=[...document.querySelectorAll("style")].map(s=>s.textContent).join("\n");
-    const boot="("+SR_BOOT_SRC.trim()+")("+JSON.stringify(D).replace(/<\//g,"<\\/")+");";
-    const html="<!doctype html><html lang=\"es\" data-theme=\"light\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>"+esc(D.est.nombre)+" · Diagnóstico UX</title><style>"+css+"</style></head><body style=\"margin:0;background:#faf9f5\"><div id=\"shareRoot\"></div><script>\n"+boot+"\n</scr"+"ipt></body></html>";
-    const fname=((D.est.nombre||"reporte").replace(/[^\w\-]+/g,"_").slice(0,60)||"reporte")+"-reporte.html";
-    setM("Preparando descarga...");
-    downloadFile({filename:fname,data:html});
-    setM("Página HTML generada. Compartila con quien quieras.",true);
-  }catch(e){ console.error("generateSharePage",e); setM("No se pudo generar: "+((e&&(e.message||e.code))||e)); }
-  finally{ if(btn){ btn.disabled=false; btn.innerHTML=orig; } }
+/* HTML autónomo del reporte del cliente (SR_boot + datos + CSS). Lo usa la vista previa en
+   vivo de la pestaña Reportes (en un iframe, con D.preview). */
+export function buildShareHtml(D){
+  const css=[...document.querySelectorAll("style")].map(s=>s.textContent).join("\n");
+  const boot="("+SR_BOOT_SRC.trim()+")("+JSON.stringify(D).replace(/<\//g,"<\\/")+");";
+  return "<!doctype html><html lang=\"es\" data-theme=\"light\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>"+esc(D.est.nombre)+" · Diagnóstico UX</title><style>"+css+"</style></head><body style=\"margin:0;background:#faf9f5\"><div id=\"shareRoot\"></div><script>\n"+boot+"\n</scr"+"ipt></body></html>";
 }
-
 /* Renderiza el reporte del cliente (el mismo SR_boot de la página autónoma) dentro
    de la página actual. Lo usa el link público /r/{id}. */
 export function montarReportePublico(D){

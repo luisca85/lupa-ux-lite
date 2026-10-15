@@ -1,12 +1,11 @@
 // Test de regresión de la constitución (docs/AGENTS.md), automatizado.
 // Corre en dos proyectos: "servidor" (API + D1) e "indexeddb" (hosting estático).
 import { test, expect } from "@playwright/test";
-import { pathToFileURL } from "node:url";
 import { makePng } from "./png.mjs";
 
 const PIN_COMMENT = "Comentario del pin de prueba";
 
-test("regresión: hallazgo con imagen, flujos, reporte y página para compartir", async ({ page, context }, testInfo) => {
+test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async ({ page }, testInfo) => {
   const errores = [];
   page.on("pageerror", (e) => errores.push(e.message));
 
@@ -67,43 +66,27 @@ test("regresión: hallazgo con imagen, flujos, reporte y página para compartir"
     await expect(page.locator("#hzPanel").getByText(hallazgo)).toBeVisible();
   });
 
-  await test.step("2. vista previa del reporte: hallazgos, flujos y journeys", async () => {
+  await test.step("2. vista previa en vivo del reporte: hallazgos en grilla; flujos y journeys en Pronto", async () => {
     await page.getByRole("button", { name: "Reportes", exact: true }).click();
-    await page.getByRole("button", { name: "Vista previa del reporte" }).click();
+    await expect(page.locator("#rpEstado")).toHaveText("Al día");
+    const prev = page.frameLocator("#rpFrame");
+    await prev.getByRole("button", { name: "Hallazgos" }).click();
+    await prev.locator(".hz-gcard", { hasText: hallazgo }).click();
+    await expect(prev.locator('img[src^="data:image"]').first()).toBeVisible();
+    await expect(prev.getByText(PIN_COMMENT)).toBeVisible();
+    await expect(prev.locator(".sb-btn.is-pronto", { hasText: "Flujos" })).toBeDisabled();
+    await expect(prev.locator(".sb-btn.is-pronto", { hasText: "User Journeys" })).toBeDisabled();
+
+    // Lo que se oculta en el panel desaparece de la vista previa, que conserva la sección abierta.
+    await page.locator('#rptSel input[data-sec="contacto"]').uncheck();
+    await expect(prev.getByRole("button", { name: "Contacto" })).toHaveCount(0);
+    await expect(prev.getByText(PIN_COMMENT)).toBeVisible();
+    await page.locator('#rptSel input[data-sec="contacto"]').check();
+    await expect(prev.getByRole("button", { name: "Contacto" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Pantalla completa" }).click();
     await expect(page.getByRole("button", { name: "Cerrar vista previa" })).toBeVisible();
-
-    await page.getByRole("button", { name: "Hallazgos" }).click();
-    await page.getByRole("button", { name: new RegExp(hallazgo) }).click();
-    await expect(page.locator('img[src^="data:image"]').first()).toBeVisible();
-    await expect(page.getByText(PIN_COMMENT)).toBeVisible();
-
-    await page.getByRole("button", { name: "Flujos" }).click();
-    await expect(page.getByText("Checkout")).toBeVisible();
-    await page.getByRole("button", { name: "User Journeys" }).click();
-    await expect(page.getByText("Journey de compra")).toBeVisible();
     await page.getByRole("button", { name: "Cerrar vista previa" }).click();
-  });
-
-  await test.step("3. página para compartir: abre sola, sin cuenta ni servidor", async () => {
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      page.getByRole("button", { name: "Generar página para compartir" }).click(),
-    ]);
-    const file = testInfo.outputPath("compartir.html");
-    await download.saveAs(file);
-
-    const share = await context.newPage();
-    const shareErr = [];
-    share.on("pageerror", (e) => shareErr.push(e.message));
-    await share.goto(pathToFileURL(file).href);
-    await expect(share.getByText(estudio).first()).toBeVisible();
-    await share.getByRole("button", { name: "Hallazgos" }).click();
-    await share.getByRole("button", { name: new RegExp(hallazgo) }).click();
-    await expect(share.locator('img[src^="data:image"]').first()).toBeVisible();
-    await expect(share.getByText(PIN_COMMENT)).toBeVisible();
-    await share.getByRole("button", { name: "Flujos" }).click();
-    await expect(share.getByText("Checkout")).toBeVisible();
-    expect(shareErr, "errores en la página autónoma").toEqual([]);
   });
 
   expect(errores, "errores de JS en la app").toEqual([]);

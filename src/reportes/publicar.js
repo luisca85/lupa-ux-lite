@@ -34,7 +34,7 @@ export async function publicarReporte(est, { nuevoPIN=false }={}){
   const id = prev.id || uid().replace(/[^A-Za-z0-9-]/g,"");
   const pin = (!prev.pin || nuevoPIN) ? nuevoPin() : prev.pin;
   const salt = (!prev.salt || nuevoPIN) ? uid() : prev.salt;
-  const json = JSON.stringify(await collectShareData(est));
+  const D = await collectShareData(est), json = JSON.stringify(D);
   const partes = [];
   for(let i=0;i<json.length;i+=PARTE) partes.push(json.slice(i,i+PARTE));
   await borrarPartes(id);
@@ -42,9 +42,10 @@ export async function publicarReporte(est, { nuevoPIN=false }={}){
   const publicadoAt = Date.now();
   // Los consentimientos registrados se conservan al actualizar la publicación.
   const antes = prev.id ? await DB.doc("publicos/"+id).get() : null;
-  const consentimientos = (antes && antes.exists && antes.data().consentimientos) || [];
-  await DB.doc("publicos/"+id).set({ estId:est.id, pinHash:await sha256hex(salt+":"+pin), salt, partes:partes.length, publicadoAt, fallos:0, bloqueadoHasta:0, consentimientos });
-  r.publico = { id, pin, salt, publicadoAt, kb:Math.round(json.length/1024) };
+  const ad = (antes && antes.exists && antes.data()) || {};
+  const consentimientos = ad.consentimientos || [], reservas = ad.reservas || [];
+  await DB.doc("publicos/"+id).set({ estId:est.id, estNombre:est.nombre||"", estCliente:est.cliente||"", pinHash:await sha256hex(salt+":"+pin), salt, partes:partes.length, publicadoAt, fallos:0, bloqueadoHasta:0, consentimientos, reservas });
+  r.publico = { id, pin, salt, publicadoAt, kb:Math.round(json.length/1024), firma:await firmaReporte(D) };
   await store.saveEstudio(est);
   return r.publico;
 }
@@ -58,10 +59,17 @@ export async function despublicarReporte(est){
   await store.saveEstudio(est);
 }
 
-// Consentimientos registrados por quienes abrieron el link (nombre y fecha).
-export async function consentimientosDe(est){
+// Actividad del link: consentimientos (quién lo abrió) y reservas desde "Trabajemos juntos".
+export async function actividadDe(est){
   const pub = ensureReporte(est).publico;
-  if(!pub) return [];
-  const d = await DB.doc("publicos/"+pub.id).get();
-  return (d.exists && d.data().consentimientos) || [];
+  if(!pub) return { consentimientos:[], reservas:[] };
+  const d = await DB.doc("publicos/"+pub.id).get(), x = (d.exists && d.data()) || {};
+  return { consentimientos:x.consentimientos || [], reservas:x.reservas || [] };
+}
+
+// Huella de lo que ve el cliente: si cambia después de publicar, hay cambios sin publicar.
+// Las imágenes entran por su largo y su final (alcanza para notar un cambio y es rápido).
+export async function firmaReporte(D){
+  const t = JSON.stringify(D, (k,v)=>typeof v==="string"&&v.startsWith("data:")?v.length+":"+v.slice(-48):v);
+  return (await sha256hex(t)).slice(0,24);
 }
