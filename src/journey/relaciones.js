@@ -1,10 +1,11 @@
 import { render } from "../app/render.js";
 import { SEVERIDAD } from "../core/catalogo-base.js";
-import { heurById, sesgoById, state } from "../core/state.js";
+import { heurDe, sesgosDe, state } from "../core/state.js";
 import { esc } from "../core/util.js";
 import { flagIco } from "../flujos/detalle-nodo.js";
 import { activeFlow, flowModal, openFlow, saveActiveFlow } from "../flujos/flujos.js";
 import { camIco, chevL, chevR, pencil, plus, x } from "../ui/iconos.js";
+import { nuevoHallazgo } from "../data/pantallas.js";
 import { hzThumbs, openHzLightbox } from "../ui/imagenes.js";
 import { openModal } from "../ui/modales.js";
 import { hzModal } from "../views/hallazgos.js";
@@ -55,18 +56,17 @@ function jrSideDetail(body){
     const h=state.hallazgos.find(x=>x.id===JSIDE.selId);
     if(!h){ JSIDE.selId=null; return jrSideBody(); }
     const sev=(h.severidad!=null&&h.severidad!=="")?SEVERIDAD[h.severidad]:null;
-    const heur=(h.heuristicas||[]).map(x=>heurById(x)).filter(Boolean), ses=(h.sesgos||[]).map(x=>sesgoById(x)).filter(Boolean);
+    const heur=heurDe(h), ses=sesgosDe(h);
     body.innerHTML=`<button class="cr-back" id="jsBack">${chevL()} Volver a la lista</button>
       <div class="cr-detail-head">${sev?`<span class="sev-chip" style="background:var(${sev.v})">Sev ${sev.n} · ${sev.label}</span>`:""}<span class="type-chip type-${esc(h.tipo)}">${esc(h.tipo)}</span>${h.pantalla?`<span class="pantalla">${esc(h.pantalla)}</span>`:""}</div>
       <h3 style="margin:6px 0">${esc(h.titulo)}</h3>
       ${h.descripcion?`<div class="cr-field"><b>Descripción</b><p>${esc(h.descripcion)}</p></div>`:""}
       ${h.recomendacion?`<div class="cr-field"><b>Recomendación</b><p>${esc(h.recomendacion)}</p></div>`:""}
       ${(heur.length||ses.length)?`<div class="rels" style="margin:10px 0">${heur.map(x=>`<span class="rel-chip h">${esc(x.nombre)}</span>`).join("")}${ses.map(x=>`<span class="rel-chip s">${esc(x.nombre)}</span>`).join("")}</div>`:""}
-      ${(h.imgs&&h.imgs.length)?hzThumbs(h):""}
+      ${h.pantallaId?hzThumbs(h):""}
       <button class="btn sm" id="jsEditHz" style="margin-top:12px">${pencil()} Editar hallazgo</button>`;
     body.querySelector("#jsBack").onclick=()=>{ JSIDE.selId=null; jrSideBody(); };
-    body.querySelectorAll(".hz-thumbs .t").forEach((t,idx)=>t.onclick=()=>openHzLightbox(h.id,idx));
-    const more=body.querySelector(".hz-thumbs .more"); if(more)more.onclick=()=>openHzLightbox(h.id,5);
+    body.querySelectorAll(".hz-thumbs .t").forEach(t=>t.onclick=()=>openHzLightbox(h.id));
     body.querySelector("#jsEditHz").onclick=()=>hzModal(h,{onSaved:async()=>{ renderJrSide(); }});
   } else {
     const f=state.flujos.find(x=>x.id===JSIDE.selId);
@@ -95,7 +95,7 @@ function jrRelateExisting(){
 function jrCreateRelated(){
   const p=jsPaso(), kind=JSIDE.kind;
   if(kind==="hallazgos"){
-    hzModal({tipo:"Problema",severidad:3,heuristicas:[],sesgos:[],tags:[]},{onSaved:async(id)=>{ const jr=activeFlow(); const pp=jr&&jr.pasos[JSIDE.idx]; if(!pp)return; JSIDE.jr=jr; pp.hallazgos=pp.hallazgos||[]; if(!pp.hallazgos.includes(id))pp.hallazgos.push(id); await saveActiveFlow(); renderJrSide(); }});
+    hzModal(nuevoHallazgo(),{onSaved:async(id)=>{ const jr=activeFlow(); const pp=jr&&jr.pasos[JSIDE.idx]; if(!pp)return; JSIDE.jr=jr; pp.hallazgos=pp.hallazgos||[]; if(!pp.hallazgos.includes(id))pp.hallazgos.push(id); await saveActiveFlow(); renderJrSide(); }});
   } else {
     flowModal(null,{onCreated:async(id)=>{ const jr=activeFlow(); const pp=jr&&jr.pasos[JSIDE.idx]; if(!pp)return; JSIDE.jr=jr; pp.flujos=pp.flujos||[]; if(!pp.flujos.includes(id))pp.flujos.push(id); await saveActiveFlow(); renderJrSide(); }});
   }

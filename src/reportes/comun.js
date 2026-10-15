@@ -12,7 +12,7 @@ export const brandStore={
   async save(m){ if(USE_DB)await DB.doc("marca/perfil").set(m); else LS.set("lupa:marca",m); }
 };
 export function marcaActual(){ const d={wordmark:"uxuaria",nombre:"Luis Carlos Romero León",rol:"Consultor en Diseño de experiencia de usuario",sitio:"www.uxuaria.com",anio:String(new Date().getFullYear()),logo:null,headerImg:null,color:"",email:"",tel:"",servicioNombre:"MV Rescue",servicioDesc:"",servicioUrl:""}; return Object.assign(d,state.marca||{}); }
-export function rptSevColor(n){ return ["#8b95a5","#3aa76d","#8fbf3f","#e0a52b","#e5484d"][n]||"#8b95a5"; }
+export function rptSevColor(n){ return ["#8b95a5","#5b8def","#d99a2b","#e0703a","#e5484d"][n]||"#8b95a5"; }
 export function findHz(id){ return state.hallazgos.find(h=>h.id===id)||null; }
 export function ensureReporte(est){
   if(!est.reporte || Object.isFrozen(est.reporte)) est.reporte = est.reporte?JSON.parse(JSON.stringify(est.reporte)):{};

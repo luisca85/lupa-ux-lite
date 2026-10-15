@@ -20,14 +20,17 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
 - `core/`: `util.js` (uid, esc, LS), `state.js` (estado global y helpers del
   catálogo), `catalogo-base.js` (Nielsen, sesgos, severidades).
 - `data/`: `backend.js` (adaptadores, `DB`/`USE_DB`/`DB_MODE`, `initBackend`),
-  `store.js` (estudios, hallazgos, imágenes, catálogo propio), `respaldo.js`
-  (exportar / importar datos).
+  `store.js` (estudios, hallazgos, imágenes v1, catálogo propio), `pantallas.js` (modelo v2:
+  `pantallaStore`, deduplicación por hash, reglas del hallazgo, `migrarEstudio` /
+  `prepararEstudio`), `respaldo.js` (exportar / importar datos).
 - `app/render.js`: `view`, `render()`, navegación.
 - `views/`: home (panel de estudios 4 por fila con la tarjeta "Nuevo estudio", filtrado por el buscador de la barra),
   estudio (subheader a 100% de ancho + barra de secciones con `STUDY_TABS`; sin barra
   global), resumen (dashboard del proyecto: problemas, hallazgos, protopersonas, flujos),
-  catálogo, hallazgos (área de trabajo + panel derecho con lista, edición rápida y catálogo;
-  alta como página con `hzEditor`, que también usa el modal).
+  catálogo, hallazgos (`hallazgos-ws.js`: pestañas de pantallas, lienzo con zoom y pines,
+  popover de carga rápida, panel con filtros por severidad, edición y catálogo;
+  `hallazgos.js`: editor completo `hzEditor` para la página de alta y el modal, borrado).
+  Flujos y Protopersonas pasan por `proximamente()` (aviso "Próximamente").
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
   (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
@@ -55,13 +58,13 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Feature | Estado | Spec |
 |---|---|---|
 | Estudios (alta, edición, borrado) | Hecho | — (ver modelo de datos) |
-| Hallazgos con evidencia anotada (panel con catálogo, alta como página) | Hecho | `specs/hallazgos.md` |
+| Hallazgos sobre pantallas (modelo v2, migración, pines, zoom) | Hecho | `specs/hallazgos.md` |
 | Catálogo de heurísticas y sesgos | Hecho | `specs/catalogo.md` |
-| User Flows | Hecho | `specs/flujos.md` |
-| User Journeys | Hecho | `specs/journeys.md` |
+| User Flows | Hecho; sección en "Próximamente" (spec `proy`) | `specs/flujos.md` |
+| User Journeys | Hecho; sección en "Próximamente" (spec `proy`) | `specs/journeys.md` |
 | Reportes (panel, online, texto plano, autónoma) | Hecho | `specs/reportes.md` |
 | Propuestas de trabajo | Hecho | `specs/propuestas.md` |
-| Protopersonas | Se cargan en Reportes; la pestaña propia es "Próximamente" | `specs/reportes.md` |
+| Protopersonas | Se cargan en Configuración; la sección propia es "Próximamente" | `specs/reportes.md` |
 | Métricas | No implementado (pestaña "Próximamente") | — |
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
 | Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
@@ -75,8 +78,13 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 Las colecciones tienen cantidad impar de segmentos; los documentos, par.
 - `estudios/{id}` — estudio. Incluye el objeto `reporte` embebido (resumen,
   diagnóstico, propuestas, muestra, toggles del reporte online, marca por defecto).
-- `estudios/{id}/hallazgos/{hid}` — hallazgo.
-- `estudios/{id}/hallazgos/{hid}/imgs/{imgId}` — imagen del hallazgo (full + anotaciones).
+- `estudios/{id}/pantallas/{pid}` — pantalla del estudio (nombre, origen imagen/url, url,
+  orden, w, h, thumb, hash). `.../pantallas/{pid}/img/full` — imagen completa.
+- `estudios/{id}/hallazgos/{hid}` — hallazgo atómico (modelo v2): `pantallaId` + `pin {x,y}`
+  relativo, `severidad`, `catalogoIds`, `flujoId` + `pasoId`, `modelo: 2`.
+- `estudios/{id}/hallazgos/{hid}/imgs/{imgId}` — imagen del modelo v1 (full + anotaciones).
+  Ya no se escribe: queda como respaldo de la migración (`hallazgo.imgsV1`).
+- `estudios/{id}.modelo` — 2 cuando el estudio ya se migró (se migra al abrirlo).
 - `estudios/{id}/flujos/{fid}` — flujo o journey (journey = flujo con `tipo:"User Journey"`).
 - `estudios/{id}/flujos/{fid}/imgs/{imgId}` — imagen de una interacción del flujo.
 - `marca/perfil` — marca del autor (logo, contacto, servicio, LinkedIn, bienvenida y
@@ -86,7 +94,8 @@ Las colecciones tienen cantidad impar de segmentos; los documentos, par.
   reporte filtrado (JSON partido en trozos). En el estudio, `reporte.publico` guarda
   id, PIN y sal (detrás de Access) y `reporte.ocultos` lo que el cliente no ve.
 - Relaciones: hallazgo ↔ interacción de flujo en dos lados (`node.markers[].hallazgoId`
-  y `hallazgo.flujoId/interaccionId`); paso de journey → `hallazgos:[ids]` y `flujos:[ids]`.
+  y `hallazgo.flujoId/pasoId`, con `interaccionId` como alias v1); hallazgo → pantalla por
+  `pantallaId`; paso de journey → `hallazgos:[ids]` y `flujos:[ids]`.
 - `cat_heur/{id}`, `cat_sesgo/{id}` — heurísticas y sesgos propios.
 
 Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
@@ -118,4 +127,7 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
 - `npm run dev`: wrangler (API + D1 local, :8788) + Vite (:5173, proxy `/api`).
 - `npm run build` → `dist/`. `npm run preview`: build + wrangler sobre `dist/`.
 - `npm run check` (sintaxis), `npm run smoke` (API), `npm run test:e2e` (Playwright,
-  modo servidor con D1 limpia e IndexedDB con servidor estático).
+  modo servidor con D1 limpia e IndexedDB con servidor estático). Requiere Node ≥ 20.19
+  (`.nvmrc`; si la shell trae otra versión, `nvm use`). Las pruebas habilitan Flujos y
+  Protopersonas con `localStorage["lupa:habilitar"]`; `migracion.spec` siembra un estudio
+  v1 por la API (solo modo servidor).

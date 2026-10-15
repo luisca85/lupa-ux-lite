@@ -1,9 +1,9 @@
 // boot.js se incrusta como TEXTO en la página autónoma: no es un módulo, no puede
 // importar nada y tiene que ser autosuficiente (ver share/boot.js).
 import SR_BOOT_SRC from "./boot.js?raw";
-import { heurById, sesgoById, state } from "../core/state.js";
+import { heurDe, sesgosDe, state } from "../core/state.js";
 import { esc } from "../core/util.js";
-import { store } from "../data/store.js";
+import { pantallaStore, pinNumero } from "../data/pantallas.js";
 import { flowStore } from "../flujos/flujos.js";
 import { jrDefaultCarriles, jrNormalizePaso } from "../journey/journey.js";
 import { ensureReporte, marcaActual } from "../reportes/comun.js";
@@ -12,15 +12,22 @@ import { compositeDataUrl } from "../ui/anotaciones.js";
 import { downloadFile } from "../ui/descargas.js";
 import { x } from "../ui/iconos.js";
 
+const PIN_COLOR={Problema:"#e5484d",Oportunidad:"#12a594","Observación":"#64748b"};
 export async function collectShareData(est){
   // Solo lo que el cliente puede ver: lo oculto o desmarcado no se incrusta en el HTML.
   const v=vistaCliente(ensureReporte(est),state.hallazgos,state.flujos), r=v.r, m=marcaActual();
   const flows=v.flujos.filter(f=>f.tipo!=="User Journey"), journeys=v.flujos.filter(f=>f.tipo==="User Journey");
   const hzOut=[];
+  // Modelo v2: la evidencia es la pantalla del hallazgo con su pin (numerado por pantalla).
+  const imgCache=new Map(), pantallas=state.pantallas||[];
+  const pantallaImg=async pid=>{ if(!imgCache.has(pid)) imgCache.set(pid,pantallaStore.getImg(est.id,pid).catch(()=>null)); return imgCache.get(pid); };
   for(const h of v.hallazgos){
-    const imgs=[];
-    for(const im of (h.imgs||[])){ try{ const d=await store.getImg(est.id,h.id,im.id); if(d){ const url=await compositeDataUrl(d,0.82); const pins=(d.ann||[]).filter(a=>a.t==="pin").sort((a,b)=>(a.n||0)-(b.n||0)).map(p=>({n:p.n,color:p.color||"#e2483d",comment:p.comment||""})); imgs.push({url,pins}); } }catch(e){} }
-    hzOut.push({ id:h.id, tipo:h.tipo, severidad:(h.severidad!=null&&h.severidad!=="")?h.severidad:null, titulo:h.titulo||"", pantalla:h.pantalla||"", descripcion:h.descripcion||"", recomendacion:h.recomendacion||"", heur:(h.heuristicas||[]).map(id=>{const x=heurById(id);return x?x.nombre:null;}).filter(Boolean), sesgos:(h.sesgos||[]).map(id=>{const x=sesgoById(id);return x?x.nombre:null;}).filter(Boolean), tags:h.tags||[], imgs });
+    const imgs=[], p=h.pantallaId?pantallas.find(x=>x.id===h.pantallaId):null;
+    if(p){ try{ const d=await pantallaImg(p.id); if(d&&d.base){ const n=pinNumero(h,state.hallazgos)||1, w=d.w||p.w, hh=d.h||p.h;
+      const pin=h.pin||{x:0.5,y:0.5};
+      const url=await compositeDataUrl({base:d.base,w,h:hh,ann:[{t:"pin",x:pin.x*w,y:pin.y*hh,n,color:PIN_COLOR[h.tipo]||"#e2483d"}]},0.82);
+      imgs.push({url,pins:[]}); } }catch(e){} }
+    hzOut.push({ id:h.id, tipo:h.tipo, severidad:(h.severidad!=null&&h.severidad!=="")?h.severidad:null, titulo:h.titulo||"", pantalla:h.pantalla||(p?p.nombre:""), descripcion:h.descripcion||"", recomendacion:h.recomendacion||"", heur:heurDe(h).map(x=>x.nombre), sesgos:sesgosDe(h).map(x=>x.nombre), tags:h.tags||[], imgs });
   }
   const flowsOut=[];
   for(const f of flows){ const nodes=[];

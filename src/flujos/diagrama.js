@@ -124,7 +124,7 @@ function confirmDelNode(flow,node){
     flow.edges=(flow.edges||[]).filter(e=>e.from!==node.id&&e.to!==node.id);
     if(node.imgId) await flowStore.delImg(state.activeId,flow.id,node.imgId);
     // desvincular hallazgos
-    for(const m of (node.markers||[])){ const hz=resolveHz(m.hallazgoId); if(hz){ const rec={...hz}; delete rec.flujoId; delete rec.interaccionId; delete rec.interaccionTitulo; await store.saveHallazgo(state.activeId,rec); } }
+    for(const m of (node.markers||[])){ const hz=resolveHz(m.hallazgoId); if(hz){ const rec={...hz}; delete rec.flujoId; delete rec.pasoId; delete rec.interaccionId; delete rec.interaccionTitulo; await store.saveHallazgo(state.activeId,rec); } }
     flow.nodes=(flow.nodes||[]).filter(n=>n.id!==node.id);
     await saveActiveFlow(); state.hallazgos=await store.listHallazgos(state.activeId);
     state.flowMode="editor"; state.activeNodeId=null; toast("Interacción eliminada"); render();

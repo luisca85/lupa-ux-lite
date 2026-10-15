@@ -31,7 +31,8 @@ function SR_boot(D){
     return '<div class="cr-prop"><div class="cr-prop-top"><h4>'+esc(p.titulo)+'</h4><span class="cr-prop-tag">'+esc(p.tipo==="mensual"?"Plan fijo mensual":"Precio fijo")+'</span></div>'+priceHTML+'<div class="cr-prose">'+para(p.texto)+incl+'</div>'+disc+'</div>';
   }
   const SEV=[{l:"No es problema"},{l:"Cosmético"},{l:"Menor"},{l:"Mayor"},{l:"Catástrofe"}];
-  const RSEV=["#8b95a5","#3aa76d","#8fbf3f","#e0a52b","#e5484d"];
+  // Mismos colores de severidad que la app (--sev0…--sev4 en base.css).
+  const RSEV=["#8b95a5","#5b8def","#d99a2b","#e0703a","#e5484d"];
   const EMO=[{e:"😣",l:"Muy negativo"},{e:"🙁",l:"Negativo"},{e:"😐",l:"Neutral"},{e:"🙂",l:"Positivo"},{e:"😄",l:"Muy positivo"}];
   const CARR=[{id:"touchpoint",label:"Touchpoint"},{id:"emocion",label:"Emocionalidad"},{id:"acciones",label:"Acciones"},{id:"expectativas",label:"Expectativas / pensamiento"},{id:"pain",label:"Pain points"},{id:"oportunidades",label:"Oportunidades"}];
   const JW=224;

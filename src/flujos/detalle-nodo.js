@@ -8,6 +8,7 @@ import { flowStore, resolveHz, saveActiveFlow, tipoColorVar } from "./flujos.js"
 import { camIco, chevL, pencil, trash, x } from "../ui/iconos.js";
 import { processImage } from "../ui/imagenes.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
+import { nuevoHallazgo } from "../data/pantallas.js";
 import { hzModal } from "../views/hallazgos.js";
 
 /* ---- Detalle de interacción (imagen + hallazgos) ---- */
@@ -67,7 +68,7 @@ export function renderNodeDetail(c,flow,node){
     const fx=(clientX-r.left)/r.width, fy=(clientY-r.top)/r.height;
     if(fx<0||fx>1||fy<0||fy>1)return;
     setAdd(false);
-    hzModal({tipo:"Problema",severidad:3,pantalla:node.titulo,heuristicas:[],sesgos:[],tags:[],flujoId:flow.id,interaccionId:node.id,interaccionTitulo:node.titulo},
+    hzModal(nuevoHallazgo({pantalla:node.titulo,flujoId:flow.id,pasoId:node.id,interaccionId:node.id,interaccionTitulo:node.titulo}),
       {onSaved:async(hid)=>{ node.markers=node.markers||[]; node.markers.push({id:uid(),x:fx,y:fy,hallazgoId:hid}); await saveActiveFlow(); }});
   }
   async function setImage(blob){

@@ -15,6 +15,8 @@ test("regresión: hallazgo con imagen, flujos, reporte y página para compartir"
   const modo = testInfo.project.name === "servidor" ? "servidor" : "modo local";
 
   await test.step("arranca en el modo esperado", async () => {
+    // Flujos y Protopersonas están en "Próximamente": las pruebas las habilitan para cubrir su lógica.
+    await page.addInitScript(() => localStorage.setItem("lupa:habilitar", JSON.stringify(["flujos", "protopersonas"])));
     await page.goto("/");
     await expect(page.locator("#localBadge")).toHaveText(modo);
   });
@@ -26,16 +28,16 @@ test("regresión: hallazgo con imagen, flujos, reporte y página para compartir"
     await expect(page.getByRole("heading", { name: estudio })).toBeVisible();
   });
 
-  await test.step("1b. hallazgo con imagen y pin anotado", async () => {
+  await test.step("1b. hallazgo con pantalla y pin", async () => {
     await page.getByRole("button", { name: "Nuevo hallazgo" }).first().click();
     await page.getByPlaceholder("Resumen del hallazgo en una línea").fill(hallazgo);
+    await page.getByPlaceholder("Qué se observó y por qué es relevante...").fill(PIN_COMMENT);
     await page.locator("#pasteFile").setInputFiles({ name: "pantalla.png", mimeType: "image/png", buffer: makePng() });
-    const stage = page.locator("#annStage");
+    await expect(page.getByText("Pantalla agregada al estudio")).toBeVisible();
+    const stage = page.locator("#pinStage");
     await stage.scrollIntoViewIfNeeded();
-    await expect(page.locator("#annCv")).toBeVisible();
     const box = await stage.boundingBox();
-    await page.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.6); // herramienta pin por defecto
-    await page.getByPlaceholder("Comentario del punto 1...").fill(PIN_COMMENT);
+    await page.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.6); // ubica el pin
     await page.getByRole("button", { name: "Guardar" }).click();
     await expect(page.getByText("Hallazgo registrado")).toBeVisible();
   });

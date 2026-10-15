@@ -1,5 +1,5 @@
 import { SEVERIDAD } from "../core/catalogo-base.js";
-import { heurById, sesgoById, state } from "../core/state.js";
+import { heurDe, sesgosDe, state } from "../core/state.js";
 import { EMO } from "../journey/journey.js";
 import { ensureReporte, findHz, linesOf, marcaActual } from "./comun.js";
 import { normalizePropuesta, propDiscRows, propLaunch, propMoney, propPriceLine, propTipoLabel } from "./propuestas.js";
@@ -17,9 +17,11 @@ function plainReport(est){
     const sev=(h.severidad!=null&&h.severidad!=="")?("Sev "+h.severidad+" · "+SEVERIDAD[h.severidad].label):"sin severidad";
     P(p+(lead||"")+"["+(h.tipo||"Hallazgo")+" · "+sev+"] "+(h.titulo||"(sin título)"));
     if(h.pantalla)P(p+"  Pantalla/paso: "+h.pantalla);
-    const heur=(h.heuristicas||[]).map(id=>{const x=heurById(id);return x?x.nombre:null;}).filter(Boolean);
+    const pant=h.pantallaId&&(state.pantallas||[]).find(x=>x.id===h.pantallaId);
+    if(pant)P(p+"  Pantalla: "+pant.nombre);
+    const heur=heurDe(h).map(x=>x.nombre);
     if(heur.length)P(p+"  Heurísticas: "+heur.join(", "));
-    const ses=(h.sesgos||[]).map(id=>{const x=sesgoById(id);return x?x.nombre:null;}).filter(Boolean);
+    const ses=sesgosDe(h).map(x=>x.nombre);
     if(ses.length)P(p+"  Sesgos / patrones: "+ses.join(", "));
     if(h.descripcion)P(p+"  Descripción: "+h.descripcion);
     if(h.recomendacion)P(p+"  Recomendación: "+h.recomendacion);

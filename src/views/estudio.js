@@ -1,7 +1,7 @@
 import { goHome, openStudy, render, view } from "../app/render.js";
 import { ESTADOS, PLATAFORMAS } from "../core/catalogo-base.js";
 import { STUDY_TABS, activeStudy, state } from "../core/state.js";
-import { esc, uid } from "../core/util.js";
+import { LS, esc, uid } from "../core/util.js";
 import { store } from "../data/store.js";
 import { renderFlujosInto } from "../flujos/flujos.js";
 import { renderProyectoInto, renderReportesInto } from "../reportes/panel.js";
@@ -16,7 +16,7 @@ export function renderStudyShell(){
   const est=activeStudy();
   if(!est){ state.view="home"; return renderHome(); }
   const tab=STUDY_TABS.find(t=>t.id===state.studyTab)||STUDY_TABS[0];
-  const navBtn=t=>`<button data-t="${t.id}" class="${tab.id===t.id?'on':''}" title="${t.label}"${tab.id===t.id?' aria-current="page"':''}>${bigIco(t.ico)}<span class="lb">${t.label}</span>${t.id==="hallazgos"?`<span class="cnt">${state.hallazgos.length}</span>`:""}</button>`;
+  const navBtn=t=>`<button data-t="${t.id}" class="${tab.id===t.id?'on':''}" title="${t.label}${proximamente(t.id)?" · Próximamente":""}"${tab.id===t.id?' aria-current="page"':''}>${bigIco(t.ico)}<span class="lb">${t.label}</span>${t.id==="hallazgos"?`<span class="cnt">${state.hallazgos.length}</span>`:""}${proximamente(t.id)?`<span class="pronto">Pronto</span>`:""}</button>`;
   view.innerHTML=`
     <div class="proj">
     <header class="study-head">
@@ -57,7 +57,8 @@ export function renderStudyShell(){
   document.getElementById("editStudy").onclick=()=>studyModal(est);
   document.getElementById("psNav").querySelectorAll("button").forEach(b=>b.onclick=()=>goStudyTab(b.dataset.t));
   const c=document.getElementById("studyContent");
-  if(tab.id==="resumen") renderResumenInto(c,est);
+  if(proximamente(tab.id)) renderProximamente(c,tab.id);
+  else if(tab.id==="resumen") renderResumenInto(c,est);
   else if(tab.id==="hallazgos") renderHallazgosInto(c,est);
   else if(tab.id==="flujos") renderFlujosInto(c,est);
   else if(tab.id==="reportes") renderReportesInto(c,est);
@@ -65,6 +66,51 @@ export function renderStudyShell(){
   else renderSoon(c,tab.id);
 }
 export function goStudyTab(t){ if(state.hzPage&&t==="hallazgos") closeHzPage(); state.studyTab=t; if(t==="flujos")state.flowMode="list"; render(); window.scrollTo(0,0); }
+/* Secciones deshabilitadas provisionalmente: el código sigue, solo se muestra un aviso.
+   Para habilitarlas en desarrollo o en las pruebas: localStorage "lupa:habilitar" = ["flujos", …]. */
+const PROXIMAMENTE=["flujos","protopersonas"];
+export const proximamente=id=>PROXIMAMENTE.includes(id)&&!(LS.get("lupa:habilitar",[])||[]).includes(id);
+const ilustraFlujos=`<svg viewBox="0 0 320 180" fill="none" aria-hidden="true">
+  <rect x="8" y="58" width="74" height="54" rx="8" class="il-card"/><rect x="18" y="68" width="54" height="22" rx="4" class="il-soft"/><rect x="18" y="96" width="34" height="6" rx="3" class="il-line"/>
+  <rect x="124" y="20" width="74" height="54" rx="8" class="il-card"/><rect x="134" y="30" width="54" height="22" rx="4" class="il-soft"/><rect x="134" y="58" width="40" height="6" rx="3" class="il-line"/>
+  <rect x="124" y="108" width="74" height="54" rx="8" class="il-card il-dash"/><rect x="134" y="118" width="54" height="22" rx="4" class="il-soft"/><rect x="134" y="146" width="28" height="6" rx="3" class="il-line"/>
+  <rect x="238" y="58" width="74" height="54" rx="8" class="il-card"/><rect x="248" y="68" width="54" height="22" rx="4" class="il-soft"/><rect x="248" y="96" width="46" height="6" rx="3" class="il-line"/>
+  <path d="M82 80 C104 80 104 47 124 47" class="il-path"/><path d="M82 92 C104 92 104 135 124 135" class="il-path il-dash"/><path d="M198 47 C218 47 218 80 238 80" class="il-path"/><path d="M198 135 C218 135 218 92 238 92" class="il-path il-dash"/>
+  <circle cx="188" cy="30" r="9" class="il-pin"/><text x="188" y="34" class="il-pin-t">1</text>
+  <circle cx="188" cy="118" r="9" class="il-pin il-pin2"/><text x="188" y="122" class="il-pin-t">2</text>
+</svg>`;
+const ilustraProto=`<svg viewBox="0 0 320 180" fill="none" aria-hidden="true">
+  <rect x="58" y="14" width="204" height="152" rx="12" class="il-card"/>
+  <circle cx="104" cy="62" r="26" class="il-soft"/><circle cx="104" cy="54" r="10" class="il-line"/><path d="M86 80c3-11 11-16 18-16s15 5 18 16" class="il-line-s"/>
+  <rect x="142" y="42" width="90" height="10" rx="5" class="il-ink"/><rect x="142" y="60" width="64" height="7" rx="3.5" class="il-line"/><rect x="142" y="74" width="76" height="7" rx="3.5" class="il-line"/>
+  <rect x="78" y="104" width="52" height="18" rx="9" class="il-chip"/><rect x="136" y="104" width="44" height="18" rx="9" class="il-chip il-chip2"/><rect x="186" y="104" width="56" height="18" rx="9" class="il-chip il-chip3"/>
+  <rect x="78" y="134" width="164" height="7" rx="3.5" class="il-line"/><rect x="78" y="148" width="120" height="7" rx="3.5" class="il-line"/>
+  <circle cx="262" cy="22" r="16" class="il-pin"/><path d="M255 22h14M262 15v14" class="il-plus"/>
+</svg>`;
+function renderProximamente(c,tab){
+  const info={
+    flujos:{ico:"flow",titulo:"Flujos",ilustra:ilustraFlujos,
+      lead:"Próximamente vas a poder diagramar aquí los recorridos de las personas usuarias, paso a paso, y ver en qué punto se rompe la experiencia.",
+      items:[["flow","User Flows","Armá cada tarea pantalla a pantalla, con el camino ideal y sus desvíos."],
+             ["flag","Hallazgos en cada paso","Ubicá los hallazgos sobre cada interacción para mostrar dónde aparecen los problemas."],
+             ["chart","User Journeys","Mapeá la experiencia por etapas, con la curva emocional, los touchpoints y los puntos de dolor."]],
+      nota:"Los flujos y journeys que ya cargaste se conservan y siguen apareciendo en el reporte del cliente."},
+    protopersonas:{ico:"user",titulo:"Protopersonas",ilustra:ilustraProto,
+      lead:"Próximamente vas a poder crear aquí las protopersonas del estudio: hipótesis de quiénes usan el producto, armadas a partir de lo que sabés del cliente.",
+      items:[["user","Perfil","Nombre, edad, ocupación, foto y una bio breve para darle cara a cada persona."],
+             ["grid","Objetivos, necesidades y dolores","Lo que cada persona busca y lo que hoy le complica, para leer los hallazgos con contexto."],
+             ["report","En el reporte","Se suman al reporte del cliente para explicar a quién afecta cada problema."]],
+      nota:"Mientras tanto podés cargarlas en Configuración y ya aparecen en el reporte."}
+  }[tab];
+  c.innerHTML=`<section class="soon-page" aria-labelledby="soonT">
+    <div class="soon-ilu">${info.ilustra}</div>
+    <span class="soon-badge">Próximamente</span>
+    <h2 id="soonT">${info.titulo}</h2>
+    <p class="soon-lead">${info.lead}</p>
+    <ul class="soon-list">${info.items.map(([i,t,d])=>`<li><span class="soon-ico">${bigIco(i)}</span><span><b>${t}</b><span>${d}</span></span></li>`).join("")}</ul>
+    <p class="soon-nota">${info.nota}</p>
+  </section>`;
+}
 function renderSoon(c,tab){
   const info={
     flujos:["flow","Flujos","Evaluá recorridos por tarea o escenario, no solo pantallas sueltas. Vas a poder armar escenarios y revisar cada paso del recorrido."],

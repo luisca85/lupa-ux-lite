@@ -1,5 +1,6 @@
 import { state } from "../core/state.js";
-import { store } from "../data/store.js";
+import { esc } from "../core/util.js";
+import { pantallaStore, pinNumero } from "../data/pantallas.js";
 import { compositeDataUrl } from "./anotaciones.js";
 import { x } from "./iconos.js";
 
@@ -28,15 +29,18 @@ export async function processImage(blob){
   if(bmp.close)bmp.close();
   return {full,thumb};
 }
+/* Evidencia de un hallazgo (modelo v2): la miniatura de su pantalla con el pin encima. */
 export function hzThumbs(h){
-  const max=5, shown=h.imgs.slice(0,max), extra=h.imgs.length-max;
-  return `<div class="hz-thumbs">${shown.map(im=>`<div class="t"><img src="${im.thumb}" alt="Evidencia"></div>`).join("")}${extra>0?`<div class="more">+${extra}</div>`:""}</div>`;
+  const p=h&&h.pantallaId&&(state.pantallas||[]).find(x=>x.id===h.pantallaId); if(!p) return "";
+  const pin=h.pin||{x:0.5,y:0.5};
+  return `<div class="hz-thumbs"><div class="t pinned" title="${esc(p.nombre)}"><img src="${p.thumb}" alt="Pantalla ${esc(p.nombre)}"><i style="left:${pin.x*100}%;top:${pin.y*100}%"></i></div></div>`;
 }
-export function openHzLightbox(hid,start){
-  const h=state.hallazgos.find(x=>x.id===hid); if(!h||!h.imgs||!h.imgs.length)return;
+export function openHzLightbox(hid){
+  const h=state.hallazgos.find(x=>x.id===hid); if(!h||!h.pantallaId) return;
   const sid=state.activeId;
-  const items=h.imgs.map(im=>({id:im.id,load:async()=>{const d=await store.getImg(sid,hid,im.id);return d?await compositeDataUrl(d,0.85):null;}}));
-  openLightbox(items,start||0);
+  openLightbox([{id:h.pantallaId,load:async()=>{ const d=await pantallaStore.getImg(sid,h.pantallaId); if(!d) return null;
+    const n=pinNumero(h,state.hallazgos)||1, pin=h.pin||{x:0.5,y:0.5};
+    return await compositeDataUrl({base:d.base,w:d.w,h:d.h,ann:[{t:"pin",x:pin.x*d.w,y:pin.y*d.h,n,color:"#e5484d"}]},0.85); }}],0);
 }
 function openLightbox(items,start){
   let i=start||0;

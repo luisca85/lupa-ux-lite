@@ -19,9 +19,15 @@ export const store = {
         await Promise.all(imgs.docs.map(im=>DB.doc("estudios/"+id+"/hallazgos/"+d.id+"/imgs/"+im.id).delete()));
         await DB.doc("estudios/"+id+"/hallazgos/"+d.id).delete();
       }
+      const ps=await DB.collection("estudios/"+id+"/pantallas").get();
+      for(const d of ps.docs){
+        await DB.doc("estudios/"+id+"/pantallas/"+d.id+"/img/full").delete();
+        await DB.doc("estudios/"+id+"/pantallas/"+d.id).delete();
+      }
       await DB.doc("estudios/"+id).delete();
     } else {
       LS.get("lupa:hz:"+id,[]).forEach(h=>LS.del("lupa:full:"+h.id));
+      LS.get("lupa:pant:"+id,[]).forEach(p=>LS.del("lupa:pimg:"+p.id)); LS.del("lupa:pant:"+id);
       LS.set("lupa:estudios",LS.get("lupa:estudios",[]).filter(x=>x.id!==id));LS.del("lupa:hz:"+id);
     }
   },

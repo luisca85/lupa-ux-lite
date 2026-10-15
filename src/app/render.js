@@ -1,6 +1,7 @@
 import { state } from "../core/state.js";
 import { LS } from "../core/util.js";
 import { USE_DB } from "../data/backend.js";
+import { prepararEstudio } from "../data/pantallas.js";
 import { store } from "../data/store.js";
 import { jrCleanupPop } from "../journey/journey.js";
 import { JSIDE, closeJrSide } from "../journey/relaciones.js";
@@ -8,6 +9,7 @@ import { renderCatalogo } from "../views/catalogo.js";
 import { renderStudyShell } from "../views/estudio.js";
 import { closeHzPage } from "../views/hallazgos.js";
 import { renderHome } from "../views/home.js";
+import { toast } from "../ui/modales.js";
 
 /* ============ Render raíz ============ */
 export const view=document.getElementById("view");
@@ -16,8 +18,15 @@ function goCatalogo(){ state.view="catalogo"; render(); }
 export async function openStudy(id){
   state.activeId=id; LS.set("lupa:active",id);
   state.view="study"; state.studyTab="resumen"; closeHzPage();
+  Object.assign(state,{hzGroup:null,hzQuick:null,hzForm:null,hzFormNuevo:false,hzSevF:"todas",hzPanel:"lista",hzSel:null});
   state.hzTipo="todos"; state.hzSev="todos"; state.hzHeur="todos"; state.hzQuery="";
-  state.hallazgos=await store.listHallazgos(id);
+  const est=state.estudios.find(e=>e.id===id);
+  if(est){
+    const r=await prepararEstudio(est);
+    state.hallazgos=r.hallazgos; state.pantallas=r.pantallas;
+    if(r.migracion&&r.migracion.error) toast("No se pudo actualizar el estudio al modelo de pantallas: "+r.migracion.error);
+    else if(r.migracion&&r.migracion.pantallas) toast(`Estudio actualizado: ${r.migracion.pantallas} pantallas creadas a partir de la evidencia`);
+  } else { state.hallazgos=await store.listHallazgos(id); state.pantallas=[]; }
   render();
 }
 function renderTopbar(){

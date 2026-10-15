@@ -1,5 +1,5 @@
 import { state } from "../core/state.js";
-import { store } from "../data/store.js";
+import { prepararEstudio } from "../data/pantallas.js";
 import { flowStore } from "../flujos/flujos.js";
 import { collectShareData, montarVistaPrevia } from "../share/compartir.js";
 import { brandStore } from "./comun.js";
@@ -15,7 +15,7 @@ export async function openClientReport(estId){
   try{
     // collectShareData lee los hallazgos y flujos del estudio activo desde state.
     if(state._flujosFor!==estId){ state.flujos=await flowStore.list(estId); state._flujosFor=estId; }
-    state.hallazgos=await store.listHallazgos(estId); state.activeId=estId;
+    const r=await prepararEstudio(est); state.hallazgos=r.hallazgos; state.pantallas=r.pantallas; state.activeId=estId;
     state.marca=await brandStore.get();
     montarVistaPrevia(await collectShareData(est));
   }catch(e){ console.error("vista previa",e); toast("No se pudo abrir la vista previa: "+((e&&e.message)||e)); }
