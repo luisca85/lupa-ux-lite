@@ -35,14 +35,12 @@ export function renderHome(){
   const visibles=list.slice(pag*n,pag*n+n);
   const nuevo=`<button class="study-add" id="newStudy"><span class="sa-ico" aria-hidden="true"><span class="fig-ico ico-plus"></span></span><span class="sa-t">Nuevo estudio</span><span class="sa-s">Cargá cliente, plataforma y URL</span></button>`;
   view.innerHTML=`<div class="home">
-    <section class="home-panel">
-      <aside class="home-rec" id="homeRec" aria-label="Recursos"></aside>
-      <div class="home-est">
-        <div class="hp-head"><div><h1 class="home-title">Estudios</h1><p class="hp-sub">${sub}</p></div></div>
-        <div class="hp-grid">${nuevo}${visibles.map(studyCard).join("")}</div>
-        ${q&&!list.length?emptyInline("Ningún estudio coincide con la búsqueda."):""}
-        ${paginas>1?paginador(pag,paginas,list.length,n):""}
-      </div>
+    <aside class="home-rec" id="homeRec" aria-label="Recursos"></aside>
+    <section class="home-panel home-est">
+      <div class="hp-head"><div><h1 class="home-title">Estudios</h1><p class="hp-sub">${sub}</p></div></div>
+      <div class="hp-grid">${nuevo}${visibles.map(studyCard).join("")}</div>
+      ${q&&!list.length?emptyInline("Ningún estudio coincide con la búsqueda."):""}
+      ${paginas>1?paginador(pag,paginas,list.length,n):""}
     </section>
   </div>`;
   renderRecursos(document.getElementById("homeRec"));
