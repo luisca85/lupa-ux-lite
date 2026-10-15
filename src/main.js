@@ -9,6 +9,7 @@ import { esc } from "./core/util.js";
 import { DB_MODE, initBackend } from "./data/backend.js";
 import { store } from "./data/store.js";
 import { mountSesion } from "./ui/sesion.js";
+import { onboardingInicial } from "./ui/onboarding.js";
 import { abrirReportePublico, idPublicoDeLaURL } from "./share/publico.js";
 import { brandStore } from "./reportes/comun.js";
 import { toast } from "./ui/modales.js";
@@ -35,15 +36,18 @@ async function init(){
   if(DB_MODE==="none"){ badge.textContent="almacenamiento limitado"; badge.title="IndexedDB no está disponible en este navegador: se usa localStorage (~5 MB, las imágenes pueden no entrar)"; }
   try{ state.customHeur=await store.listCustom("heur"); state.customSesgos=await store.listCustom("sesgo"); }catch(e){}
   // carga normal (workspace)
+  let sesion=Promise.resolve(null);
   try{
     state.estudios=await store.listEstudios();
     state.marca=await brandStore.get();
-    if(DB_MODE==="server") mountSesion();
+    if(DB_MODE==="server") sesion=mountSesion();
   }catch(e){
     view.innerHTML=`<div class="empty"><h3>No se pudieron cargar los datos</h3><p>${esc(e.message)}</p><button class="btn primary" onclick="location.reload()">Reintentar</button></div>`;
     return;
   }
   state.view="home";
   render();
+  // Bienvenida la primera vez de cada usuario (por email de Access; sin login, "local").
+  sesion.then(u=>onboardingInicial(u&&!u.local?u.email:null)).catch(()=>onboardingInicial(null));
 }
 init();
