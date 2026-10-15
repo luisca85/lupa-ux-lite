@@ -8,12 +8,15 @@ import { PROP_DESC, normalizePropuesta, propMoney, propPriceLine } from "./propu
 import { openPlainExport } from "./texto-plano.js";
 import { BLOQUES, estaOculto, setOculto } from "./seleccion.js";
 import { consentimientosDe, despublicarReporte, linkPublico, publicarReporte } from "./publicar.js";
-import { generateSharePage } from "../share/compartir.js";
+import { buildShareHtml, collectShareData, generateSharePage } from "../share/compartir.js";
 import { txtIco } from "../ui/descargas.js";
 import { pencil, plus, trash } from "../ui/iconos.js";
 import { loadBitmap, scaleImg } from "../ui/imagenes.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
 
+/* ============ Reportes: panel de configuración (izquierda) + vista previa en vivo (derecha) ============
+   La vista previa es la MISMA página autónoma que recibe el cliente (SR_boot), en un iframe:
+   aislada de la app y actualizada cada vez que cambia la configuración. */
 export function renderReportesInto(c,est){
   if(state._flujosFor!==est.id){
     c.innerHTML=`<div class="ev-loading" style="min-height:200px">Cargando datos del estudio...</div>`;
@@ -21,57 +24,92 @@ export function renderReportesInto(c,est){
     return;
   }
   const r=ensureReporte(est);
-  c.innerHTML=`<div class="rpt-wrap2">
-    <div class="rpt-toolbar">
-      <button class="btn primary sm" id="rptShare">${txtIco()} Generar página para compartir</button>
-      <button class="btn sm" id="rptCliPrev">Vista previa del reporte</button>
-      <button class="btn sm" id="rptPlain">${txtIco()} Exportar en texto plano</button>
-      <button class="btn ghost sm" id="rptBrand">${pencil()} Marca</button>
-      <span class="grow"></span>
-      <span id="rptCliMsg" class="hint"></span>
-    </div>
-    <div class="rpt-cols2">
-      <div class="rpt-group rpt-pub"><h4>Link público</h4><div id="rptPub"></div></div>
-      <div class="rpt-group rpt-sel"><h4>Qué ve el cliente</h4>
-        <p class="rhint">Prendé o apagá secciones y elegí ítem por ítem. Lo que ocultes no se incluye en la vista previa, la página para compartir ni el link público. Lo nuevo aparece visible.</p>
-        <div id="rptSel"></div>
-        <p class="rhint" style="margin-top:10px">La información del proyecto (resumen, diagnóstico, protopersonas, propuestas y muestra) se carga en <b>Configuración</b>.</p></div>
-    </div>
+  const abiertas=state.rptOpen||(state.rptOpen={pub:true,sel:true,marca:false});
+  const sec=(id,titulo,sub,body)=>`<details class="rp-sec" data-sec="${id}" ${abiertas[id]?"open":""}><summary><span><b>${titulo}</b><small>${sub}</small></span></summary><div class="rp-body">${body}</div></details>`;
+  c.classList.add("hz-ws-host");
+  c.innerHTML=`<div class="rp-ws">
+    <aside class="rp-panel" aria-label="Configuración del reporte">
+      <div class="rp-head"><h2>Reporte</h2><p>Configurá lo que ve tu cliente y publicalo. La vista previa se actualiza sola.</p></div>
+      ${sec("pub","Link público","Publicá el reporte con un PIN",`<div id="rptPub"></div>`)}
+      ${sec("sel","Qué ve el cliente","Secciones e ítems visibles",`<p class="rhint">Prendé o apagá secciones y elegí ítem por ítem. Lo que ocultes no aparece en la vista previa, la página para compartir ni el link público. Lo nuevo aparece visible.</p><div id="rptSel"></div><p class="rhint" style="margin-top:10px">El contenido del proyecto (resumen, diagnóstico, protopersonas, propuestas y muestra) se carga en <b>Configuración</b>.</p>`)}
+      ${sec("marca","Marca","Logo, datos de contacto y textos",`<div id="rptMarca"></div>`)}
+      <div class="rp-salidas"><span class="rlab">Otras salidas</span>
+        <button class="btn-q" id="rptShare">${txtIco()} Descargar página HTML</button>
+        <button class="btn-q" id="rptPlain">${txtIco()} Exportar en texto plano</button>
+        <span id="rptCliMsg" class="hint"></span></div>
+    </aside>
+    <section class="rp-preview" aria-label="Vista previa del reporte">
+      <div class="rp-prev-bar"><span>Vista previa · así lo ve tu cliente</span><span class="rp-estado" id="rpEstado">Actualizando…</span><span class="grow"></span>
+        <button class="btn-q" id="rptFull" title="Ver la vista previa a pantalla completa">Pantalla completa</button></div>
+      <div class="rp-frame-wrap"><iframe id="rpFrame" title="Vista previa del reporte del cliente"></iframe></div>
+    </section>
   </div>`;
-  c.querySelector("#rptBrand").onclick=()=>brandModal();
+  c.querySelectorAll(".rp-sec").forEach(d=>d.addEventListener("toggle",()=>{ abiertas[d.dataset.sec]=d.open; }));
   c.querySelector("#rptPlain").onclick=()=>openPlainExport(est);
+  c.querySelector("#rptShare").onclick=e=>generateSharePage(est,e.currentTarget);
+  c.querySelector("#rptFull").onclick=()=>openClientReport(est.id);
   renderSeleccion(c.querySelector("#rptSel"),est,r);
   renderPublico(c.querySelector("#rptPub"),est,r);
-  c.querySelector("#rptCliPrev").onclick=()=>openClientReport(est.id);
-  c.querySelector("#rptShare").onclick=e=>generateSharePage(est,e.currentTarget);
-  window._rptSchedule=null;
+  renderMarca(c.querySelector("#rptMarca"),est);
+  // Vista previa en vivo: se reconstruye con un pequeño retraso después de cada cambio.
+  let t=null, gen=0;
+  const refrescar=async()=>{
+    const fr=document.getElementById("rpFrame"); if(!fr) return;
+    const yo=++gen, est0=document.getElementById("rpEstado"); if(est0){ est0.textContent="Actualizando…"; est0.classList.remove("ok"); }
+    let estado=null, scroll=0;
+    try{ const w=fr.contentWindow; if(w&&w.__SRV){ const v=w.__SRV; estado={section:v.section,hzOpen:v.hzOpen,flowOpen:v.flowOpen,jrOpen:v.jrOpen,sbCol:v.sbCol}; scroll=(w.document.scrollingElement||w.document.documentElement).scrollTop; } }catch(_){}
+    try{
+      const D=await collectShareData(est); if(yo!==gen) return;
+      fr.onload=()=>{ try{ (fr.contentDocument.scrollingElement||fr.contentDocument.documentElement).scrollTop=scroll; }catch(_){} const e=document.getElementById("rpEstado"); if(e){ e.textContent="Al día"; e.classList.add("ok"); } };
+      fr.srcdoc=buildShareHtml({...D,preview:true,estado});
+    }catch(err){ console.error("vista previa",err); const e=document.getElementById("rpEstado"); if(e) e.textContent="No se pudo actualizar la vista previa"; }
+  };
+  window._rptSchedule=()=>{ clearTimeout(t); t=setTimeout(refrescar,350); };
+  // Se muestra siempre como en escritorio: con poco ancho, el reporte se dibuja a 1024 px y se escala.
+  const wrap=c.querySelector(".rp-frame-wrap"), frEl=c.querySelector("#rpFrame"), ANCHO=1024;
+  const ajustar=()=>{ const w=wrap.clientWidth, h=wrap.clientHeight, k=w<ANCHO?w/ANCHO:1;
+    frEl.style.width=(w/k)+"px"; frEl.style.height=(h/k)+"px"; frEl.style.transform=k<1?`scale(${k})`:""; };
+  new ResizeObserver(ajustar).observe(wrap); ajustar();
+  refrescar();
 }
-/* Link público con PIN (foto del reporte; volver a publicar la actualiza). */
+/* Link público con PIN (foto del reporte; volver a publicar la actualiza). Sin modales:
+   las acciones que no se pueden deshacer piden confirmación dentro del panel. */
 function renderPublico(box,est,r){
   const pub=r.publico, fecha=pub?new Date(pub.publicadoAt).toLocaleString("es-AR",{dateStyle:"medium",timeStyle:"short"}):"";
+  const ayuda=`<details class="rp-ayuda" ${pub?"":"open"}><summary>Cómo funciona el link y el PIN</summary><ol>
+      <li><b>Publicá.</b> Se guarda una foto del reporte tal como se ve en la vista previa, con lo que elegiste en "Qué ve el cliente".</li>
+      <li><b>Compartí el link y el PIN por canales distintos</b>, por ejemplo el link por correo y el PIN por WhatsApp. Así nadie entra con solo uno de los dos.</li>
+      <li><b>Tu cliente abre el link</b>, escribe el PIN de 6 dígitos, su nombre y acepta que el diagnóstico pueda mencionarse. Lo ve en modo lectura, sin crear cuenta. Cada acceso queda en "Consentimientos".</li>
+      <li><b>Si cambiás algo</b>, tocá "Actualizar publicación": el link sigue siendo el mismo, pero muestra la versión nueva.</li>
+      <li><b>Seguridad:</b> después de 5 PIN incorrectos el acceso se bloquea 15 minutos. "Generar PIN nuevo" deja inválido el anterior y "Despublicar" desactiva el link.</li>
+    </ol></details>`;
   box.innerHTML=pub?`
-    <p class="rhint">Cualquiera con el link y el PIN ve el reporte en modo lectura, sin cuenta. Muestra la foto del ${esc(fecha)}: si cambiás algo, actualizá la publicación.</p>
-    <div class="pub-row"><label class="rlab">Link</label><div class="pub-val"><code id="pubLink">${esc(linkPublico(pub))}</code><button type="button" class="btn ghost sm" data-copy="pubLink">Copiar</button></div></div>
-    <div class="pub-row"><label class="rlab">PIN</label><div class="pub-val"><code id="pubPinVal" class="pub-pin">${esc(pub.pin)}</code><button type="button" class="btn ghost sm" data-copy="pubPinVal">Copiar</button></div></div>
-    <div class="pub-consent"><span class="rlab">Consentimientos</span><div id="pubCons" class="hint">Cargando...</div></div>
-    <div class="pub-acts">
-      <button type="button" class="btn primary sm" id="pubUpd">Actualizar publicación</button>
-      <button type="button" class="btn sm" id="pubPinNew">Generar PIN nuevo</button>
-      <button type="button" class="btn ghost sm danger" id="pubOff">Despublicar</button>
-      <span class="hint" id="pubMsg"></span>
-    </div>`:`
-    <p class="rhint">Generá un link para que el cliente vea el reporte en modo lectura con un PIN de 6 dígitos, sin crear cuenta. Se publica una foto de lo que elegiste abajo.</p>
-    <div class="pub-acts"><button type="button" class="btn primary sm" id="pubOn">Publicar reporte</button><span class="hint" id="pubMsg"></span></div>`;
+    <div class="pub-ok"><span class="pub-dot" aria-hidden="true"></span>Publicado · foto del ${esc(fecha)}</div>
+    <div class="pub-row"><label class="rlab">Link</label><div class="pub-val"><code id="pubLink">${esc(linkPublico(pub))}</code><button type="button" class="btn-q" data-copy="pubLink">Copiar</button></div></div>
+    <div class="pub-row"><label class="rlab">PIN</label><div class="pub-val"><code id="pubPinVal" class="pub-pin">${esc(pub.pin)}</code><button type="button" class="btn-q" data-copy="pubPinVal">Copiar</button></div></div>
+    <div class="pub-acts"><button type="button" class="btn-q sel" id="pubUpd">Actualizar publicación</button><button type="button" class="btn-q" id="pubPinNew">Generar PIN nuevo</button><button type="button" class="btn-q pub-danger" id="pubOff">Despublicar</button></div>
+    <div class="pub-confirm" id="pubConfirm" hidden></div>
+    <span class="hint" id="pubMsg"></span>
+    ${ayuda}
+    <div class="pub-consent"><span class="rlab">Consentimientos</span><div id="pubCons" class="hint">Cargando...</div></div>`:`
+    <p class="rhint">Generá un link para que tu cliente vea el reporte en modo lectura con un PIN de 6 dígitos, sin crear cuenta.</p>
+    <div class="pub-acts"><button type="button" class="btn-q sel" id="pubOn">Publicar reporte</button></div>
+    <span class="hint" id="pubMsg"></span>
+    ${ayuda}`;
   const msg=box.querySelector("#pubMsg");
   const run=async(btn,fn,ok)=>{
     btn.disabled=true; msg.textContent="Publicando..."; msg.className="hint";
     try{ await fn(); renderPublico(box,est,r); toast(ok); }
     catch(e){ console.error("publicar",e); msg.textContent="No se pudo: "+((e&&e.message)||e); btn.disabled=false; }
   };
+  const confirmar=(texto,si,fn)=>{ const cf=box.querySelector("#pubConfirm"); cf.hidden=false;
+    cf.innerHTML=`<p>${texto}</p><div class="pub-acts"><button type="button" class="btn-q pub-danger" id="cfSi">${si}</button><button type="button" class="btn-q" id="cfNo">Cancelar</button></div>`;
+    cf.querySelector("#cfNo").onclick=()=>{ cf.hidden=true; cf.innerHTML=""; };
+    cf.querySelector("#cfSi").onclick=e=>fn(e.currentTarget); cf.querySelector("#cfSi").focus(); };
   const on=box.querySelector("#pubOn"); if(on) on.onclick=()=>run(on,()=>publicarReporte(est),"Reporte publicado");
   const upd=box.querySelector("#pubUpd"); if(upd) upd.onclick=()=>run(upd,()=>publicarReporte(est),"Publicación actualizada");
-  const pn=box.querySelector("#pubPinNew"); if(pn) pn.onclick=()=>openConfirm("Generar PIN nuevo","El PIN actual deja de funcionar. Vas a tener que compartir el nuevo.",()=>run(pn,()=>publicarReporte(est,{nuevoPIN:true}),"PIN nuevo generado"),"Generar");
-  const off=box.querySelector("#pubOff"); if(off) off.onclick=()=>openConfirm("Despublicar reporte","El link deja de funcionar para todos. Podés volver a publicar después (con un link nuevo).",()=>run(off,()=>despublicarReporte(est),"Reporte despublicado"),"Despublicar");
+  const pn=box.querySelector("#pubPinNew"); if(pn) pn.onclick=()=>confirmar("El PIN actual deja de funcionar. Vas a tener que compartir el nuevo.","Generar PIN nuevo",b=>run(b,()=>publicarReporte(est,{nuevoPIN:true}),"PIN nuevo generado"));
+  const off=box.querySelector("#pubOff"); if(off) off.onclick=()=>confirmar("El link deja de funcionar para todos. Podés volver a publicar después (con un link nuevo).","Despublicar",b=>run(b,()=>despublicarReporte(est),"Reporte despublicado"));
   const cons=box.querySelector("#pubCons");
   if(cons) consentimientosDe(est).then(l=>{
     cons.innerHTML=l.length?`<ul class="pub-cons-list">${l.slice().reverse().map(c=>`<li><b>${esc(c.nombre)}</b> · ${esc(new Date(c.fecha).toLocaleString("es-AR",{dateStyle:"medium",timeStyle:"short"}))}</li>`).join("")}</ul>`:"Todavía nadie abrió el link.";
@@ -83,7 +121,7 @@ function renderSeleccion(box,est,r){
   const flows=state.flujos.filter(f=>f.tipo!=="User Journey"), jrs=state.flujos.filter(f=>f.tipo==="User Journey");
   const secs=[
     {on:null,tipo:"bloques",label:"Inicio (información del proyecto)",items:BLOQUES.map(([k,l])=>({id:k,t:l}))},
-    {on:"hallazgos",tipo:"hallazgos",label:"Hallazgos",items:state.hallazgos.map(h=>({id:h.id,t:h.titulo||"(sin título)",sub:h.tipo+(h.severidad!=null&&h.severidad!==""?" · Sev "+h.severidad:"")}))},
+    {on:"hallazgos",tipo:"hallazgos",label:"Hallazgos",items:state.hallazgos.map(h=>({id:h.id,t:h.titulo||"(sin título)",sub:(h.severidad!=null&&h.severidad!==""?"Sev "+h.severidad:"")}))},
     {on:"flujos",tipo:"flujos",label:"Flujos",items:flows.map(f=>({id:f.id,t:f.nombre}))},
     {on:"journeys",tipo:"journeys",label:"User Journeys",items:jrs.map(f=>({id:f.id,t:f.nombre}))},
     {on:"protopersonas",tipo:"protopersonas",label:"Protopersonas",items:r.protopersonas.map(p=>({id:p.id,t:p.nombre||"(sin nombre)"}))},
@@ -108,7 +146,7 @@ function renderSeleccion(box,est,r){
       </div>`:""}
     </div>`;
   }).join("");
-  const redo=()=>{ saveReporte(est); renderSeleccion(box,est,r); };
+  const redo=()=>{ saveReporte(est); renderSeleccion(box,est,r); if(window._rptSchedule) window._rptSchedule(); };
   box.querySelectorAll("[data-sec]").forEach(cb=>cb.onchange=()=>{ r.online[cb.dataset.sec]=cb.checked; redo(); });
   box.querySelectorAll("[data-tog]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.tog; open.has(i)?open.delete(i):open.add(i); renderSeleccion(box,est,r); });
   box.querySelectorAll("input[data-id]").forEach(cb=>cb.onchange=()=>{ setOculto(r,cb.dataset.t,cb.dataset.id,!cb.checked); redo(); });
@@ -300,42 +338,35 @@ function propuestaModal(est,idx){
   document.getElementById("pr_moneda").addEventListener("change",updLanzPrev);
   updLanzPrev();
 }
-function brandModal(){
+/* Marca del reporte: formulario dentro del panel, con guardado automático (antes era un modal). */
+function renderMarca(box,est){
   const m=marcaActual();
-  openModal("Marca del reporte",`
-    <div class="field"><label>Imagen de encabezado <span class="opt">esquina superior derecha de cada hoja</span></label><input type="file" id="br_head" accept="image/*">
-      ${m.headerImg?`<div class="hint" style="display:flex;align-items:center;gap:8px"><img src="${m.headerImg}" style="max-height:28px;max-width:120px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px"><label style="display:inline-flex;align-items:center;gap:5px;margin:0;font-weight:normal"><input type="checkbox" id="br_head_del" style="width:auto"> Quitar imagen</label></div>`:`<div class="hint">Sin imagen: el espacio queda vacío en el reporte.</div>`}</div>
-    <div class="field"><label>Logotipo de portada <span class="opt">opcional, reemplaza el texto</span></label><input type="file" id="br_logo" accept="image/*">
-      ${m.logo?`<div class="hint">Hay un logo cargado. Subí otro para reemplazarlo.</div>`:`<div class="hint">Sin logo: se usa el texto de marca.</div>`}</div>
-    <div class="field"><label>Texto de marca <span class="opt">si no hay logo</span></label><input id="br_wm" value="${esc(m.wordmark)}"></div>
-    <div class="field"><label>Nombre</label><input id="br_n" value="${esc(m.nombre)}"></div>
-    <div class="field"><label>Rol</label><input id="br_r" value="${esc(m.rol)}"></div>
-    <div class="row2"><div class="field"><label>Sitio</label><input id="br_s" value="${esc(m.sitio)}"></div>
-      <div class="field"><label>Año</label><input id="br_a" value="${esc(m.anio)}"></div></div>
-    <div class="row2"><div class="field"><label>Email de contacto</label><input id="br_email" value="${esc(m.email||"")}" placeholder="hola@uxuaria.com"></div>
-      <div class="field"><label>Teléfono / WhatsApp</label><input id="br_tel" value="${esc(m.tel||"")}" placeholder="+54 ..."></div></div>
-    <div class="field"><label>Perfil de LinkedIn <span class="opt">para pedir una recomendación en el reporte</span></label><input id="br_li" value="${esc(m.linkedin||"")}" placeholder="https://www.linkedin.com/in/tu-perfil"></div>
-    <div class="field"><label>Texto de bienvenida del reporte <span class="opt">vacío = texto por defecto</span></label><textarea id="br_bien" rows="3" placeholder="¡Hola! Gracias por tu tiempo y por el interés en este diagnóstico...">${esc(m.bienvenida||"")}</textarea></div>
-    <div class="field"><label>Aclaración "Hecho por una persona" <span class="opt">vacío = texto por defecto</span></label><textarea id="br_nia" rows="3" placeholder="Este diagnóstico no fue generado por una herramienta automática de IA...">${esc(m.notaIA||"")}</textarea></div>
-    <div class="field"><label>Aclaración "Diagnóstico inicial" <span class="opt">vacío = texto por defecto</span></label><textarea id="br_nini" rows="3" placeholder="Está basado en la información que compartieron y en lo que pude explorar...">${esc(m.notaInicial||"")}</textarea></div>
-    <div class="field"><label>Servicio destacado <span class="opt">para el CTA del reporte online</span></label>
-      <div class="row2"><input id="br_svcn" value="${esc(m.servicioNombre||"")}" placeholder="MV Rescue"><input id="br_svcu" value="${esc(m.servicioUrl||"")}" placeholder="URL del servicio (opcional)"></div>
-      <textarea id="br_svcd" rows="2" placeholder="Qué es y a quién ayuda (editá con tus palabras)">${esc(m.servicioDesc||"")}</textarea></div>
-  `,async()=>{
-    const rec={ wordmark:document.getElementById("br_wm").value.trim()||"uxuaria", nombre:document.getElementById("br_n").value.trim(),
-      rol:document.getElementById("br_r").value.trim(), sitio:document.getElementById("br_s").value.trim(),
-      anio:document.getElementById("br_a").value.trim(), logo:m.logo||null, headerImg:m.headerImg||null, color:m.color||"",
-      email:document.getElementById("br_email").value.trim(), tel:document.getElementById("br_tel").value.trim(),
-      servicioNombre:document.getElementById("br_svcn").value.trim(), servicioUrl:document.getElementById("br_svcu").value.trim(),
-      servicioDesc:document.getElementById("br_svcd").value.trim(),
-      linkedin:document.getElementById("br_li").value.trim(), bienvenida:document.getElementById("br_bien").value.trim(),
-      notaIA:document.getElementById("br_nia").value.trim(), notaInicial:document.getElementById("br_nini").value.trim() };
-    const f=document.getElementById("br_logo").files[0];
-    if(f){ try{ const im=await loadBitmap(f); rec.logo=scaleImg(im,480,0.85,0).dataUrl; if(im.close)im.close(); }catch(e){} }
-    const hf=document.getElementById("br_head").files[0];
-    const hdel=document.getElementById("br_head_del");
-    if(hf){ try{ const im=await loadBitmap(hf); rec.headerImg=scaleImg(im,600,0.9,0).dataUrl; if(im.close)im.close(); }catch(e){} }
-    else if(hdel&&hdel.checked){ rec.headerImg=null; }
-    state.marca=rec; await brandStore.save(rec); toast("Marca guardada"); if(window._rptSchedule)window._rptSchedule(); return true;
-  });
+  box.innerHTML=`<div class="pf-stack">
+    <div class="pf"><label>Imagen de encabezado <span class="hint">esquina superior derecha de cada hoja</span></label>
+      <div class="br-img">${m.headerImg?`<img src="${m.headerImg}" alt="Encabezado actual">`:`<span class="hint">Sin imagen</span>`}<label class="btn-q">Subir<input type="file" id="br_head" accept="image/*" hidden></label>${m.headerImg?`<button type="button" class="btn-q" id="br_head_del">Quitar</button>`:""}</div></div>
+    <div class="pf"><label>Logotipo de portada <span class="hint">opcional, reemplaza el texto de marca</span></label>
+      <div class="br-img">${m.logo?`<img src="${m.logo}" alt="Logo actual">`:`<span class="hint">Sin logo</span>`}<label class="btn-q">Subir<input type="file" id="br_logo" accept="image/*" hidden></label>${m.logo?`<button type="button" class="btn-q" id="br_logo_del">Quitar</button>`:""}</div></div>
+    <div class="pf"><label for="br_wm">Texto de marca</label><input id="br_wm" data-k="wordmark" value="${esc(m.wordmark)}"></div>
+    <div class="pf-row"><div class="pf"><label for="br_n">Nombre</label><input id="br_n" data-k="nombre" value="${esc(m.nombre)}"></div><div class="pf"><label for="br_r">Rol</label><input id="br_r" data-k="rol" value="${esc(m.rol)}"></div></div>
+    <div class="pf-row"><div class="pf"><label for="br_s">Sitio</label><input id="br_s" data-k="sitio" value="${esc(m.sitio)}"></div><div class="pf"><label for="br_a">Año</label><input id="br_a" data-k="anio" value="${esc(m.anio)}"></div></div>
+    <div class="pf-row"><div class="pf"><label for="br_email">Email de contacto</label><input id="br_email" data-k="email" value="${esc(m.email||"")}" placeholder="hola@uxuaria.com"></div><div class="pf"><label for="br_tel">Teléfono / WhatsApp</label><input id="br_tel" data-k="tel" value="${esc(m.tel||"")}" placeholder="+54 ..."></div></div>
+    <div class="pf"><label for="br_li">Perfil de LinkedIn <span class="hint">para pedir una recomendación</span></label><input id="br_li" data-k="linkedin" value="${esc(m.linkedin||"")}" placeholder="https://www.linkedin.com/in/tu-perfil"></div>
+    <div class="pf"><label for="br_bien">Texto de bienvenida <span class="hint">vacío = texto por defecto</span></label><textarea id="br_bien" data-k="bienvenida" placeholder="¡Hola! Gracias por tu tiempo y por el interés en este diagnóstico...">${esc(m.bienvenida||"")}</textarea></div>
+    <div class="pf"><label for="br_nia">Aclaración "Hecho por una persona"</label><textarea id="br_nia" data-k="notaIA" placeholder="Este diagnóstico no fue generado por una herramienta automática de IA...">${esc(m.notaIA||"")}</textarea></div>
+    <div class="pf"><label for="br_nini">Aclaración "Diagnóstico inicial"</label><textarea id="br_nini" data-k="notaInicial" placeholder="Está basado en la información que compartieron y en lo que pude explorar...">${esc(m.notaInicial||"")}</textarea></div>
+    <div class="pf-row"><div class="pf"><label for="br_svcn">Servicio destacado</label><input id="br_svcn" data-k="servicioNombre" value="${esc(m.servicioNombre||"")}" placeholder="MV Rescue"></div><div class="pf"><label for="br_svcu">URL del servicio</label><input id="br_svcu" data-k="servicioUrl" value="${esc(m.servicioUrl||"")}" placeholder="https://..."></div></div>
+    <div class="pf"><label for="br_svcd">Descripción del servicio</label><textarea id="br_svcd" data-k="servicioDesc" placeholder="Qué es y a quién ayuda">${esc(m.servicioDesc||"")}</textarea></div>
+    <span class="hint" id="brMsg">Los cambios se guardan solos.</span>
+  </div>`;
+  let t=null;
+  const guardar=async(cambios)=>{ const rec={...marcaActual(),...cambios}; if(!rec.wordmark) rec.wordmark="uxuaria"; state.marca=rec;
+    const msg=box.querySelector("#brMsg"); if(msg) msg.textContent="Guardando…";
+    try{ await brandStore.save(rec); if(msg) msg.textContent="Guardado"; if(window._rptSchedule) window._rptSchedule(); }
+    catch(e){ console.error("marca",e); if(msg) msg.textContent="No se pudo guardar la marca."; } };
+  box.querySelectorAll("[data-k]").forEach(inp=>inp.oninput=()=>{ clearTimeout(t); const k=inp.dataset.k, v=inp.value.trim(); t=setTimeout(()=>guardar({[k]:v}),500); });
+  const subir=async(f,clave,maxW,q)=>{ try{ const im=await loadBitmap(f); const url=scaleImg(im,maxW,q,0).dataUrl; if(im.close)im.close(); await guardar({[clave]:url}); renderMarca(box,est); }catch(e){ toast("No se pudo procesar la imagen"); } };
+  const hf=box.querySelector("#br_head"); hf.onchange=()=>{ if(hf.files[0]) subir(hf.files[0],"headerImg",600,0.9); };
+  const lf=box.querySelector("#br_logo"); lf.onchange=()=>{ if(lf.files[0]) subir(lf.files[0],"logo",480,0.85); };
+  const hd=box.querySelector("#br_head_del"); if(hd) hd.onclick=async()=>{ await guardar({headerImg:null}); renderMarca(box,est); };
+  const ld=box.querySelector("#br_logo_del"); if(ld) ld.onclick=async()=>{ await guardar({logo:null}); renderMarca(box,est); };
 }

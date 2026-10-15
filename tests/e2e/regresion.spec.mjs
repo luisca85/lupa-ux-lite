@@ -67,27 +67,35 @@ test("regresión: hallazgo con imagen, flujos, reporte y página para compartir"
     await expect(page.locator("#hzPanel").getByText(hallazgo)).toBeVisible();
   });
 
-  await test.step("2. vista previa del reporte: hallazgos, flujos y journeys", async () => {
+  await test.step("2. vista previa en vivo del reporte: hallazgos, flujos y journeys", async () => {
     await page.getByRole("button", { name: "Reportes", exact: true }).click();
-    await page.getByRole("button", { name: "Vista previa del reporte" }).click();
+    await expect(page.locator("#rpEstado")).toHaveText("Al día");
+    const prev = page.frameLocator("#rpFrame");
+    await prev.getByRole("button", { name: "Hallazgos" }).click();
+    await prev.getByRole("button", { name: new RegExp(hallazgo) }).click();
+    await expect(prev.locator('img[src^="data:image"]').first()).toBeVisible();
+    await expect(prev.getByText(PIN_COMMENT)).toBeVisible();
+    await prev.getByRole("button", { name: "Flujos" }).click();
+    await expect(prev.getByText("Checkout")).toBeVisible();
+    await prev.getByRole("button", { name: "User Journeys" }).click();
+    await expect(prev.getByText("Journey de compra")).toBeVisible();
+
+    // Lo que se oculta en el panel desaparece de la vista previa, que conserva la sección abierta.
+    await page.locator('#rptSel input[data-sec="flujos"]').uncheck();
+    await expect(prev.getByRole("button", { name: "Flujos" })).toHaveCount(0);
+    await expect(prev.getByText("Journey de compra")).toBeVisible();
+    await page.locator('#rptSel input[data-sec="flujos"]').check();
+    await expect(prev.getByRole("button", { name: "Flujos" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Pantalla completa" }).click();
     await expect(page.getByRole("button", { name: "Cerrar vista previa" })).toBeVisible();
-
-    await page.getByRole("button", { name: "Hallazgos" }).click();
-    await page.getByRole("button", { name: new RegExp(hallazgo) }).click();
-    await expect(page.locator('img[src^="data:image"]').first()).toBeVisible();
-    await expect(page.getByText(PIN_COMMENT)).toBeVisible();
-
-    await page.getByRole("button", { name: "Flujos" }).click();
-    await expect(page.getByText("Checkout")).toBeVisible();
-    await page.getByRole("button", { name: "User Journeys" }).click();
-    await expect(page.getByText("Journey de compra")).toBeVisible();
     await page.getByRole("button", { name: "Cerrar vista previa" }).click();
   });
 
   await test.step("3. página para compartir: abre sola, sin cuenta ni servidor", async () => {
     const [download] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByRole("button", { name: "Generar página para compartir" }).click(),
+      page.getByRole("button", { name: "Descargar página HTML" }).click(),
     ]);
     const file = testInfo.outputPath("compartir.html");
     await download.saveAs(file);

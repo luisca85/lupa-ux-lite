@@ -50,6 +50,8 @@ function SR_boot(D){
   function emoTop(e){ return 8+(4-(e!=null?e:2))/4*50; }
   const m=D.brand, on=D.report.online||{};
   const V={section:"presentacion",liVisto:false,sbCol:false,sbOpen:false,hzOpen:null,flowOpen:null,nodeOpen:null,flowHzOpen:null,jrOpen:null};
+  // Vista previa en vivo de la app: arranca donde estaba y deja leer la sección actual.
+  if(D.preview){ if(D.estado) Object.assign(V,D.estado); window.__SRV=V; }
   function brandMark(){ return m.headerImg?'<img src="'+m.headerImg+'" alt="" style="max-height:30px;max-width:150px;object-fit:contain">':'<span class="cr-word">'+esc(m.wordmark)+'</span>'; }
   function crHref(u){u=String(u||"");return /^https?:\/\//i.test(u)?u:("https://"+u);}
   function sections(){
