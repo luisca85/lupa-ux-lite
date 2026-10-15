@@ -25,6 +25,7 @@ test("migración v1 → v2: pantallas, pines atómicos y nada se pierde", async 
   await put(`estudios/${sid}/hallazgos/h3`, { tipo: "Observación", titulo: "Tres", createdAt: 3 });
 
   await page.goto("/");
+  await page.locator("#topSearch").fill("Migración v1 " + sid); // con muchos estudios puede no estar en la primera página
   await page.getByRole("heading", { name: "Migración v1 " + sid }).click();
   await expect(page.getByText("Estudio actualizado: 2 pantallas creadas")).toBeVisible();
 
@@ -49,6 +50,7 @@ test("migración v1 → v2: pantallas, pines atómicos y nada se pierde", async 
   expect((await get(`estudios/${sid}`)).data.modelo).toBe(2);
   // Idempotente: abrir de nuevo no duplica
   await page.reload();
+  await page.locator("#topSearch").fill("Migración v1 " + sid); // con muchos estudios puede no estar en la primera página
   await page.getByRole("heading", { name: "Migración v1 " + sid }).click();
   await expect(page.getByRole("heading", { name: "Resumen de problemas" })).toBeVisible();
   expect((await coll(`estudios/${sid}/pantallas`)).length).toBe(2);

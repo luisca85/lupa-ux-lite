@@ -133,7 +133,6 @@
 .hidden{display:none!important}
 .link{color:var(--accent);text-decoration:none;font-weight:500}
 .link:hover{text-decoration:underline}
-.foot-note{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);color:var(--faint);font-size:12px;text-align:center}
 
 /* ===== Reporte del cliente: Sidebar estilo shadcn/ui (link público y HTML) ===== */
 .sb-wrap{--sidebar:oklch(0.985 0 0);--sidebar-fg:oklch(0.145 0 0);--sidebar-accent:oklch(0.97 0 0);--sidebar-accent-fg:oklch(0.205 0 0);--sidebar-border:oklch(0.922 0 0);--sb-w:16rem;--sb-w-icon:3rem;

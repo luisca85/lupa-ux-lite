@@ -47,7 +47,7 @@ export function renderRecursos(box){
   clearInterval(timer);
   const lista=barajar(RECURSOS), consejo=CONSEJOS[Math.floor(Math.random()*CONSEJOS.length)];
   let i=0, pausa=false;
-  box.innerHTML=`<div class="rec-h"><h2>Recursos</h2><p>Lecturas validadas para evaluar con criterio.</p></div>
+  box.innerHTML=`<div class="rec-h"><span class="rec-ico" aria-hidden="true"></span><h2>Recursos</h2><p>Lecturas validadas para evaluar con criterio.</p></div>
     <div class="rec-dest" id="recDest" aria-roledescription="carrusel" aria-label="Recurso destacado"></div>
     <div class="rec-nav"><button type="button" class="rec-arr" id="recPrev" aria-label="Recurso anterior">${chev(-1)}</button>
       <div class="rec-dots">${lista.map((r,k)=>`<button type="button" class="rec-dot" data-k="${k}" aria-label="Ver ${esc(r.titulo)}"></button>`).join("")}</div>

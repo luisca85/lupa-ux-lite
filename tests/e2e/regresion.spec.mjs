@@ -59,6 +59,7 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
 
   await test.step("1d. recargar: todo persiste", async () => {
     await page.reload();
+    await page.locator("#topSearch").fill(estudio); // con muchos estudios puede no estar en la primera página
     await page.getByRole("heading", { name: estudio }).click();
     // El estudio abre en Resumen; el hallazgo se verifica en su sección.
     await expect(page.getByRole("heading", { name: "Resumen de problemas" })).toBeVisible();

@@ -107,6 +107,7 @@ test("hallazgos v2: una pantalla, varios pines, severidad y paso de flujo", asyn
 
   await test.step("recargar: todo persiste", async () => {
     await page.reload();
+    await page.locator("#topSearch").fill(estudio); // con muchos estudios puede no estar en la primera página
     await page.getByRole("heading", { name: estudio }).click();
     await page.locator("#psNav").getByRole("button", { name: /^Hallazgos/ }).click();
     await expect(page.locator(".ws-gbtn.on")).toContainText("Landing");
