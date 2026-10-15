@@ -38,6 +38,15 @@ test("onboarding: 5 pasos, ir y volver, saltar y volver a verlo", async ({ page 
   await expect(page.getByRole("heading", { name: "Estudios" })).toBeVisible();
   await expect(page.locator("#onboarding")).toHaveCount(0);
 
+  // Al terminar, la home muestra el panel de Recursos: un destacado que rota y 4 enlaces más.
+  const rec = page.getByRole("complementary", { name: "Recursos" });
+  await expect(rec.locator("#recDest a")).toHaveAttribute("target", "_blank");
+  await expect(rec.locator("#recList li")).toHaveCount(4);
+  const primero = await rec.locator("#recDest b").textContent();
+  await rec.getByRole("button", { name: "Recurso siguiente" }).click();
+  await expect(rec.locator("#recDest b")).not.toHaveText(primero);
+  await expect(rec.locator(".rec-dot")).toHaveCount(8);
+
   if (testInfo.project.name === "servidor") {
     await page.locator("#userChip").click();
     await page.getByRole("menuitem", { name: "Ver introducción" }).click();

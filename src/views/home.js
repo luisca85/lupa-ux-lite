@@ -7,6 +7,7 @@ import { store } from "../data/store.js";
 import { chevR, pencil, trash } from "../ui/iconos.js";
 import { emptyInline } from "../ui/modales.js";
 import { confirmDelStudy, studyModal } from "./estudio.js";
+import { renderRecursos } from "./recursos.js";
 
 /* ============ Vista: Home (panel de estudios) ============ */
 function matchStudy(e,q){
@@ -20,7 +21,8 @@ export function renderHome(){
     :q?`${list.length} de ${all.length} ${all.length===1?"estudio":"estudios"} coinciden con “${esc(state.homeQuery.trim())}”`
     :`${all.length} ${all.length===1?"estudio":"estudios"}`;
   const nuevo=`<button class="study-add" id="newStudy"><span class="sa-ico" aria-hidden="true"><span class="fig-ico ico-plus"></span></span><span class="sa-t">Nuevo estudio</span><span class="sa-s">Cargá cliente, plataforma y URL</span></button>`;
-  view.innerHTML=`<div class="home">
+  view.innerHTML=`<div class="home home-rec-on">
+    <aside class="home-rec" id="homeRec" aria-label="Recursos"></aside>
     <section class="home-panel">
       <div class="hp-head">
         <div><h1 class="home-title">Estudios</h1><p class="hp-sub">${sub}</p></div>
@@ -30,6 +32,7 @@ export function renderHome(){
       ${q&&!list.length?emptyInline("Ningún estudio coincide con la búsqueda."):""}
     </section>
   </div>`;
+  renderRecursos(document.getElementById("homeRec"));
   document.getElementById("newStudy").onclick=()=>studyModal(null);
   const ex=document.getElementById("dataExport"); if(ex)ex.onclick=()=>exportAllData(ex);
   const im=document.getElementById("dataImport"); if(im)im.onclick=importAllData;
