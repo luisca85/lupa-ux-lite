@@ -1092,15 +1092,23 @@ body.in-home,body.in-legal{display:flex;flex-direction:column;min-height:100vh}
 @media (max-width:1100px){body.in-home .home{flex-direction:column}.home-rec{flex-basis:auto;min-height:0}}
 @media (max-width:760px){body.in-home .home{padding:12px}body.in-home .home-panel{padding:16px}.rec-card b{font-size:28px;line-height:30px}.rec-dest{height:auto;min-height:240px}.legal-in{flex-direction:column}.legal-nav{position:static;flex-basis:auto;width:100%}.legal-doc{padding:20px}.pie-in{padding:24px 16px}}
 @media (prefers-reduced-motion:reduce){.rec-card{animation:none}}
-/* Nuevo estudio: formulario en dos pasos dentro del bloque de Estudios */
-.ne{display:flex;flex-direction:column;gap:18px;max-width:680px}
-.ne-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.ne-pasos{list-style:none;margin:0;padding:0;display:flex;gap:16px}
-.ne-pasos li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-.ne-pasos li span{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;border:1px solid var(--line-input);background:var(--surface)}
+/* Nuevo estudio: formulario en dos pasos dentro del bloque de Estudios (100% del bloque) */
+.ne{display:flex;flex-direction:column;gap:20px;width:100%;flex:1}
+.ne-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.ne-pasos{list-style:none;margin:0;padding:0;display:flex;gap:20px}
+.ne-pasos li{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.ne-pasos li span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:600;border:1px solid var(--line-input);background:var(--surface)}
 .ne-pasos li.on{color:var(--ink);font-weight:500}.ne-pasos li.on span{background:var(--ink);border-color:var(--ink);color:var(--surface)}
 .ne-pasos li.ok span{background:var(--surface-2);color:var(--ink)}
-.ne-form{display:flex;flex-direction:column;gap:14px}
-.ne-form .pf input,.ne-form .pf select,.ne-form .pf textarea{font-size:14px;padding:9px 10px}
+.ne-form{display:flex;flex-direction:column;gap:18px;flex:1}
+.ne-form .pf{width:100%}
+.ne-form .pf label{font-size:13.5px}
+.ne-form .pf input,.ne-form .pf select,.ne-form .pf textarea{width:100%;box-sizing:border-box;font-size:14.5px;padding:10px 12px;min-height:42px;border-radius:var(--r-input)}
+.ne-form .pf textarea{min-height:140px;resize:vertical}
+.ne-form .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .ne-err{margin:0;min-height:1em;font-size:13px;color:var(--prob)}
-.ne-acts{position:static;background:none;padding:4px 0 0}
+.ne-acts{display:flex;align-items:center;gap:10px;margin-top:auto;padding:20px 0 0;border-top:1px solid var(--line);background:none;position:static}
+.ne-acts .grow{flex:1}
+.ne-acts .btn-q{height:44px;padding:0 22px;font-size:14.5px;font-weight:500;border-radius:var(--r-btn)}
+.ne-acts .btn-q.sel{min-width:180px;font-weight:600}
+@media (max-width:640px){.ne-form .pf-row{grid-template-columns:1fr}.ne-acts{flex-wrap:wrap}.ne-acts .grow{display:none}.ne-acts .btn-q{flex:1}.ne-acts .btn-q.sel{flex-basis:100%;order:-1}}
