@@ -12,9 +12,9 @@ import img5 from "../assets/onboarding/5.webp";
    muestran enteras (entera) sobre el color de su papel (fondo); el resto llena la columna. */
 const PASOS=[
   { img:img1, fondo:"#c5b094", alt:"Grabado antiguo de un sol rodeado de círculos concéntricos y nubes", tag:"El espíritu",
-    titulo:"Diseñamos para personas, con criterio de personas",
+    titulo:"El criterio humano es irreemplazable",
     texto:[
-      "Lupa UX nace para acompañar a quienes trabajan en experiencia de usuario en algo tan simple de decir como difícil de lograr: hacer mejores productos.",
+      "Lupa UX nace para acompañar a quienes trabajan en experiencia de usuario a hacer mejores productos. Hacemos que lo complejo se vuelva sencillo y fácil de analizar.",
       "Creemos que detrás de cada buena experiencia hay una mirada humana: alguien que observa, comprende emociones, interpreta modelos mentales y reconoce comportamientos, para llevar a las personas hacia una experiencia más efectiva y eficiente. Ese criterio no se automatiza.",
       "Por eso esta herramienta no genera reportes automáticos ni diagnósticos hechos con inteligencia artificial. Es tu asistente: reúne en un solo lugar todo lo que necesitás para evaluar la experiencia de un sistema, para que tu tiempo esté puesto donde más vale, que es pensar."],
     cierre:"En los próximos pasos te contamos cómo está organizada." },

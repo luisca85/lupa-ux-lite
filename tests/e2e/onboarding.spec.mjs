@@ -13,7 +13,7 @@ test("onboarding: 5 pasos, ir y volver, saltar y volver a verlo", async ({ page 
   const paso = page.locator("#onbN");
   await expect(modal).toBeVisible();
   await expect(paso).toHaveText("Paso 1 de 5");
-  await expect(page.locator("#onbT")).toHaveText("Diseñamos para personas, con criterio de personas");
+  await expect(page.locator("#onbT")).toHaveText("El criterio humano es irreemplazable");
   await expect(page.locator("#onbPrev")).toBeDisabled();
   await expect(page.locator(".onb-media img.on")).toHaveAttribute("data-i", "0");
 
