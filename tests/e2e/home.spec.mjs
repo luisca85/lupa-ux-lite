@@ -1,6 +1,7 @@
 // Home (Figma 55:1522): paginador cuando los estudios no entran en la pantalla, pie de
 // página con los datos de uxuaria y páginas legales.
 import { test, expect } from "@playwright/test";
+import { crearEstudio } from "./estudio.mjs";
 
 test("home: paginador, pie de página y páginas legales", async ({ page }, testInfo) => {
   const errores = [];
@@ -8,12 +9,31 @@ test("home: paginador, pie de página y páginas legales", async ({ page }, test
   await page.goto("/");
   const marca = `Pag ${testInfo.project.name} ${Date.now()}`;
   for (let i = 1; i <= 6; i++) {
-    await page.getByRole("button", { name: /Crear estudio|Nuevo estudio/ }).first().click();
-    await page.getByPlaceholder("Ej: Onboarding app de ahorro").fill(`${marca} ${i}`);
-    await page.getByRole("button", { name: "Guardar" }).click();
+    await crearEstudio(page, `${marca} ${i}`);
     await expect(page.getByRole("heading", { name: `${marca} ${i}` })).toBeVisible();
     await page.locator("#backHome").click();
   }
+
+  await test.step("Nuevo estudio se carga en el bloque de Estudios, en dos pasos y sin modal", async () => {
+    await page.locator("#newStudy").click();
+    await expect(page.locator(".modal-bg")).toHaveCount(0);
+    const pasos = page.getByRole("list", { name: "Pasos" });
+    await expect(pasos.locator('[aria-current="step"]')).toContainText("Datos básicos");
+    await page.getByRole("button", { name: "Siguiente →" }).click();
+    await expect(page.locator("#neErr")).toHaveText("Poné un nombre para el estudio.");
+    await page.getByPlaceholder("Ej: Onboarding app de ahorro").fill("Borrador que no se crea");
+    await page.locator("#f_cliente").fill("ACME");
+    await page.getByRole("button", { name: "Siguiente →" }).click();
+    await expect(pasos.locator('[aria-current="step"]')).toContainText("Detalles");
+    await page.getByRole("button", { name: "← Atrás" }).click();
+    await expect(page.locator("#f_cliente")).toHaveValue("ACME"); // se conserva al volver
+    await page.locator("#neBack").click(); // en el paso 1, Atrás vuelve a la lista
+    await expect(page.locator(".hp-grid")).toBeVisible();
+    await page.locator("#newStudy").click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".hp-grid")).toBeVisible();
+    await expect(page.getByText("Borrador que no se crea")).toHaveCount(0);
+  });
 
   await test.step("los estudios se reparten en páginas que entran en la pantalla", async () => {
     await page.locator("#topSearch").fill(marca);

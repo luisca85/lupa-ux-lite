@@ -1,6 +1,7 @@
 // Módulo Hallazgos v2: pantallas como entidad, un clic en la captura crea un hallazgo (popover),
 // filtro por severidad, edición en el panel y anclaje a un paso de flujo. Servidor e IndexedDB.
 import { test, expect } from "@playwright/test";
+import { crearEstudio } from "./estudio.mjs";
 import { makePng } from "./png.mjs";
 
 test("hallazgos v2: una pantalla, varios pines, severidad y paso de flujo", async ({ page }, testInfo) => {
@@ -10,9 +11,7 @@ test("hallazgos v2: una pantalla, varios pines, severidad y paso de flujo", asyn
 
   await page.addInitScript(() => localStorage.setItem("lupa:habilitar", JSON.stringify(["flujos", "protopersonas"])));
   await page.goto("/");
-  await page.getByRole("button", { name: /Crear estudio|Nuevo estudio/ }).first().click();
-  await page.getByPlaceholder("Ej: Onboarding app de ahorro").fill(estudio);
-  await page.getByRole("button", { name: "Guardar" }).click();
+  await crearEstudio(page, estudio);
   await expect(page.getByRole("heading", { name: estudio })).toBeVisible();
 
   await test.step("estado vacío y alta de pantalla", async () => {
@@ -121,9 +120,7 @@ test("pantallas que no entran: flechas, menú Todas y teclado", async ({ page },
   const estudio = `Muchas pantallas ${testInfo.project.name} ${Date.now()}`;
   await page.addInitScript(() => localStorage.setItem("lupa:habilitar", JSON.stringify(["flujos", "protopersonas"])));
   await page.goto("/");
-  await page.getByRole("button", { name: /Crear estudio|Nuevo estudio/ }).first().click();
-  await page.getByPlaceholder("Ej: Onboarding app de ahorro").fill(estudio);
-  await page.getByRole("button", { name: "Guardar" }).click();
+  await crearEstudio(page, estudio);
   await page.locator("#psNav").getByRole("button", { name: /^Hallazgos/ }).click();
   const nombres = ["Inicio y propuesta de valor", "Registro con correo electrónico", "Verificación del teléfono", "Elección del plan de ahorro", "Resumen y confirmación final", "Pantalla de éxito"];
   for (let i = 0; i < nombres.length; i++) {

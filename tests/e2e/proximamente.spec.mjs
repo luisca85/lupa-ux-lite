@@ -1,13 +1,12 @@
 // Flujos y Protopersonas están deshabilitadas provisionalmente: muestran un aviso, no su editor.
 import { test, expect } from "@playwright/test";
+import { crearEstudio } from "./estudio.mjs";
 import { makePng } from "./png.mjs";
 
 test("Flujos y Protopersonas muestran Próximamente", async ({ page }, testInfo) => {
   const estudio = `Próximamente ${testInfo.project.name} ${Date.now()}`;
   await page.goto("/");
-  await page.getByRole("button", { name: /Crear estudio|Nuevo estudio/ }).first().click();
-  await page.getByPlaceholder("Ej: Onboarding app de ahorro").fill(estudio);
-  await page.getByRole("button", { name: "Guardar" }).click();
+  await crearEstudio(page, estudio);
   for (const [sec, texto] of [["Flujos", "diagramar aquí los recorridos"], ["Protopersonas", "crear aquí las protopersonas"]]) {
     const tab = page.locator("#psNav").getByRole("button", { name: new RegExp("^" + sec) });
     await expect(tab).toContainText("Pronto");
