@@ -12,7 +12,7 @@ export const STUDY_TABS=[
   {id:"hallazgos",label:"Hallazgos",ico:"flag"},
   {id:"flujos",label:"Flujos",ico:"flow"},
   {id:"protopersonas",label:"Protopersonas",ico:"user"},
-  {id:"metricas",label:"Métricas",ico:"chart",grupo:"salida"},
+  {id:"metricas",label:"Métricas",ico:"chart",grupo:"salida",oculta:true}, // oculta por ahora
   {id:"reportes",label:"Reportes",ico:"report",grupo:"salida"},
   {id:"proyecto",label:"Configuración",ico:"gear",grupo:"salida"}
 ];

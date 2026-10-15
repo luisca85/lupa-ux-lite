@@ -15,13 +15,38 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByRole("heading", { name: estudio })).toBeVisible();
 
-  await test.step("una propuesta de trabajo y la marca en Configuración", async () => {
+  await test.step("Configuración: menú lateral, edición en el panel con Atrás, sin Métricas ni Protopersonas", async () => {
+    await expect(page.locator("#psNav").getByRole("button", { name: "Métricas" })).toHaveCount(0);
     await page.locator("#psNav").getByRole("button", { name: "Configuración" }).click();
+    const menu = page.getByRole("navigation", { name: "Configuración" });
+    await expect(menu.getByRole("button")).toHaveText([/Datos del proyecto/, /Marca/, /Propuestas de trabajo/]);
+    await expect(page.locator(".cf-card h3")).toHaveText(["Muestra inicial", "Resumen ejecutivo", "Diagnóstico estratégico"]);
+    await expect(page.locator("#studyContent").getByText("Protopersonas")).toHaveCount(0);
+
+    // Un hallazgo clave se carga en el mismo panel y Atrás vuelve a Datos del proyecto.
+    await page.locator('[data-add="hallazgosClave"]').click();
+    await page.locator("#db_t").fill("El registro frena la conversión");
+    await page.getByRole("button", { name: "Guardar" }).click();
+    await expect(page.locator(".cf-li")).toHaveText(["El registro frena la conversión"]);
+    await page.locator(".cf-li").click();
+    await page.getByRole("button", { name: "Datos del proyecto" }).first().click();
+    await expect(page.locator(".cf-card h3").first()).toHaveText("Muestra inicial");
+
+    await menu.getByRole("button", { name: /Marca/ }).click();
     await expect(page.locator("#rptMarca [data-k=wordmark]")).toBeVisible();
+
+    await menu.getByRole("button", { name: /Propuestas de trabajo/ }).click();
+    const antes = await page.locator(".cf-prop").count();
     await page.locator("#rptAddProp").click();
     await page.locator("#pr_t").fill("Diagnóstico completo");
     await page.getByRole("button", { name: "Guardar" }).click();
-    await expect(page.locator("#rptPropList")).toContainText("Diagnóstico completo");
+    await expect(page.locator(".cf-prop")).toHaveCount(antes + 1);
+    await expect(page.locator(".cf-prop").last()).toContainText("Diagnóstico completo");
+    // Editar y volver con Atrás sin guardar no cambia nada.
+    await page.locator(".cf-prop-open").last().click();
+    await page.locator("#pr_t").fill("Otro título");
+    await page.locator("#cfBack").click();
+    await expect(page.locator(".cf-prop").last()).toContainText("Diagnóstico completo");
   });
 
   let link, pin;
