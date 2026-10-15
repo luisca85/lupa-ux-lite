@@ -3,7 +3,7 @@
 Propósito: herramienta  de diagnóstico y evaluación heurística de UX.
 Permite cargar estudios, registrar hallazgos con evidencia anotada, armar user
 flows y user journeys, protopersonas, métricas, y generar un reporte navegable
-para el cliente (online y como página HTML autónoma para compartir).
+para el cliente, compartido con un link público y un PIN.
 
 ## Principios
 - Local-first con backend opcional: sin API, los datos viven en el navegador
@@ -31,11 +31,12 @@ para el cliente (online y como página HTML autónoma para compartir).
 - La capa `store` / `flowStore` / `brandStore` y los adaptadores `makeIDBAdapter`
   y `makeHTTPAdapter`, y la API en `functions/api`. Toda la validación de acceso
   vive en `authorize()`: no agregar rutas que la salteen. ÚNICA excepción:
-  `POST /api/publico` (link público con PIN), que solo lee `publicos/` y exige PIN
-  + consentimiento; no ampliarla ni sumar otras (ver decisions.md).
+  `POST /api/publico` (link público con PIN), que solo toca `publicos/{id}`: entrega la
+  foto con PIN + consentimiento y registra reservas con el mismo PIN. No ampliarla más
+  ni sumar otras (ver decisions.md).
   Un cambio mal hecho ahí corrompe o pierde datos del usuario.
 - `src/share/boot.js` (`SR_boot`): el ÚNICO render del reporte del cliente (vista
-  previa, link público `/r/{id}` y página HTML autónoma). Se incrusta como TEXTO:
+  previa en vivo y link público `/r/{id}`). Se incrusta como TEXTO:
   no puede importar nada ni usar nada de fuera de la función. No volver a duplicarlo.
 - `vistaCliente()` (`reportes/seleccion.js`): todo lo que llega al cliente pasa por
   ahí; lo oculto no debe viajar.
@@ -49,12 +50,14 @@ para el cliente (online y como página HTML autónoma para compartir).
 ## Definición de hecho
 - `npm run check` pasa, `npm run smoke` da "Todo OK" y `npm run test:e2e` pasa.
 - Las tres acciones críticas siguen funcionando (ver test de regresión abajo).
-- La vista previa (= link público y página autónoma, mismo `SR_boot`) y el export
-  de texto plano reflejan el cambio.
+- La vista previa en vivo de Reportes (= link público, mismo `SR_boot`) refleja el
+  cambio.
 
 ## Test de regresión (automatizado en `tests/e2e`, `npm run test:e2e`)
 1. Crear un estudio, agregar un hallazgo con imagen y anotación, recargar: persiste.
-2. Abrir "Vista previa del reporte" y navegar hallazgos / flujos / journeys.
-3. "Generar página para compartir" produce un HTML que abre solo, sin cuenta.
-4. Correr 1–3 en modo `server` y en modo `idb` (hosting estático sin API).
+2. Abrir Reportes: la vista previa en vivo muestra los hallazgos (grilla y detalle) y
+   refleja lo que se oculta en "Qué ve el cliente".
+3. Compartir publica el link; el cliente entra con el PIN (solo modo `server`,
+   `compartir.spec`).
+4. Correr 1–2 en modo `server` y en modo `idb` (hosting estático sin API).
    El badge indica el modo. El test e2e cubre ambos.

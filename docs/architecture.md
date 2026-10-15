@@ -35,12 +35,15 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
 - `journey/`: journey (editor de matriz y emociones), relaciones (sidebar).
-- `reportes/`: comun (marca, `ensureReporte`), propuestas, panel (pestañas Proyecto y
-  Reportes, link público), seleccion (`vistaCliente`: qué ve el cliente), publicar
-  (foto en `publicos/`, PIN, consentimientos), texto-plano, cliente (vista previa).
-- `share/`: compartir (`collectShareData`, `generateSharePage`, `montarVistaPrevia`,
+- `reportes/`: comun (marca, `ensureReporte`), propuestas, panel (pestaña Reportes:
+  Compartir con estado, ayuda, qué ve el cliente y vista previa en vivo en un iframe),
+  configuracion (pestaña Configuración: menú Datos del proyecto / Marca / Propuestas,
+  edición en el panel), seleccion (`vistaCliente`: qué ve el cliente), publicar (foto en
+  `publicos/`, PIN, `firmaReporte`, `actividadDe`), cliente (pantalla completa).
+- `share/`: compartir (`collectShareData`, `buildShareHtml`, `montarVistaPrevia`,
   `montarReportePublico`), publico (página `/r/{id}`: PIN + consentimiento) y
-  `boot.js` (`SR_boot`, único render del reporte del cliente; se importa con `?raw`).
+  `boot.js` (`SR_boot`, único render del reporte del cliente, con reserva de propuestas;
+  se importa con `?raw`).
 - `assets/figma/`: íconos SVG exportados del Figma; se usan como máscara (`.fig-ico` en
   `base.css`) para que tomen el color del tema. No editarlos.
 - `styles/`: base (incluye los tokens del DS: radios `--r-*` y `--sel`), reportes, flujos,
@@ -62,16 +65,15 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Catálogo de heurísticas y sesgos | Hecho | `specs/catalogo.md` |
 | User Flows | Hecho; sección en "Próximamente" (spec `proy`) | `specs/flujos.md` |
 | User Journeys | Hecho; sección en "Próximamente" (spec `proy`) | `specs/journeys.md` |
-| Reportes (panel, online, texto plano, autónoma) | Hecho | `specs/reportes.md` |
+| Reportes (Compartir, vista previa en vivo, reserva de propuestas) y Configuración | Hecho | `specs/reportes.md` |
 | Propuestas de trabajo | Hecho | `specs/propuestas.md` |
-| Protopersonas | Se cargan en Configuración; la sección propia es "Próximamente" | `specs/reportes.md` |
-| Métricas | No implementado (pestaña "Próximamente") | — |
+| Protopersonas | "Próximamente"; ya no se cargan en Configuración (los datos guardados se conservan) | `specs/reportes.md` |
+| Métricas | No implementado; pestaña oculta | — |
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
 | Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
 | Home (panel de estudios) y barra superior (Figma) | Hecho | `specs/home.md` |
 | Proyecto: subheader, barra de secciones y dashboard de Resumen | Hecho | `specs/proyecto.md` |
 | Design system: radios, estados y componentes base | Hecho | `specs/design-system.md` |
-| Configuración (antes pestaña Proyecto), qué ve el cliente, link público con PIN | Hecho | `specs/reportes.md` |
 | Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
 
 ## Modelo de datos (API tipo Firestore sobre rutas)
@@ -89,10 +91,12 @@ Las colecciones tienen cantidad impar de segmentos; los documentos, par.
 - `estudios/{id}/flujos/{fid}/imgs/{imgId}` — imagen de una interacción del flujo.
 - `marca/perfil` — marca del autor (logo, contacto, servicio, LinkedIn, bienvenida y
   aclaraciones del reporte).
-- `publicos/{id}` — link público: `estId`, hash del PIN con sal, fallos/bloqueo y
-  últimos 10 consentimientos (nombre, fecha). `publicos/{id}/partes/{n}` — la foto del
-  reporte filtrado (JSON partido en trozos). En el estudio, `reporte.publico` guarda
-  id, PIN y sal (detrás de Access) y `reporte.ocultos` lo que el cliente no ve.
+- `publicos/{id}` — link público: `estId`, `estNombre`, `estCliente`, hash del PIN con
+  sal, fallos/bloqueo, últimos 10 consentimientos (nombre, fecha) y últimas 20 reservas
+  (nombre, propuesta, fecha). `publicos/{id}/partes/{n}` — la foto del reporte filtrado
+  (JSON partido en trozos). En el estudio, `reporte.publico` guarda id, PIN, sal y la
+  huella `firma` de lo publicado (detrás de Access) y `reporte.ocultos` lo que el
+  cliente no ve.
 - Relaciones: hallazgo ↔ interacción de flujo en dos lados (`node.markers[].hallazgoId`
   y `hallazgo.flujoId/pasoId`, con `interaccionId` como alias v1); hallazgo → pantalla por
   `pantallaId`; paso de journey → `hallazgos:[ids]` y `flujos:[ids]`.
@@ -111,7 +115,9 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
   `authorize()` devuelve `{denied}` o `{user}`; toda ruta pasa por ella, salvo
   `POST /api/publico` ({id, pin, nombre, acepto}): Bypass en Access, solo lee
   `publicos/`, 401 igual para link o PIN inválido, 5 fallos → 15 min de bloqueo (429),
-  400 sin consentimiento, `no-store` + `noindex`.
+  400 sin consentimiento, `no-store` + `noindex`. Con `accion:"reserva"` (mismo PIN)
+  guarda la reserva en `publicos/{id}` y avisa por correo con Resend si hay
+  `RESEND_API_KEY` (`RESERVA_TO`, `RESERVA_CC`, `RESERVA_FROM`).
   `AUTH_MODE="none"` solo para desarrollo local.
 
 ## Persistencia

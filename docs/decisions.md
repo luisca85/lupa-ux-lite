@@ -127,3 +127,20 @@ Decisiones que el código ya traía, sembradas en retrospectiva (spec-lite, cami
 - Catálogo propio global (no por estudio). Motivo: A CONFIRMAR.
 - Reporte online por hash `#reporte/{id}` (`reportLink`): heredado del uso en
   claude.ai. Eliminado el 2026-09-23 (ver abajo).
+
+2026-10-15 - Reportes se entrega solo por el link público: se eliminan la página HTML
+descargable y la exportación en texto plano. "Compartir" publica o actualiza solo si lo
+que ve el cliente cambió (huella `firmaReporte` guardada en `reporte.publico.firma`).
+Motivo: una sola salida, siempre al día, con PIN y consentimiento.
+
+2026-10-15 - `POST /api/publico` suma `accion:"reserva"` ("Reservar ahora tu
+diagnóstico" en el reporte del cliente). Sigue siendo la única ruta fuera de
+`authorize()`: exige el mismo PIN (y su bloqueo), solo escribe en `publicos/{id}`
+(últimas 20 reservas) y avisa por correo con Resend (`RESEND_API_KEY`, `RESERVA_TO`
+= info@uxuaria.com por defecto, `RESERVA_CC`). Los destinatarios personales van en
+variables de Cloudflare, no en el repo público. Motivo: enterarse cuando el cliente
+quiere contratar sin darle una cuenta.
+
+2026-10-15 - Protopersonas sale de Configuración y del reporte del cliente (los datos
+guardados se conservan; la sección sigue en "Próximamente"). Métricas se oculta de la
+barra del estudio. Motivo: enfocar el producto en hallazgos y propuestas.
