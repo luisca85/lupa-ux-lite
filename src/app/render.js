@@ -6,6 +6,7 @@ import { jrCleanupPop } from "../journey/journey.js";
 import { JSIDE, closeJrSide } from "../journey/relaciones.js";
 import { renderCatalogo } from "../views/catalogo.js";
 import { renderStudyShell } from "../views/estudio.js";
+import { closeHzPage } from "../views/hallazgos.js";
 import { renderHome } from "../views/home.js";
 
 /* ============ Render raíz ============ */
@@ -14,7 +15,7 @@ export function goHome(){ state.view="home"; render(); }
 function goCatalogo(){ state.view="catalogo"; render(); }
 export async function openStudy(id){
   state.activeId=id; LS.set("lupa:active",id);
-  state.view="study"; state.studyTab="resumen";
+  state.view="study"; state.studyTab="resumen"; closeHzPage();
   state.hzTipo="todos"; state.hzSev="todos"; state.hzHeur="todos"; state.hzQuery="";
   state.hallazgos=await store.listHallazgos(id);
   render();
@@ -44,11 +45,14 @@ function flowCleanup(){
 }
 export function render(){
   flowCleanup();
+  // La página de alta de hallazgo vive solo dentro de la sección Hallazgos.
+  if(state.hzPage&&!(state.view==="study"&&state.studyTab==="hallazgos")) closeHzPage();
   renderTopbar();
   document.getElementById("footNote").textContent = USE_DB
     ? "Lupa UX · cada estudio agrupa sus hallazgos, flujos, protopersonas, métricas y reportes. Los datos se guardan de forma persistente."
     : "Lupa UX · vista de trabajo local: los datos se guardan en este navegador. Publicada, guarda de forma persistente.";
   document.body.classList.toggle("in-study",state.view==="study");
+  document.body.classList.toggle("in-home",state.view==="home");
   const top=document.querySelector("header.top"); if(top) document.documentElement.style.setProperty("--top-h",top.offsetHeight+"px");
   if(state.view==="catalogo") return renderCatalogo();
   if(state.view==="study") return renderStudyShell();

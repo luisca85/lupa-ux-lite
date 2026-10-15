@@ -1,11 +1,11 @@
 import { goHome, openStudy, render, view } from "../app/render.js";
 import { ESTADOS, PLATAFORMAS } from "../core/catalogo-base.js";
 import { STUDY_TABS, activeStudy, state } from "../core/state.js";
-import { LS, esc, uid } from "../core/util.js";
+import { esc, uid } from "../core/util.js";
 import { store } from "../data/store.js";
 import { renderFlujosInto } from "../flujos/flujos.js";
 import { renderProyectoInto, renderReportesInto } from "../reportes/panel.js";
-import { bigIco, chevL, pencil } from "../ui/iconos.js";
+import { bigIco, pencil } from "../ui/iconos.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
 import { renderHallazgosInto } from "./hallazgos.js";
 import { renderHome } from "./home.js";
@@ -15,14 +15,14 @@ import { renderResumenInto } from "./resumen.js";
 export function renderStudyShell(){
   const est=activeStudy();
   if(!est){ state.view="home"; return renderHome(); }
-  const plegado=!!LS.get("lupa:side",false);
   const tab=STUDY_TABS.find(t=>t.id===state.studyTab)||STUDY_TABS[0];
   const navBtn=t=>`<button data-t="${t.id}" class="${tab.id===t.id?'on':''}" title="${t.label}"${tab.id===t.id?' aria-current="page"':''}>${bigIco(t.ico)}<span class="lb">${t.label}</span>${t.id==="hallazgos"?`<span class="cnt">${state.hallazgos.length}</span>`:""}</button>`;
   view.innerHTML=`
-    <div class="proj${plegado?' plegado':''}">
+    <div class="proj">
     <header class="study-head">
       <nav class="sh-crumbs" aria-label="Ruta">
-        <button class="sh-back" id="backHome">${chevL()} Estudios</button>
+        <button class="icon-btn sh-backbtn" id="backArrow" title="Volver a estudios" aria-label="Volver a estudios"><span class="fig-ico ico-volver" aria-hidden="true"></span></button>
+        <button class="sh-back sh-home" id="backHome" title="Volver al inicio (todos los estudios)"><span class="sh-mark" aria-hidden="true"><span class="fig-ico ico-view"></span></span>Estudios</button>
         <span class="sep" aria-hidden="true">/</span>
         <span class="cur">${esc(est.nombre)}</span>
         <span class="sep" aria-hidden="true">/</span>
@@ -44,24 +44,17 @@ export function renderStudyShell(){
       </div>
     </header>
       <div class="proj-body">
-        <aside class="proj-side" aria-label="Navegación del proyecto">
-          <div class="ps-head">
-            <span class="ps-title">Menú del proyecto</span>
-            <button class="ps-toggle" id="sideToggle" title="${plegado?'Desplegar':'Plegar'} menú" aria-label="${plegado?'Desplegar':'Plegar'} menú" aria-expanded="${!plegado}">${bigIco("side")}</button>
-          </div>
-          <nav class="ps-nav" id="psNav">
-            <span class="ps-lab">Proyecto</span>
-            ${STUDY_TABS.filter(t=>!t.grupo).map(navBtn).join("")}
-            <span class="ps-lab">Salida</span>
-            ${STUDY_TABS.filter(t=>t.grupo==="salida").map(navBtn).join("")}
-          </nav>
-        </aside>
+        <nav class="proj-tabs" id="psNav" aria-label="Secciones del proyecto">
+          <div class="pt-group" role="group" aria-label="Proyecto">${STUDY_TABS.filter(t=>!t.grupo).map(navBtn).join("")}</div>
+          <span class="pt-sep" aria-hidden="true"></span>
+          <div class="pt-group" role="group" aria-label="Salida">${STUDY_TABS.filter(t=>t.grupo==="salida").map(navBtn).join("")}</div>
+        </nav>
         <section class="proj-main" id="studyContent"></section>
       </div>
     </div>`;
   document.getElementById("backHome").onclick=goHome;
+  document.getElementById("backArrow").onclick=goHome;
   document.getElementById("editStudy").onclick=()=>studyModal(est);
-  document.getElementById("sideToggle").onclick=()=>{ LS.set("lupa:side",!plegado); render(); };
   document.getElementById("psNav").querySelectorAll("button").forEach(b=>b.onclick=()=>goStudyTab(b.dataset.t));
   const c=document.getElementById("studyContent");
   if(tab.id==="resumen") renderResumenInto(c,est);
@@ -71,7 +64,7 @@ export function renderStudyShell(){
   else if(tab.id==="proyecto") renderProyectoInto(c,est);
   else renderSoon(c,tab.id);
 }
-export function goStudyTab(t){ state.studyTab=t; if(t==="flujos")state.flowMode="list"; render(); window.scrollTo(0,0); }
+export function goStudyTab(t){ if(state.hzPage&&t==="hallazgos") closeHzPage(); state.studyTab=t; if(t==="flujos")state.flowMode="list"; render(); window.scrollTo(0,0); }
 function renderSoon(c,tab){
   const info={
     flujos:["flow","Flujos","Evaluá recorridos por tarea o escenario, no solo pantallas sueltas. Vas a poder armar escenarios y revisar cada paso del recorrido."],

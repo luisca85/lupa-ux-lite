@@ -24,8 +24,10 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   (exportar / importar datos).
 - `app/render.js`: `view`, `render()`, navegación.
 - `views/`: home (panel de estudios 4 por fila con la tarjeta "Nuevo estudio", filtrado por el buscador de la barra),
-  estudio (subheader a lo ancho + sidebar plegable con `STUDY_TABS`), resumen (dashboard
-  del proyecto: problemas, hallazgos, protopersonas, flujos), catálogo, hallazgos.
+  estudio (subheader a 100% de ancho + barra de secciones con `STUDY_TABS`; sin barra
+  global), resumen (dashboard del proyecto: problemas, hallazgos, protopersonas, flujos),
+  catálogo, hallazgos (área de trabajo + panel derecho con lista, edición rápida y catálogo;
+  alta como página con `hzEditor`, que también usa el modal).
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
   (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
@@ -38,7 +40,8 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   `boot.js` (`SR_boot`, único render del reporte del cliente; se importa con `?raw`).
 - `assets/figma/`: íconos SVG exportados del Figma; se usan como máscara (`.fig-ico` en
   `base.css`) para que tomen el color del tema. No editarlos.
-- `styles/`: base, reportes, flujos, journey, cliente. El orden de import en
+- `styles/`: base (incluye los tokens del DS: radios `--r-*` y `--sel`), reportes, flujos,
+  journey, cliente. El orden de import en
   `main.js` es el de la cascada.
 
 Hay dependencias circulares entre módulos (las vistas llaman a `render()` y
@@ -52,7 +55,7 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Feature | Estado | Spec |
 |---|---|---|
 | Estudios (alta, edición, borrado) | Hecho | — (ver modelo de datos) |
-| Hallazgos con evidencia anotada | Hecho | `specs/hallazgos.md` |
+| Hallazgos con evidencia anotada (panel con catálogo, alta como página) | Hecho | `specs/hallazgos.md` |
 | Catálogo de heurísticas y sesgos | Hecho | `specs/catalogo.md` |
 | User Flows | Hecho | `specs/flujos.md` |
 | User Journeys | Hecho | `specs/journeys.md` |
@@ -63,7 +66,8 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
 | Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
 | Home (panel de estudios) y barra superior (Figma) | Hecho | `specs/home.md` |
-| Proyecto con sidebar y dashboard de Resumen | Hecho | `specs/proyecto.md` |
+| Proyecto: subheader, barra de secciones y dashboard de Resumen | Hecho | `specs/proyecto.md` |
+| Design system: radios, estados y componentes base | Hecho | `specs/design-system.md` |
 | Configuración (antes pestaña Proyecto), qué ve el cliente, link público con PIN | Hecho | `specs/reportes.md` |
 | Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
 

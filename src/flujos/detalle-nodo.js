@@ -8,7 +8,7 @@ import { flowStore, resolveHz, saveActiveFlow, tipoColorVar } from "./flujos.js"
 import { camIco, chevL, pencil, trash, x } from "../ui/iconos.js";
 import { processImage } from "../ui/imagenes.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
-import { hzModal, renderHzList } from "../views/hallazgos.js";
+import { hzModal } from "../views/hallazgos.js";
 
 /* ---- Detalle de interacción (imagen + hallazgos) ---- */
 export function renderNodeDetail(c,flow,node){

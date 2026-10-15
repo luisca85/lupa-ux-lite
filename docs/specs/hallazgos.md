@@ -33,7 +33,9 @@ un panel con el catálogo a mano.
 - Dada la edición rápida, cuando se toca "Guardar cambios", entonces se guarda el
   hallazgo conservando el resto de sus datos (imágenes, anotaciones, sesgos, etiquetas,
   relación con flujos), aparece "Hallazgo actualizado" y la lista se refresca. Sin título
-  no se guarda. "Cancelar" descarta los cambios y "Más campos" abre el editor completo.
+  no se guarda. "Cancelar" descarta los cambios, "Más campos" abre el editor completo y el
+  ícono de papelera pide confirmación y elimina el hallazgo (con sus imágenes y sus
+  marcadores en flujos).
 - Dado el panel, cuando se toca "Catálogo →", entonces el catálogo reemplaza el contenido
   del panel: botón de flecha para volver, "Catálogo", y chips Heurísticas / Sesgos y
   patrones con la lista de cada uno (nombre, descripción y origen). La flecha vuelve a la

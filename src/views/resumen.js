@@ -5,7 +5,7 @@ import { esc } from "../core/util.js";
 import { flowStore, openFlow } from "../flujos/flujos.js";
 import { bigIco, chevR, plus } from "../ui/iconos.js";
 import { goStudyTab } from "./estudio.js";
-import { hzModal } from "./hallazgos.js";
+import { hzModal, openHzPage } from "./hallazgos.js";
 
 /* ============ Vista: Resumen del proyecto (dashboard) ============ */
 export function renderResumenInto(c,est){
@@ -27,7 +27,7 @@ export function renderResumenInto(c,est){
   });
   c.querySelectorAll("[data-hz]").forEach(b=>b.onclick=()=>{ const h=hz.find(x=>x.id===b.dataset.hz); if(h) hzModal(h); });
   c.querySelectorAll("[data-flow]").forEach(b=>b.onclick=()=>{ state.studyTab="flujos"; openFlow(b.dataset.flow); });
-  const nh=c.querySelector("#dashNewHz"); if(nh) nh.onclick=()=>hzModal(null);
+  const nh=c.querySelector("#dashNewHz"); if(nh) nh.onclick=()=>openHzPage(null);
   const rf=c.querySelector("#dashRetryFl"); if(rf) rf.onclick=()=>{ state._flujosErr=null; render(); };
 }
 async function cargarFlujos(sid){

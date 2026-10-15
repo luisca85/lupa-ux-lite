@@ -1,100 +1,128 @@
 import { render } from "../app/render.js";
 import { SEVERIDAD, TIPOS } from "../core/catalogo-base.js";
-import { allHeur, allSesgos, heurById, sesgoById, state } from "../core/state.js";
+import { allHeur, allSesgos, heurById, state } from "../core/state.js";
 import { esc, uid } from "../core/util.js";
 import { store } from "../data/store.js";
-import { flowIco, flowStore } from "../flujos/flujos.js";
+import { flowStore } from "../flujos/flujos.js";
 import { compositeThumb, mountAnnotator } from "../ui/anotaciones.js";
-import { bigIco, camIco, pencil, plus, searchIco, trash, x } from "../ui/iconos.js";
-import { hzThumbs, openHzLightbox, processImage } from "../ui/imagenes.js";
-import { emptyInline, openConfirm, openModal, toast } from "../ui/modales.js";
+import { bigIco, camIco, chevL, plus, trash, x } from "../ui/iconos.js";
+import { processImage } from "../ui/imagenes.js";
+import { openConfirm, openModal, toast } from "../ui/modales.js";
 
 /* ============ Vista: Hallazgos ============ */
 export function renderHallazgosInto(c,est){
-  const hz=state.hallazgos;
-  const byTipo=t=>hz.filter(h=>h.tipo===t).length;
-  const problemas=hz.filter(h=>h.tipo==="Problema");
-  const sevCount=n=>problemas.filter(h=>h.severidad===n).length;
-  c.innerHTML=`<div class="tab-actions"><div class="spacer"></div><button class="btn primary" id="newHz">${plus()} Nuevo hallazgo</button></div>
-
-  <div class="hz-summary">
-    <div class="stat-tile"><div class="n">${hz.length}</div><div class="l">Total</div></div>
-    <div class="stat-tile"><div class="n" style="color:var(--prob)">${byTipo("Problema")}</div><div class="l">Problemas</div></div>
-    <div class="stat-tile"><div class="n" style="color:var(--opor)">${byTipo("Oportunidad")}</div><div class="l">Oportunidades</div></div>
-    <div class="stat-tile"><div class="n" style="color:var(--obs)">${byTipo("Observación")}</div><div class="l">Observaciones</div></div>
-    <div style="width:1px;background:var(--line);margin:2px 4px"></div>
-    ${[3,4].map(n=>`<div class="stat-tile sev" style="--c:var(${SEVERIDAD[n].v})"><div class="n">${sevCount(n)}</div><div class="l">Sev ${n} · ${SEVERIDAD[n].label}</div></div>`).join("")}
-  </div>
-
-  <div class="hz-filters">
-    <div class="search" style="max-width:220px">${searchIco()}<input id="hzSearch" placeholder="Buscar hallazgo..." value="${esc(state.hzQuery)}"></div>
-    <select id="fTipo"><option value="todos">Todos los tipos</option>${TIPOS.map(t=>`<option ${state.hzTipo===t?'selected':''}>${t}</option>`).join("")}</select>
-    <select id="fSev"><option value="todos">Toda severidad</option>${SEVERIDAD.map(s=>`<option value="${s.n}" ${state.hzSev==s.n?'selected':''}>Sev ${s.n} · ${s.label}</option>`).join("")}</select>
-    <select id="fHeur"><option value="todos">Toda heurística</option>${allHeur().map(h=>`<option value="${h.id}" ${state.hzHeur===h.id?'selected':''}>${esc(h.nombre)}</option>`).join("")}</select>
-  </div>
-  <div class="hz-list" id="hzList"></div>`;
-
-  document.getElementById("newHz").onclick=()=>hzModal(null);
-  document.getElementById("hzSearch").oninput=e=>{state.hzQuery=e.target.value;renderHzList();};
-  document.getElementById("fTipo").onchange=e=>{state.hzTipo=e.target.value;renderHzList();};
-  document.getElementById("fSev").onchange=e=>{state.hzSev=e.target.value;renderHzList();};
-  document.getElementById("fHeur").onchange=e=>{state.hzHeur=e.target.value;renderHzList();};
-  renderHzList();
-}
-export function renderHzList(){
-  const q=state.hzQuery.trim().toLowerCase();
-  let list=state.hallazgos.filter(h=>{
-    if(state.hzTipo!=="todos"&&h.tipo!==state.hzTipo)return false;
-    if(state.hzSev!=="todos"&&String(h.severidad)!==String(state.hzSev))return false;
-    if(state.hzHeur!=="todos"&&!(h.heuristicas||[]).includes(state.hzHeur))return false;
-    if(q&&!((h.titulo+" "+(h.descripcion||"")+" "+(h.pantalla||"")+" "+(h.tags||[]).join(" ")).toLowerCase().includes(q)))return false;
-    return true;
-  });
-  const order={Problema:0,Oportunidad:1,"Observación":2};
-  list.sort((a,b)=>(order[a.tipo]-order[b.tipo])||((b.severidad??-1)-(a.severidad??-1)));
-  const el=document.getElementById("hzList");
-  if(!state.hallazgos.length){
-    el.innerHTML=`<div class="empty">${bigIco('flag')}<h3>Sin hallazgos todavía</h3>
-      <p>Registrá el primer problema, oportunidad u observación de este estudio.</p>
-      <button class="btn primary" id="newHz2">${plus()} Nuevo hallazgo</button></div>`;
-    document.getElementById("newHz2").onclick=()=>hzModal(null); return;
-  }
-  if(!list.length){ el.innerHTML=emptyInline("Ningún hallazgo coincide con los filtros."); return; }
-  el.innerHTML=list.map(hzCard).join("");
-  el.querySelectorAll("[data-hz]").forEach(c=>{
-    c.querySelector(".edit").onclick=()=>hzModal(state.hallazgos.find(h=>h.id===c.dataset.hz));
-    c.querySelector(".del").onclick=()=>confirmDelHz(c.dataset.hz);
-    c.querySelectorAll(".hz-thumbs .t").forEach((t,idx)=>t.onclick=e=>{e.stopPropagation();openHzLightbox(c.dataset.hz,idx);});
-    const moreB=c.querySelector(".hz-thumbs .more"); if(moreB)moreB.onclick=e=>{e.stopPropagation();openHzLightbox(c.dataset.hz,5);};
-  });
-}
-function hzCard(h){
-  const sev=(h.severidad!=null&&h.severidad!=="")?SEVERIDAD[h.severidad]:null;
-  const c=sev?`var(${sev.v})`:(h.tipo==="Oportunidad"?"var(--opor)":"var(--line-strong)");
-  const heurChips=(h.heuristicas||[]).map(id=>{const x=heurById(id);return x?`<span class="rel-chip h" title="Heurística">${esc(x.nombre)}</span>`:"";}).join("");
-  const sesgoChips=(h.sesgos||[]).map(id=>{const x=sesgoById(id);return x?`<span class="rel-chip s" title="Sesgo / patrón">${esc(x.nombre)}</span>`:"";}).join("");
-  const tags=(h.tags||[]).map(t=>`<span class="tag-chip">${esc(t)}</span>`).join("");
-  return `<div class="card hz" data-hz="${h.id}" style="--c:${c}">
-    <div class="stripe"></div>
-    <div class="in">
-      <div class="r1">
-        <span class="type-chip type-${esc(h.tipo)}">${esc(h.tipo)}</span>
-        ${sev?`<span class="sev-chip" style="background:var(${sev.v})">Sev ${sev.n} · ${sev.label}</span>`:""}
-        <h4>${esc(h.titulo)}</h4>
-        ${h.pantalla?`<span class="pantalla">${esc(h.pantalla)}</span>`:""}
+  if(state.hzPage) return renderHzPage(c);
+  // Área de trabajo (pantallas con pines: todavía sin modelo) + panel derecho de hallazgos.
+  c.classList.add("hz-ws-host");
+  c.innerHTML=`<div class="hz-ws">
+    <section class="hz-stage" aria-label="Área de trabajo">
+      <div class="hz-stage-bar"><div class="spacer"></div><button class="btn sel" id="newHz">${plus()} Agregar hallazgo</button></div>
+      <div class="empty hz-stage-empty">${bigIco("report")}
+        <div><h3>Este estudio todavía no tiene pantallas</h3>
+        <p>Empezá cargando la primera pantalla del sitio o de la app, acá abajo o con el botón + de arriba. Después hacés clic sobre la imagen para ubicar cada hallazgo con un pin.</p></div>
+        <button class="btn" id="hzUpload">Subir imagen</button>
       </div>
-      ${h.descripcion?`<div class="desc">${esc(h.descripcion)}</div>`:""}
-      ${h.recomendacion?`<div class="apl" style="margin-bottom:10px"><b style="font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:2px">Recomendación</b>${esc(h.recomendacion)}</div>`:""}
-      ${(h.imgs&&h.imgs.length)?hzThumbs(h):""}
-      <div class="rels">${h.flujoId?`<span class="rel-chip f" title="Interacción de un flujo">${flowIco()} ${esc(h.interaccionTitulo||"Flujo")}</span>`:""}${heurChips}${sesgoChips}${tags}</div>
-    </div>
-    <div class="actions">
-      <button class="icon-btn sm edit" title="Editar" style="width:30px;height:30px">${pencil()}</button>
-      <button class="icon-btn sm del" title="Eliminar" style="width:30px;height:30px">${trash()}</button>
-    </div>
+    </section>
+    <aside class="hz-panel" id="hzPanel" aria-label="Panel de hallazgos"></aside>
   </div>`;
+  document.getElementById("newHz").onclick=()=>openHzPage(null);
+  document.getElementById("hzUpload").onclick=()=>openHzPage(null);
+  renderHzPanel();
+}
+const PANEL_TIPOS=[["todos","Todas"],["Problema","Problemas"],["Oportunidad","Oportunidades"],["Observación","Observaciones"]];
+function hzMeta(h){ const x=(h.heuristicas||[]).map(heurById).find(Boolean); return [h.tipo,h.severidad!=null&&h.severidad!==""?`Sev. ${h.severidad}`:"",x?x.nombre:""].filter(Boolean).join("  ·  "); }
+function renderHzPanel(){
+  const el=document.getElementById("hzPanel"); if(!el) return;
+  if(state.hzPanel==="catalogo") return renderPanelCatalogo(el);
+  const all=state.hallazgos;
+  const list=all.filter(h=>state.hzTipo==="todos"||h.tipo===state.hzTipo);
+  if(!list.some(h=>h.id===state.hzSel)) state.hzSel=list[0]?list[0].id:null;
+  const sel=list.find(h=>h.id===state.hzSel)||null;
+  const n=list.indexOf(sel)+1;
+  el.innerHTML=`<div class="hp-top">
+      <div><h2>Hallazgos</h2><p>${all.length} en el estudio</p></div>
+      <button class="btn-sec" id="hpCat">Catálogo <span class="fig-ico ico-ir" aria-hidden="true"></span></button>
+    </div>
+    <div class="hp-filters" role="group" aria-label="Filtrar por tipo">${PANEL_TIPOS.map(([v,l])=>`<button class="chip-f ${state.hzTipo===v?'on':''}" data-f="${v}" aria-pressed="${state.hzTipo===v}">${l}</button>`).join("")}</div>
+    ${!all.length?`<div class="hp-empty"><b>Sin hallazgos todavía</b><span>Cuando agregues una pantalla, tus hallazgos aparecerán acá.</span></div>`
+      :!list.length?`<div class="hp-empty"><span>Ningún hallazgo de este tipo.</span></div>`
+      :`<div class="hp-list scroll">${list.map((h,i)=>`<button class="hp-card ${h.id===state.hzSel?'on':''}" data-hz="${h.id}"><span class="hp-pin">${i+1}</span><span class="hp-det"><span class="t">${esc(h.titulo||"(sin título)")}</span><span class="m">${esc(hzMeta(h))}</span></span></button>`).join("")}</div>`}
+    ${sel?`<form class="hp-edit" id="hpEdit">
+      <div class="hp-edit-h"><h3>Editar hallazgo ${n}</h3><span>${esc(sel.pantalla||"")}</span></div>
+      <div class="pf"><label for="hpTit">Título</label><input id="hpTit" value="${esc(sel.titulo||"")}"></div>
+      <div class="pf"><label for="hpDesc">Descripción</label><textarea id="hpDesc">${esc(sel.descripcion||"")}</textarea></div>
+      <div class="pf"><label>Severidad · 0 a 4</label><div class="sev-scale" id="hpSev">${[0,1,2,3,4].map(v=>`<button type="button" class="${sel.severidad===v?'on':''}" data-s="${v}" title="${SEVERIDAD[v].label}">${v}</button>`).join("")}</div></div>
+      <div class="pf-row">
+        <div class="pf"><label for="hpTipo">Tipo</label><select id="hpTipo">${TIPOS.map(t=>`<option ${sel.tipo===t?'selected':''}>${t}</option>`).join("")}</select></div>
+        <div class="pf"><label for="hpPant">Pantalla</label><input id="hpPant" value="${esc(sel.pantalla||"")}" placeholder="Ej: Landing page"></div>
+      </div>
+      <div class="pf"><label for="hpHeur">Entradas del catálogo</label><select id="hpHeur"><option value="">Sin heurística</option>${allHeur().map(x=>`<option value="${x.id}" ${(sel.heuristicas||[])[0]===x.id?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
+      <div class="hp-acts"><button type="submit" class="btn sel" id="hpSave">Guardar cambios</button><button type="button" class="btn" id="hpCancel">Cancelar</button><div class="spacer"></div><button type="button" class="btn ghost sm" id="hpMore">Más campos</button><button type="button" class="icon-btn hp-del" id="hpDel" title="Eliminar hallazgo" aria-label="Eliminar hallazgo">${trash()}</button></div>
+    </form>`:""}`;
+  document.getElementById("hpCat").onclick=()=>{state.hzPanel="catalogo";renderHzPanel();};
+  el.querySelectorAll(".chip-f").forEach(b=>b.onclick=()=>{state.hzTipo=b.dataset.f;state.hzSev="todos";renderHzPanel();});
+  el.querySelectorAll(".hp-card").forEach(b=>b.onclick=()=>{state.hzSel=b.dataset.hz;renderHzPanel();});
+  if(!sel) return;
+  let sev=sel.severidad??null;
+  el.querySelectorAll("#hpSev button").forEach(b=>b.onclick=()=>{sev=(String(sev)===b.dataset.s)?null:Number(b.dataset.s);el.querySelectorAll("#hpSev button").forEach(x=>x.classList.toggle("on",String(sev)===x.dataset.s));});
+  document.getElementById("hpCancel").onclick=()=>renderHzPanel();
+  document.getElementById("hpMore").onclick=()=>hzModal(sel);
+  document.getElementById("hpDel").onclick=()=>confirmDelHz(sel.id);
+  document.getElementById("hpEdit").onsubmit=async e=>{
+    e.preventDefault();
+    const titulo=document.getElementById("hpTit").value.trim(); if(!titulo){document.getElementById("hpTit").focus();return;}
+    const heur=document.getElementById("hpHeur").value;
+    const rec={...sel,titulo,descripcion:document.getElementById("hpDesc").value.trim(),severidad:sev,tipo:document.getElementById("hpTipo").value,pantalla:document.getElementById("hpPant").value.trim(),
+      heuristicas:heur?[heur,...(sel.heuristicas||[]).filter(x=>x!==heur)]:(sel.heuristicas||[]).slice(1)};
+    const btn=document.getElementById("hpSave"); btn.disabled=true;
+    try{ await store.saveHallazgo(state.activeId,rec); state.hallazgos=await store.listHallazgos(state.activeId); toast("Hallazgo actualizado"); renderHzPanel(); }
+    catch(err){ console.error("hpSave",err); toast("No se pudo guardar. Probá de nuevo."); btn.disabled=false; }
+  };
+}
+function renderPanelCatalogo(el){
+  const tab=state.hzCatTab||"heur";
+  const items=tab==="heur"?allHeur().map(h=>({t:`${h.num}. ${h.nombre}`,d:h.desc,src:h.src})):allSesgos().map(x=>({t:x.nombre,d:x.desc,src:x.categoria||(x.custom?"Propio":"")}));
+  el.innerHTML=`<div class="hp-top">
+      <div class="hp-back-row"><button class="icon-btn sh-backbtn" id="hpBack" title="Volver a hallazgos" aria-label="Volver a hallazgos"><span class="fig-ico ico-volver" aria-hidden="true"></span></button><div><h2>Catálogo</h2><p>Heurísticas y sesgos para fundamentar los hallazgos</p></div></div>
+    </div>
+    <div class="hp-filters" role="group" aria-label="Sección del catálogo"><button class="chip-f ${tab==="heur"?'on':''}" data-c="heur">Heurísticas</button><button class="chip-f ${tab==="sesgo"?'on':''}" data-c="sesgo">Sesgos y patrones</button></div>
+    <div class="hp-list">${items.map(i=>`<div class="hp-card static"><span class="hp-det"><span class="t">${esc(i.t)}</span><span class="m">${esc(i.d||"")}</span>${i.src?`<span class="s">${esc(i.src)}</span>`:""}</span></div>`).join("")}</div>`;
+  document.getElementById("hpBack").onclick=()=>{state.hzPanel="lista";renderHzPanel();};
+  el.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{state.hzCatTab=b.dataset.c;renderPanelCatalogo(el);});
 }
 export function hzModal(h,ctx){
+  const ed=hzEditor(h,ctx);
+  openModal(`${ed.isNew?"Nuevo":"Editar"} hallazgo`,ed.body,ed.save,"hz-modal",ed.cleanup);
+  ed.bind();
+}
+/* Alta de hallazgo como página dentro del panel de trabajo (no modal). */
+export function openHzPage(h){ state.hzPage={h:h||null}; state.studyTab="hallazgos"; render(); window.scrollTo(0,0); }
+export function closeHzPage(){ if(window._hzPageCleanup){ window._hzPageCleanup(); window._hzPageCleanup=null; } state.hzPage=null; }
+function renderHzPage(c){
+  const ed=hzEditor(state.hzPage.h,{page:true});
+  c.innerHTML=`<div class="hz-page">
+    <div class="hzp-head">
+      <button class="sh-back" id="hzpBack">${chevL()} Hallazgos</button>
+      <div class="hzp-title"><h2>${ed.isNew?"Nuevo":"Editar"} hallazgo</h2><p>Registrá qué se observó, su severidad y la evidencia.</p></div>
+    </div>
+    <div class="hzp-card">${ed.body}</div>
+    <div class="hzp-bar"><span class="hzp-hint">Pegá capturas con <kbd>Ctrl/Cmd</kbd> + <kbd>V</kbd> en cualquier momento.</span><div class="spacer"></div>
+      <button class="btn ghost" id="hzpCancel">Cancelar</button><button class="btn primary" id="hzpSave">Guardar hallazgo</button></div>
+  </div>`;
+  window._hzPageCleanup=ed.cleanup;
+  const salir=()=>{ closeHzPage(); render(); window.scrollTo(0,0); };
+  document.getElementById("hzpBack").onclick=salir;
+  document.getElementById("hzpCancel").onclick=salir;
+  document.getElementById("hzpSave").onclick=async()=>{
+    const btn=document.getElementById("hzpSave"); btn.disabled=true;
+    let ok;
+    try{ ok=await ed.save(); }
+    catch(e){ console.error("hzPage",e); toast((e&&e.message)||"No se pudo guardar. Probá de nuevo."); ok=false; }
+    if(ok===false) btn.disabled=false;
+  };
+  ed.bind();
+}
+function hzEditor(h,ctx){
   ctx=ctx||null;
   const isNew=!h; h=h||{tipo:"Problema",severidad:3,heuristicas:[],sesgos:[],tags:[]};
   const sel={tipo:h.tipo,sev:(h.severidad??""),heur:new Set(h.heuristicas||[]),sesgos:new Set(h.sesgos||[])};
@@ -128,7 +156,7 @@ export function hzModal(h,ctx){
       <div class="hz-ev-body" id="evBody"></div>
     </div>
   </div>`;
-  openModal(`${isNew?"Nuevo":"Editar"} hallazgo`,body,async()=>{
+  const save=async()=>{
     const titulo=document.getElementById("z_tit").value.trim();
     if(!titulo){document.getElementById("z_tit").focus();return false;}
     const rec={ id:hzId, tipo:sel.tipo, titulo,
@@ -147,8 +175,11 @@ export function hzModal(h,ctx){
     await store.saveHallazgo(sid,rec);
     state.hallazgos=await store.listHallazgos(sid);
     if(ctx&&ctx.onSaved)await ctx.onSaved(rec.id);
+    if(ctx&&ctx.page){ closeHzPage(); window.scrollTo(0,0); }
     toast(isNew?"Hallazgo registrado":"Hallazgo actualizado"); render(); return true;
-  },"hz-modal",()=>{if(pasteHandler)document.removeEventListener("paste",pasteHandler);if(window._annResize){window.removeEventListener("resize",window._annResize);window._annResize=null;}});
+  };
+  const cleanup=()=>{if(pasteHandler)document.removeEventListener("paste",pasteHandler);if(window._annResize){window.removeEventListener("resize",window._annResize);window._annResize=null;}};
+  const bind=()=>{
   // interacciones columna izquierda
   const seg=document.getElementById("typeSeg");
   seg.querySelectorAll(".seg").forEach(b=>b.onclick=()=>{sel.tipo=b.dataset.t;seg.querySelectorAll(".seg").forEach(x=>x.classList.toggle("on",x===b));});
@@ -202,6 +233,8 @@ export function hzModal(h,ctx){
   renderStrip();
   if(imgs.length){selectImage(0);}else{renderEmpty();}
   setTimeout(()=>document.getElementById("z_tit").focus(),40);
+  };
+  return {isNew,body,save,cleanup,bind};
 }
 function confirmDelHz(id){
   const h=state.hallazgos.find(x=>x.id===id);

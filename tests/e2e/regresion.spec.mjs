@@ -62,7 +62,7 @@ test("regresión: hallazgo con imagen, flujos, reporte y página para compartir"
     // El estudio abre en Resumen; el hallazgo se verifica en su sección.
     await expect(page.getByRole("heading", { name: "Resumen de problemas" })).toBeVisible();
     await page.locator("#psNav").getByRole("button", { name: /^Hallazgos/ }).click();
-    await expect(page.locator("#hzList").getByText(hallazgo)).toBeVisible();
+    await expect(page.locator("#hzPanel").getByText(hallazgo)).toBeVisible();
   });
 
   await test.step("2. vista previa del reporte: hallazgos, flujos y journeys", async () => {
