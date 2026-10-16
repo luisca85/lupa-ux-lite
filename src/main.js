@@ -13,7 +13,7 @@ import { mostrarEntrada } from "./ui/entrar.js";
 import { onboardingInicial } from "./ui/onboarding.js";
 import { abrirReportePublico, idPublicoDeLaURL } from "./share/publico.js";
 import { brandStore } from "./reportes/comun.js";
-import { toast } from "./ui/modales.js";
+import { toast, vistaCargando } from "./ui/modales.js";
 import { initTheme } from "./ui/tema.js";
 
 /* ============ Init ============ */
@@ -25,6 +25,7 @@ async function init(){
   // debe pasar en silencio: lo mostramos como aviso.
   window.addEventListener("unhandledrejection",e=>{ const m=e.reason&&e.reason.message; if(m&&DB_MODE==="server")toast(m); });
   initTheme();
+  view.innerHTML=vistaCargando("Cargando tus estudios…");
   document.getElementById("brandBtn").onclick=goHome;
   const apiErr=await initBackend();
   // Servidor con cuentas y sin sesión: pantalla de entrada (email + código).

@@ -1153,3 +1153,8 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .ent-legal .legal-doc{padding:0;border:none;background:none;max-width:none}
 .ent-legal-nav{display:flex;gap:14px;flex-wrap:wrap}
 .ent-legal-nav .ent-link.on{font-weight:600;text-decoration:none}
+/* Indicador de carga de la vista principal (abrir la app o un estudio) */
+.cargando{min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-size:14px;padding:24px;text-align:center}
+.cargando-giro{width:28px;height:28px;border-radius:50%;border:3px solid var(--line-strong);border-top-color:var(--ink);animation:cargandoGiro .8s linear infinite}
+@keyframes cargandoGiro{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.cargando-giro{animation-duration:2.4s}}
