@@ -50,9 +50,14 @@ Se llega desde el pie de página (spec `home`). Surgió en la exploración
   - derechos: acceso, corrección y eliminación escribiendo a `info@uxuaria.com`, y
     exportar desde la home.
 - **Cookies y almacenamiento:** sin cookies de publicidad ni de analítica; la cookie
-  de sesión de Cloudflare Access; en el navegador, el tema, el último estudio y si ya
-  vio la introducción; sin servidor, todo el trabajo. Explica que borrarlo pierde los
-  datos locales.
+  de sesión propia `lupa_sesion` (30 días, `HttpOnly`, `Secure`) y Turnstile al pedir
+  un código; en el navegador, el tema, el último estudio y si ya vio la introducción;
+  sin servidor, todo el trabajo. Explica que borrarlo pierde los datos locales.
+- Con cuentas (spec `cta`, desde el 2026-10-16): términos con "Tu cuenta" (entrada por
+  email, borrar la cuenta escribiendo a info@uxuaria.com) y "Versión beta" (1 estudio a
+  la vez, 15 pantallas, ejemplo de solo lectura). La privacidad suma la cuenta, los
+  códigos (solo su hash), la lista de espera, Turnstile y Resend para los códigos. Los
+  tres textos se pueden leer desde la pantalla de entrada, antes de tener cuenta.
 - Dado el responsable del tratamiento, cuando se lee la política de privacidad,
   entonces nombra a **Luis Carlos Romero** como responsable y a uxuaria como su
   marca ("El responsable de los datos es Luis Carlos Romero, que ofrece Lupa UX con

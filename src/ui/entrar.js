@@ -1,4 +1,5 @@
 import { esc } from "../core/util.js";
+import { SECCIONES_LEGALES } from "../views/legal.js";
 
 /* ============ Entrar: login con código por email (spec cta, fase 2) ============
    Pantalla completa en modo servidor sin sesión (AUTH_MODE="cuentas"). Dos pasos, como
@@ -47,8 +48,10 @@ export function mostrarEntrada({ turnstile = null } = {}){
         <p class="ent-err" id="entErr" role="alert">${esc(error || "")}</p>
         <button type="submit" class="ent-btn" id="entGo">Continuar con email</button>
       </form>
+      <p class="ent-pie">Al continuar aceptás los <button type="button" class="ent-link" data-legal="terminos">términos de uso</button> y la <button type="button" class="ent-link" data-legal="privacidad">política de privacidad</button>.</p>
     </div>`;
     const inp = el.querySelector("#entEmail"), btn = el.querySelector("#entGo"), err = el.querySelector("#entErr");
+    el.querySelectorAll("[data-legal]").forEach(b => b.onclick = () => { email = inp.value.trim(); pasoLegal(b.dataset.legal); });
     if(turnstile){
       tsToken = "";
       cargarTurnstile().then(ts => { tsId = ts.render(el.querySelector("#entTs"), { sitekey:turnstile, callback:t => { tsToken = t; }, "expired-callback":() => { tsToken = ""; } }); })
@@ -112,6 +115,19 @@ export function mostrarEntrada({ turnstile = null } = {}){
     };
     el.querySelector("#entVolver").onclick = () => pasoEmail();
     ds[0].focus();
+  }
+
+  // Términos y privacidad, legibles antes de tener cuenta (la vista legal está detrás del login).
+  function pasoLegal(id){
+    const sec = SECCIONES_LEGALES.find(x => x.id === id) || SECCIONES_LEGALES[0];
+    el.innerHTML = `<div class="ent-box ent-legal">${marca}
+      <button type="button" class="ent-link" id="entVolver">← Volver</button>
+      <nav class="ent-legal-nav" aria-label="Información legal">${SECCIONES_LEGALES.map(x => `<button type="button" class="ent-link${x.id === sec.id ? " on" : ""}" data-legal="${x.id}"${x.id === sec.id ? ' aria-current="page"' : ""}>${x.titulo}</button>`).join("")}</nav>
+      <article class="legal-doc"><h1>${sec.titulo}</h1>${sec.html}</article>
+    </div>`;
+    el.querySelector("#entVolver").onclick = () => pasoEmail();
+    el.querySelectorAll("[data-legal]").forEach(b => b.onclick = () => pasoLegal(b.dataset.legal));
+    window.scrollTo(0, 0);
   }
 
   // Beta llena (MAX_CUENTAS): el email quedó en la lista de espera; no se mandó nada.

@@ -1147,3 +1147,9 @@ body.entrando header.top,body.entrando #view,body.entrando .site-pie{display:non
 @media (max-width:640px){.ej-aviso{padding:9px 16px}}
 /* En el ejemplo no se muestran los controles que editan: lo que quede, lo frena backend.js */
 body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave,#hfDel,#dashNewHz,#rpShare,#rptShareCard,#shPinNew,#cfSave,#cfDel,#rptAddProp){display:none!important}
+.ent-pie{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.ent-pie .ent-link{font-size:12.5px;padding:0;color:var(--muted)}
+.ent-legal{width:min(720px,100%)}
+.ent-legal .legal-doc{padding:0;border:none;background:none;max-width:none}
+.ent-legal-nav{display:flex;gap:14px;flex-wrap:wrap}
+.ent-legal-nav .ent-link.on{font-weight:600;text-decoration:none}

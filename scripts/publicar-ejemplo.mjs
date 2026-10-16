@@ -21,9 +21,10 @@ if (!destino || !/^[A-Za-z0-9_.:-]{1,120}$/.test(estudio) || (!borrar && !cuenta
   console.error("Uso: node scripts/publicar-ejemplo.mjs --email vos@dominio.com --estudio <id> --local|--remote [--borrar]");
   process.exit(1);
 }
-const extra = val("--persist-to") ? ["--persist-to", val("--persist-to")] : [];
+// --remote usa la base del entorno production de wrangler.toml (o --env preview).
+const extra = val("--persist-to") ? ["--persist-to", val("--persist-to")] : destino === "--remote" ? ["--env", val("--env") || "production"] : [];
 const npx = process.platform === "win32" ? "npx.cmd" : "npx";
-const d1 = (sql) => JSON.parse(execFileSync(npx, ["wrangler", "d1", "execute", "lupaux", destino, ...extra, "--json", "--command", sql], { encoding: "utf8" }))[0].results;
+const d1 = (sql) => JSON.parse(execFileSync(npx, ["wrangler", "d1", "execute", "DB", destino, ...extra, "--json", "--command", sql], { encoding: "utf8" }))[0].results;
 const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
 
 const dst = "ejemplo/estudios/ejemplo-" + estudio.replace(/^ejemplo-/, "");

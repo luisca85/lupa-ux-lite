@@ -237,3 +237,8 @@ casillas de código, y el email con botón y código. Se ajustan mirando la vist
   con cuentas, el aviso de una reserva le llega al dueño del estudio y no a
   `RESERVA_TO` (salvo que el dueño sea administrador). El estudio de ejemplo conserva
   las propuestas del estudio del que se copió.
+- Fase 4 (2026-10-16): textos legales actualizados y legibles desde la pantalla de
+  entrada; `wrangler.toml` de producción y preview con `AUTH_MODE="cuentas"` y
+  `MAX_CUENTAS="20"`. Los pasos en Cloudflare, Resend y DNS, el orden del deploy y la
+  migración, y las tandas están en `docs/lanzamiento.md`. Falta hacerlos, y después quitar
+  Access del código.

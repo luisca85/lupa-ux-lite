@@ -105,6 +105,11 @@ ejemplo vive en `ejemplo/estudios/ejemplo-{id}/…`. Todas las cuentas lo ven co
 `estudios/ejemplo-{id}` (la lista de `estudios` lo suma con `ejemplo: true`), de solo
 lectura: la API responde 403 y `backend.js` lo frena antes. Se publica con
 `scripts/publicar-ejemplo.mjs`. Las rutas que empiezan con `ejemplo/` se rechazan.
+
+Producción y previews corren con `AUTH_MODE="cuentas"` (`wrangler.toml`). Los secretos
+(`RESEND_API_KEY`, `TURNSTILE_*`, `ADMIN_EMAILS`, `RESERVA_TO`) van en el panel de Pages. Los
+pasos para lanzar (respaldo, migraciones, deploy, `migrar-cuentas`, quitar Access, dominio
+`lupa.uxuaria.com`, ejemplo y tandas) están en `docs/lanzamiento.md`.
 - `estudios/{id}` — estudio. Incluye el objeto `reporte` embebido (resumen,
   diagnóstico, propuestas, muestra, toggles del reporte online, marca por defecto).
 - `estudios/{id}/pantallas/{pid}` — pantalla del estudio (nombre, origen imagen/url, url,

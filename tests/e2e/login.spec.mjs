@@ -25,6 +25,12 @@ test("login: código por email, cuenta nueva, código incorrecto y cerrar sesió
   await expect(page.getByRole("heading", { name: "Entrá o creá tu cuenta" })).toBeVisible();
   await expect(page.locator("header.top")).toBeHidden();
 
+  // Términos y privacidad se leen antes de tener cuenta.
+  await page.getByRole("button", { name: "política de privacidad" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Política de privacidad" })).toBeVisible();
+  await expect(page.locator(".legal-doc")).toContainText("código para entrar");
+  await page.getByRole("button", { name: "← Volver" }).click();
+
   await page.getByLabel("Email").fill("no-es-un-email");
   await page.getByRole("button", { name: "Continuar con email" }).click();
   await expect(page.locator("#entErr")).toHaveText("Escribí un email válido.");

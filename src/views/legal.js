@@ -5,11 +5,15 @@ import { state } from "../core/state.js";
    Textos escritos a partir de lo que la app hace hoy (qué guarda, dónde y quién lo recibe).
    Si cambia el tratamiento de datos (nuevos servicios, analítica, pagos), actualizar acá
    y la fecha de ACTUALIZADO. */
-const ACTUALIZADO="15 de octubre de 2026";
+const ACTUALIZADO="16 de octubre de 2026";
 const CONTACTO='<a href="mailto:info@uxuaria.com">info@uxuaria.com</a>';
 export const SECCIONES_LEGALES=[
   { id:"terminos", titulo:"Términos de uso", html:`
-    <p>Lupa UX es una herramienta de uxuaria para la evaluación heurística y el diagnóstico de experiencia de usuario. Al usarla aceptás estos términos.</p>
+    <p>Lupa UX es una herramienta de uxuaria para la evaluación heurística y el diagnóstico de experiencia de usuario. Al crear tu cuenta o usarla aceptás estos términos.</p>
+    <h3>Tu cuenta</h3>
+    <p>Entrás con tu email: te mandamos un código o un botón para entrar, sin contraseña. La cuenta es personal; no compartas los códigos. Podés pedir que borremos tu cuenta y tus datos escribiendo a ${CONTACTO}.</p>
+    <h3>Versión beta</h3>
+    <p>Lupa UX está en beta gratuita con cupos limitados. En esta versión cada cuenta puede tener 1 estudio a la vez, de hasta 15 pantallas, además del estudio de ejemplo, que es de solo lectura. Estos límites pueden cambiar.</p>
     <h3>Para qué sirve</h3>
     <p>Lupa UX te ayuda a registrar hallazgos, organizarlos y compartir un reporte con tu cliente. El análisis, las conclusiones y las recomendaciones son tuyos: la herramienta no genera diagnósticos automáticos.</p>
     <h3>Tu contenido</h3>
@@ -26,29 +30,31 @@ export const SECCIONES_LEGALES=[
     <p>Esta política explica qué datos trata Lupa UX, para qué y con quién se comparten. El responsable de los datos es Luis Carlos Romero, que ofrece Lupa UX con su marca uxuaria. Podés escribir a ${CONTACTO} por cualquier consulta.</p>
     <h3>Qué datos se guardan</h3>
     <ul>
-      <li><b>Tu cuenta:</b> el email con el que ingresás, que verifica Cloudflare Access para darte acceso.</li>
+      <li><b>Tu cuenta:</b> el email con el que ingresás y la fecha en que creaste la cuenta. Para entrar te mandamos un código de un solo uso; guardamos solo una versión cifrada (hash), nunca el código en claro.</li>
+      <li><b>Lista de espera:</b> si los cupos de la beta están completos, guardamos tu email y la fecha para avisarte cuando haya lugar.</li>
       <li><b>Tu trabajo:</b> estudios, pantallas, hallazgos, flujos, textos del reporte, propuestas y los datos de marca que cargás (nombre, rol, contacto).</li>
       <li><b>De tus clientes, al abrir un reporte compartido:</b> el nombre que escriben, la aceptación de las condiciones y la fecha. Si reservan una propuesta, también la propuesta elegida y la fecha.</li>
     </ul>
     <h3>Para qué se usan</h3>
-    <p>Solo para que la herramienta funcione: guardar tu trabajo, mostrar el reporte a quien tenga el link y el PIN, registrar quién lo abrió y avisarte cuando un cliente reserva una propuesta. No se venden datos ni se usan para publicidad.</p>
+    <p>Solo para que la herramienta funcione: dejarte entrar a tu cuenta, guardar tu trabajo, mostrar el reporte a quien tenga el link y el PIN, registrar quién lo abrió y avisarte cuando un cliente reserva una propuesta. No se venden datos ni se usan para publicidad. Cada cuenta ve solo su propio trabajo.</p>
     <h3>Dónde se guardan y quién los recibe</h3>
     <ul>
-      <li><b>Cloudflare</b> aloja la aplicación y su base de datos, y gestiona el inicio de sesión.</li>
-      <li><b>Resend</b> envía el correo de aviso cuando un cliente reserva una propuesta.</li>
+      <li><b>Cloudflare</b> aloja la aplicación y su base de datos. Su servicio Turnstile verifica que quien pide un código no sea un robot.</li>
+      <li><b>Resend</b> envía los correos con el código para entrar y el aviso cuando un cliente reserva una propuesta.</li>
       <li><b>Google Fonts</b> sirve las tipografías de la interfaz; tu navegador las descarga desde sus servidores.</li>
       <li>Si usás Lupa UX sin servidor, tu trabajo queda guardado solo en tu navegador.</li>
     </ul>
     <h3>Seguridad</h3>
-    <p>Del lado público, el PIN de cada reporte no se guarda en claro sino como un hash, y el acceso se bloquea 15 minutos después de 5 intentos fallidos. Los reportes compartidos se muestran en modo lectura.</p>
+    <p>Los códigos para entrar valen 10 minutos y una sola vez, y se bloquean después de 5 intentos fallidos. Del lado público, el PIN de cada reporte no se guarda en claro sino como un hash, y el acceso se bloquea 15 minutos después de 5 intentos fallidos. Los reportes compartidos se muestran en modo lectura.</p>
     <h3>Cuánto tiempo</h3>
     <p>Tus datos se conservan mientras uses la herramienta o hasta que los borres. Al despublicar un reporte se eliminan su copia pública, los consentimientos y las reservas asociadas.</p>
     <h3>Tus derechos</h3>
-    <p>Podés pedir acceso, corrección o eliminación de tus datos escribiendo a ${CONTACTO}. También podés exportar tus datos desde la pantalla de estudios.</p>` },
+    <p>Podés pedir acceso, corrección o eliminación de tus datos y de tu cuenta escribiendo a ${CONTACTO}. También podés exportar tus datos desde la pantalla de estudios.</p>` },
   { id:"almacenamiento", titulo:"Cookies y almacenamiento", html:`
     <p>Lupa UX no usa cookies de publicidad ni de analítica.</p>
     <h3>Cookies necesarias</h3>
-    <p>Cloudflare Access usa una cookie de sesión para mantenerte conectado de forma segura. Sin ella no se puede ingresar.</p>
+    <p>Lupa UX usa una cookie de sesión propia (<code>lupa_sesion</code>) para mantenerte conectado durante 30 días. No se puede leer desde la página, viaja solo por conexiones seguras y se borra al cerrar sesión. Sin ella no se puede ingresar.</p>
+    <p>Al pedir un código, Cloudflare Turnstile puede guardar datos técnicos en tu navegador para verificar que no seas un robot.</p>
     <h3>Almacenamiento en tu navegador</h3>
     <p>La app guarda en tu navegador algunas preferencias para que la experiencia sea cómoda:</p>
     <ul>
