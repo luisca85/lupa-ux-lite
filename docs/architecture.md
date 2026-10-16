@@ -24,7 +24,11 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   `pantallaStore`, deduplicación por hash, reglas del hallazgo, `migrarEstudio` /
   `prepararEstudio`), `respaldo.js` (exportar / importar datos).
 - `app/render.js`: `view`, `render()`, navegación.
-- `views/`: home (panel de estudios 4 por fila con la tarjeta "Nuevo estudio", filtrado por el buscador de la barra),
+- `views/`: home (Recursos a la izquierda y Estudios en una tarjeta: grilla con la tarjeta
+  "Nuevo estudio", filtrado por el buscador de la barra, paginador según lo que entra en
+  la pantalla y alta de estudio en dos pasos dentro del bloque, sin modal), recursos
+  (panel de lecturas con destacado que rota y Consejo de Lupa; lista fija en `RECURSOS`),
+  legal (términos, privacidad y almacenamiento: `SECCIONES_LEGALES`, `state.view="legal"`),
   estudio (subheader a 100% de ancho + barra de secciones con `STUDY_TABS`; sin barra
   global), resumen (dashboard del proyecto: problemas, hallazgos, protopersonas, flujos),
   catálogo, hallazgos (`hallazgos-ws.js`: pestañas de pantallas, lienzo con zoom y pines,
@@ -32,7 +36,9 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   `hallazgos.js`: editor completo `hzEditor` para la página de alta y el modal, borrado).
   Flujos y Protopersonas pasan por `proximamente()` (aviso "Próximamente").
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
-  (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access).
+  (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access, "Ver introducción"), onboarding
+  (bienvenida en 5 pasos, la primera vez por usuario y navegador), pie (pie de página
+  de la home y las páginas legales: contacto, legales, Exportar / Importar datos).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
 - `journey/`: journey (editor de matriz y emociones), relaciones (sidebar).
 - `reportes/`: comun (marca, `ensureReporte`), propuestas, panel (pestaña Reportes:
@@ -45,7 +51,9 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   `boot.js` (`SR_boot`, único render del reporte del cliente, con reserva de propuestas;
   se importa con `?raw`).
 - `assets/figma/`: íconos SVG exportados del Figma; se usan como máscara (`.fig-ico` en
-  `base.css`) para que tomen el color del tema. No editarlos.
+  `base.css`) para que tomen el color del tema. No editarlos. También el logo de uxuaria
+  (`logo-uxuaria.webp`) y el ícono de Recursos (`montana.svg`).
+- `assets/onboarding/`: las 5 imágenes del onboarding (grabados de dominio público).
 - `styles/`: base (incluye los tokens del DS: radios `--r-*` y `--sel`), reportes, flujos,
   journey, cliente. El orden de import en
   `main.js` es el de la cascada.
@@ -60,7 +68,7 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 ## Features y su spec
 | Feature | Estado | Spec |
 |---|---|---|
-| Estudios (alta, edición, borrado) | Hecho | — (ver modelo de datos) |
+| Estudios (alta en dos pasos en la home, edición en modal, borrado) | Hecho | `specs/home.md` (alta) |
 | Hallazgos sobre pantallas (modelo v2, migración, pines, zoom) | Hecho | `specs/hallazgos.md` |
 | Catálogo de heurísticas y sesgos | Hecho | `specs/catalogo.md` |
 | User Flows | Hecho; sección en "Próximamente" (spec `proy`) | `specs/flujos.md` |
@@ -71,7 +79,9 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Métricas | No implementado; pestaña oculta | — |
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
 | Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
-| Home (panel de estudios) y barra superior (Figma) | Hecho | `specs/home.md` |
+| Home (Recursos, Estudios con paginador, pie de página) y barra superior (Figma) | Hecho | `specs/home.md` |
+| Onboarding de bienvenida en 5 pasos | Hecho | `specs/onboarding.md` |
+| Páginas legales (términos, privacidad, almacenamiento) | Hecho; falta revisión legal | `specs/legal.md` |
 | Proyecto: subheader, barra de secciones y dashboard de Resumen | Hecho | `specs/proyecto.md` |
 | Design system: radios, estados y componentes base | Hecho | `specs/design-system.md` |
 | Versión hosteable / doble clic | Hecho | `specs/version-hosteable.md` |
@@ -125,7 +135,8 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
 - Sin API: IndexedDB, base `lupaux`, object store `docs` con keyPath `_path`.
   Cada documento se guarda como `{_path:"col/doc/...", data:{...}}`. Las colecciones
   se resuelven por prefijo tomando solo los hijos directos.
-- Preferencias sueltas (tema, estudio activo) en localStorage vía `LS`.
+- Preferencias sueltas (tema, estudio activo, onboarding visto por usuario:
+  `lupa:onboarding:{email|local}`) en localStorage vía `LS`.
 - Alcance: en modo `server`, compartido entre dispositivos (último guardado gana).
   En modo `idb`, un dispositivo / un navegador; se migra con Exportar/Importar datos.
 

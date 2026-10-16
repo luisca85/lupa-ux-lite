@@ -144,3 +144,20 @@ quiere contratar sin darle una cuenta.
 2026-10-15 - Protopersonas sale de Configuración y del reporte del cliente (los datos
 guardados se conservan; la sección sigue en "Próximamente"). Métricas se oculta de la
 barra del estudio. Motivo: enfocar el producto en hallazgos y propuestas.
+
+2026-10-16 - El onboarding de bienvenida se recuerda solo en el navegador
+(`localStorage` `lupa:onboarding:{email}`, o `local` sin sesión), no en `DB` ni en D1.
+En otro navegador o dispositivo aparece una vez más; "Ver introducción" lo reabre.
+Motivo: decisión del usuario; además no toca la API ni `authorize()` (inferido).
+
+2026-10-16 - El alta de estudio pasa a la home, dentro del bloque de Estudios y en dos
+pasos (Datos básicos / Detalles), sin modal. La edición sigue en el modal
+(`studyModal`) y las dos comparten `guardarEstudio`. Motivo (inferido): dar más lugar
+al formulario y no tapar la home; el modal queda para cambios rápidos.
+
+2026-10-16 - Términos, privacidad y almacenamiento viven dentro de la app (spec
+`legal`), escritos a partir de lo que la app hace hoy. El responsable de los datos es
+Luis Carlos Romero; uxuaria es su marca. Si cambia el tratamiento de datos, hay que
+actualizar el texto y `ACTUALIZADO`. Pendiente: revisión legal, jurisdicción y que el
+cliente pueda leer las condiciones desde el link público. Motivo: que quien usa la
+herramienta sepa qué se guarda, dónde y con quién se comparte.
