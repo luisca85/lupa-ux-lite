@@ -182,8 +182,8 @@ la app. La home se rediseñó dos veces:
   con la búsqueda.". Recursos siempre tiene contenido (lista fija).
 - Carga: el conteo de hallazgos de cada tarjeta muestra "·" hasta terminar de contar.
   Al crear un estudio, el botón dice "Creando…".
-  **A CONFIRMAR**: indicador de carga al abrir la app (hoy se ve la pantalla vacía
-  ~1 s).
+  Al abrir la app se ve "Cargando tus estudios…" y al abrir un estudio "Abriendo
+  {nombre}…", con un indicador que gira (`vistaCargando` en `ui/modales.js`).
 - Error:
   - si falla el conteo de hallazgos de un estudio, su tarjeta queda en "·" sin aviso;
   - si falla la creación del estudio, aparece "No se pudo crear: {error}" en el
