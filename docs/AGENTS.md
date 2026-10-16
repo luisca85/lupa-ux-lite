@@ -30,10 +30,13 @@ para el cliente, compartido con un link público y un PIN.
 ## Zonas sensibles (tocar con cuidado)
 - La capa `store` / `flowStore` / `brandStore` y los adaptadores `makeIDBAdapter`
   y `makeHTTPAdapter`, y la API en `functions/api`. Toda la validación de acceso
-  vive en `authorize()`: no agregar rutas que la salteen. ÚNICA excepción:
+  vive en `authorize()`: no agregar rutas que la salteen. Únicas excepciones:
   `POST /api/publico` (link público con PIN), que solo toca `publicos/{id}`: entrega la
-  foto con PIN + consentimiento y registra reservas con el mismo PIN. No ampliarla más
-  ni sumar otras (ver decisions.md).
+  foto con PIN + consentimiento y registra reservas con el mismo PIN; y `/api/auth/*`
+  (login con código por email, solo con `AUTH_MODE="cuentas"`), que solo toca las tablas
+  `codigos`, `sesiones` y `usuarios`. No ampliarlas más ni sumar otras (ver decisions.md).
+  Con cuentas, cada ruta de datos pasa por `rutaReal()` (prefijo `u/{id}/`): no leer ni
+  escribir en `docs` sin pasar por ahí.
   Un cambio mal hecho ahí corrompe o pierde datos del usuario.
 - `src/share/boot.js` (`SR_boot`): el ÚNICO render del reporte del cliente (vista
   previa en vivo y link público `/r/{id}`). Se incrusta como TEXTO:

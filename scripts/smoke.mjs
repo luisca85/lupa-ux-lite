@@ -84,5 +84,8 @@ await como(A, "DELETE", "doc", pub);
 await como(A, "DELETE", "doc", `${est}/hallazgos/h1`);
 await como(A, "DELETE", "doc", est);
 
+const authNo = await req("POST", "auth/codigo", null, { email: "x@y.zz" });
+check("/api/auth/* no existe sin AUTH_MODE=cuentas", authNo.status === 404, authNo);
+
 console.log(failed ? `\n${failed} chequeo(s) fallaron` : "\nTodo OK");
 process.exit(failed ? 1 : 0);

@@ -9,6 +9,7 @@ import { esc } from "./core/util.js";
 import { DB_MODE, initBackend } from "./data/backend.js";
 import { store } from "./data/store.js";
 import { mountSesion } from "./ui/sesion.js";
+import { mostrarEntrada } from "./ui/entrar.js";
 import { onboardingInicial } from "./ui/onboarding.js";
 import { abrirReportePublico, idPublicoDeLaURL } from "./share/publico.js";
 import { brandStore } from "./reportes/comun.js";
@@ -26,6 +27,8 @@ async function init(){
   initTheme();
   document.getElementById("brandBtn").onclick=goHome;
   const apiErr=await initBackend();
+  // Servidor con cuentas y sin sesión: pantalla de entrada (email + código).
+  if(apiErr&&apiErr.entrar){ mostrarEntrada(apiErr.entrar); return; }
   if(apiErr){
     view.innerHTML=`<div class="empty"><h3>El servidor no está disponible</h3><p>${esc(apiErr)}</p><button class="btn primary" onclick="location.reload()">Reintentar</button></div>`;
     return;

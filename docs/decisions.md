@@ -161,3 +161,11 @@ Luis Carlos Romero; uxuaria es su marca. Si cambia el tratamiento de datos, hay 
 actualizar el texto y `ACTUALIZADO`. Pendiente: revisión legal, jurisdicción y que el
 cliente pueda leer las condiciones desde el link público. Motivo: que quien usa la
 herramienta sepa qué se guarda, dónde y con quién se comparte.
+
+2026-10-16 - Cuentas propias con código por email (spec `cta`) en lugar de Cloudflare
+Access, contraseñas o un servicio externo (Supabase, Clerk). `/api/auth/*` se suma a
+`POST /api/publico` como única ruta fuera de `authorize()`; solo toca `codigos`,
+`sesiones` y `usuarios`, y guarda solo hashes. Cada cuenta guarda sus datos bajo
+`u/{id}/` (el prefijo lo pone la API) y `publicos/{id}` lleva `dueño`. Motivo: lanzar
+gratis para 100 personas (Access gratis llega a 50 usuarios), sin contraseñas que
+proteger con 10 ms de CPU y sin reescribir la capa de datos.

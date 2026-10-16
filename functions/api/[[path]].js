@@ -7,13 +7,14 @@
    DELETE /api/doc?path=col/doc
    GET    /api/collection?path=col    -> {docs:[{id, data}]}  (solo hijos directos)
    GET    /api/export                 -> {docs:[{path, data}]}  (lo de la cuenta, para respaldo)
-   GET    /api/me                     -> {id, email, local}
+   GET    /api/me                     -> {id, email, local, modo}
 
    Cuentas (spec cta): cada cuenta ve solo lo suyo. El cliente usa las rutas de siempre
    ("estudios/…") y acá se guardan en "u/{idCuenta}/…". publicos/ queda global (lo lee
    el link /r/{id}) y solo lo toca su dueño.
 
-   Acceso: AUTH_MODE="access" exige un JWT válido de Cloudflare Access
+   Acceso: AUTH_MODE="cuentas" exige la cookie de sesión del login con código por email
+   (rutas /api/auth/*, ver más abajo). AUTH_MODE="access" exige un JWT válido de Cloudflare Access
    (ACCESS_TEAM_DOMAIN + ACCESS_AUD). Si falta esa config, responde 503: falla
    cerrada para no exponer datos de clientes por un deploy mal configurado.
    AUTH_MODE="none" solo para desarrollo local. */
@@ -21,10 +22,10 @@
 const MAX_DATA_BYTES = 1_900_000; // D1 limita filas a ~2 MB
 const SEG_RE = /^[A-Za-z0-9_.:-]{1,128}$/;
 
-const json = (body, status = 200) =>
+const json = (body, status = 200, extra = {}) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra },
   });
 
 // Valida la ruta y exige cantidad par (doc) o impar (colección) de segmentos.
@@ -100,6 +101,12 @@ async function cuentaDe(env, email, local) {
 // o { user } con quién entró si pasa.
 async function authorize(request, env) {
   const mode = env.AUTH_MODE || "access";
+  if (mode === "cuentas") {
+    if (!env.DB) return { denied: json({ error: "Falta el binding D1 'DB'." }, 500) };
+    const user = await usuarioDeSesion(request, env);
+    // login: la app muestra la pantalla de entrada; turnstile: clave pública del widget.
+    return user ? { user } : { denied: json({ error: "Entrá con tu email para seguir.", login: true, turnstile: env.TURNSTILE_SITE_KEY || null }, 401) };
+  }
   if (mode === "none") {
     // Solo desarrollo: el encabezado x-lupa-dev-user simula otra cuenta (pruebas de aislamiento).
     const dev = (request.headers.get("x-lupa-dev-user") || "").trim();
@@ -224,6 +231,152 @@ async function avisarReserva(env, meta, r) {
   return res.ok;
 }
 
+/* ---------- Login con código por email (AUTH_MODE="cuentas", spec cta) ----------
+   Junto con /api/publico, son las únicas rutas fuera de authorize() (todavía no hay sesión):
+   POST /api/auth/codigo    {email, turnstile} -> manda el email con botón y código
+   POST /api/auth/verificar {email, codigo}    -> crea la cuenta si no existe y la sesión
+   GET  /api/auth/verificar?t=token            -> lo mismo desde el botón del email
+   POST /api/auth/salir                        -> borra la sesión
+   El código y el token valen 10 minutos y una sola vez; 5 intentos por código; 60 s entre
+   pedidos y 5 por hora para cada email. Solo se guardan hashes. Sin RESEND_API_KEY no se
+   manda nada; AUTH_CODIGO_EN_RESPUESTA="1" (solo desarrollo y tests) devuelve el código. */
+const COOKIE = "lupa_sesion";
+const CODIGO_MS = 10 * 60 * 1000, CODIGO_MAX_INTENTOS = 5, CODIGO_ESPERA_MS = 60 * 1000, CODIGOS_POR_HORA = 5;
+const EMAIL_RE = /^[^@\s]{1,64}@[^@\s]{1,190}\.[^@\s]{2,}$/;
+const TOKEN_RE = /^[0-9a-f]{64}$/;
+
+const azarHex = (bytes) => [...crypto.getRandomValues(new Uint8Array(bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+const codigoAzar = () => String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
+const devCodigo = (env) => env.AUTH_CODIGO_EN_RESPUESTA === "1";
+const sesionMs = (env) => Math.max(1, Number(env.SESION_DIAS) || 30) * 86400000;
+const cookieSesion = (token, segundos) => `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${segundos}`;
+
+function leerCookie(request, nombre) {
+  for (const parte of (request.headers.get("cookie") || "").split(";")) {
+    const i = parte.indexOf("=");
+    if (i > 0 && parte.slice(0, i).trim() === nombre) return parte.slice(i + 1).trim();
+  }
+  return null;
+}
+
+async function usuarioDeSesion(request, env) {
+  const token = leerCookie(request, COOKIE);
+  if (!token || !TOKEN_RE.test(token)) return null;
+  const row = await env.DB.prepare(
+    "SELECT u.id, u.email FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id WHERE s.token_hash = ? AND s.expira > ?"
+  ).bind(await sha256hex(token), Date.now()).first();
+  return row ? { id: row.id, email: row.email, local: false } : null;
+}
+
+// Crea la cuenta si es la primera vez y abre la sesión. Devuelve el encabezado Set-Cookie.
+async function entrar(env, email) {
+  const { user, denied } = await cuentaDe(env, email, false);
+  if (denied) throw new Error("Sin base de datos");
+  const token = azarHex(32), now = Date.now(), ms = sesionMs(env);
+  await env.DB.prepare("INSERT INTO sesiones (token_hash, usuario_id, expira, creado) VALUES (?, ?, ?, ?)")
+    .bind(await sha256hex(token), user.id, now + ms, now).run();
+  return cookieSesion(token, Math.floor(ms / 1000));
+}
+
+async function verificarTurnstile(env, token, ip) {
+  if (!env.TURNSTILE_SECRET) return devCodigo(env); // sin secreto, solo pasa en desarrollo y tests
+  const form = new FormData();
+  form.append("secret", env.TURNSTILE_SECRET);
+  form.append("response", String(token || ""));
+  if (ip) form.append("remoteip", ip);
+  const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+  const j = await r.json().catch(() => ({}));
+  return j.success === true;
+}
+
+async function mandarCodigo(env, email, codigo, link) {
+  if (!env.RESEND_API_KEY) return false;
+  const html = `<div style="font-family:system-ui,sans-serif;max-width:440px;margin:0 auto;padding:24px;color:#0a0a0a">
+    <h2 style="margin:0 0 12px;font-size:20px">Entrá a Lupa UX</h2>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.5">Tocá el botón para entrar en este dispositivo, o escribí el código en la pantalla donde lo pediste.</p>
+    <p style="margin:0 0 24px"><a href="${link}" style="display:inline-block;background:#0a0a0a;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600">Entrar a Lupa UX</a></p>
+    <p style="margin:0 0 6px;font-size:13px;color:#555">Tu código</p>
+    <p style="margin:0 0 24px;font-size:28px;letter-spacing:6px;font-weight:700;font-family:ui-monospace,monospace">${codigo}</p>
+    <p style="margin:0;font-size:12.5px;color:#777;line-height:1.5">Vale 10 minutos y sirve una sola vez. Si no lo pediste, ignorá este email: nadie puede entrar sin él.</p>
+  </div>`;
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
+    body: JSON.stringify({ from: env.AUTH_FROM || "Lupa UX <acceso@uxuaria.com>", to: [email], subject: `Tu código para entrar a Lupa UX: ${codigo}`, html }),
+  });
+  return res.ok;
+}
+
+async function auth(route, request, env) {
+  if (!env.DB) return json({ error: "Falta el binding D1 'DB'." }, 500);
+  const url = new URL(request.url), now = Date.now();
+
+  // Botón del email: entra en este navegador y vuelve a la app.
+  if (route === "auth/verificar" && request.method === "GET") {
+    const t = url.searchParams.get("t") || "";
+    const row = TOKEN_RE.test(t) && await env.DB.prepare("SELECT id, email FROM codigos WHERE token_hash = ? AND usado = 0 AND expira > ?")
+      .bind(await sha256hex(t), now).first();
+    if (!row) return new Response(null, { status: 302, headers: { location: url.origin + "/?entrar=vencido", "cache-control": "no-store" } });
+    await env.DB.prepare("UPDATE codigos SET usado = 1 WHERE id = ?").bind(row.id).run();
+    return new Response(null, { status: 302, headers: { location: url.origin + "/", "set-cookie": await entrar(env, row.email), "cache-control": "no-store" } });
+  }
+  if (request.method !== "POST") return json({ error: "Método no permitido" }, 405);
+  let body;
+  try { body = await request.json(); } catch { body = {}; }
+
+  if (route === "auth/salir") {
+    const token = leerCookie(request, COOKIE);
+    if (token && TOKEN_RE.test(token)) await env.DB.prepare("DELETE FROM sesiones WHERE token_hash = ?").bind(await sha256hex(token)).run();
+    return json({ ok: true }, 200, { "set-cookie": cookieSesion("", 0) });
+  }
+
+  const email = String((body && body.email) || "").trim().toLowerCase();
+  if (email.length > 254 || !EMAIL_RE.test(email)) return json({ error: "Escribí un email válido." }, 400);
+
+  if (route === "auth/codigo") {
+    const { results: recientes } = await env.DB.prepare("SELECT creado FROM codigos WHERE email = ? AND creado > ? ORDER BY creado DESC")
+      .bind(email, now - 3600000).all();
+    if (recientes.length && now - recientes[0].creado < CODIGO_ESPERA_MS) {
+      const espera = Math.ceil((CODIGO_ESPERA_MS - (now - recientes[0].creado)) / 1000);
+      return json({ error: `Podés pedir otro en ${espera} s.`, espera }, 429);
+    }
+    if (recientes.length >= CODIGOS_POR_HORA) return json({ error: "Pediste muchos códigos. Probá en una hora." }, 429);
+    if (!(await verificarTurnstile(env, body.turnstile, request.headers.get("cf-connecting-ip"))))
+      return json({ error: "No pudimos verificar que no seas un robot. Probá de nuevo.", turnstile: true }, 400);
+
+    const id = crypto.randomUUID(), codigo = codigoAzar(), token = azarHex(32);
+    await env.DB.prepare("UPDATE codigos SET usado = 1 WHERE email = ? AND usado = 0").bind(email).run(); // el anterior deja de valer
+    await env.DB.prepare("DELETE FROM codigos WHERE creado < ?").bind(now - 86400000).run(); // limpieza
+    await env.DB.prepare("INSERT INTO codigos (id, email, codigo_hash, token_hash, expira, creado) VALUES (?, ?, ?, ?, ?, ?)")
+      .bind(id, email, await sha256hex(id + ":" + codigo), await sha256hex(token), now + CODIGO_MS, now).run();
+    const link = url.origin + "/api/auth/verificar?t=" + token;
+    if (devCodigo(env)) return json({ ok: true, codigo, link });
+    let enviado = false;
+    try { enviado = await mandarCodigo(env, email, codigo, link); } catch { enviado = false; }
+    if (!enviado) {
+      await env.DB.prepare("UPDATE codigos SET usado = 1 WHERE id = ?").bind(id).run();
+      return json({ error: "No pudimos mandar el email. Probá en unos minutos." }, 502);
+    }
+    return json({ ok: true });
+  }
+
+  if (route === "auth/verificar") {
+    const vencido = () => json({ error: "El código venció. Pedí uno nuevo.", vencido: true }, 400);
+    const row = await env.DB.prepare("SELECT id, codigo_hash, intentos FROM codigos WHERE email = ? AND usado = 0 AND expira > ? ORDER BY creado DESC LIMIT 1")
+      .bind(email, now).first();
+    if (!row) return vencido();
+    const codigo = String((body && body.codigo) || "").replace(/\D/g, "");
+    if (codigo.length !== 6 || !mismoHex(await sha256hex(row.id + ":" + codigo), row.codigo_hash)) {
+      const intentos = row.intentos + 1, agotado = intentos >= CODIGO_MAX_INTENTOS;
+      await env.DB.prepare("UPDATE codigos SET intentos = ?, usado = ? WHERE id = ?").bind(intentos, agotado ? 1 : 0, row.id).run();
+      return agotado ? vencido() : json({ error: "Código incorrecto.", restantes: CODIGO_MAX_INTENTOS - intentos }, 400);
+    }
+    await env.DB.prepare("UPDATE codigos SET usado = 1 WHERE id = ?").bind(row.id).run();
+    return json({ ok: true }, 200, { "set-cookie": await entrar(env, email) });
+  }
+  return json({ error: "No encontrado" }, 404);
+}
+
 /* ---------- Rutas por cuenta ---------- */
 const enCuenta = (path, user) => "u/" + user.id + "/" + path;
 const esPublico = (path) => path.split("/")[0] === "publicos";
@@ -258,11 +411,18 @@ export async function onRequest({ request, env, params }) {
     catch (e) { return json({ error: "Error del servidor" }, 500); }
   }
 
+  // Login: también antes de authorize() (todavía no hay sesión). Solo con AUTH_MODE="cuentas".
+  if (route.startsWith("auth/")) {
+    if (env.AUTH_MODE !== "cuentas") return json({ error: "No encontrado" }, 404);
+    try { return await auth(route, request, env); }
+    catch (e) { return json({ error: "Error del servidor" }, 500); }
+  }
+
   const { denied, user } = await authorize(request, env);
   if (denied) return denied;
 
   // Quién está usando la app (sale del token de Access ya verificado).
-  if (route === "me" && method === "GET") return json({ id: user.id, email: user.email, local: user.local });
+  if (route === "me" && method === "GET") return json({ id: user.id, email: user.email, local: user.local, modo: env.AUTH_MODE || "access" });
 
   if (!env.DB) return json({ error: "Falta el binding D1 'DB'." }, 500);
 

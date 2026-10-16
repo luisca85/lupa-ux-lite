@@ -36,7 +36,8 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   `hallazgos.js`: editor completo `hzEditor` para la página de alta y el modal, borrado).
   Flujos y Protopersonas pasan por `proximamente()` (aviso "Próximamente").
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
-  (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access, "Ver introducción"), onboarding
+  (motor de pines y dibujo), tema, descargas, sesion (chip de usuario, "Ver introducción", cerrar sesión), entrar
+  (pantalla de login con código por email, spec `cta`), onboarding
   (bienvenida en 5 pasos, la primera vez por usuario y navegador), pie (pie de página
   de la home y las páginas legales: contacto, legales, Exportar / Importar datos).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
@@ -123,9 +124,18 @@ antes de las cuentas se pasan con `scripts/migrar-cuentas.mjs`.
 Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
 
 ## API (functions/api)
+- Login (`AUTH_MODE="cuentas"`, fuera de `authorize()`): `POST /api/auth/codigo`
+  ({email, turnstile}: manda por Resend un email con botón y código de 6 dígitos, 10 min,
+  un uso, 60 s entre pedidos y 5 por hora), `POST /api/auth/verificar` ({email, codigo}:
+  5 intentos; crea la cuenta si no existe), `GET /api/auth/verificar?t=` (botón del
+  email) y `POST /api/auth/salir`. Sesión en la cookie `lupa_sesion` (`HttpOnly`,
+  `Secure`, `SameSite=Lax`, `SESION_DIAS`, 30 por defecto). Tablas `codigos` y
+  `sesiones` (solo hashes). Sin sesión, la API responde 401 `{login:true, turnstile}` y
+  la app muestra `ui/entrar.js`. Turnstile con `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET`;
+  `AUTH_CODIGO_EN_RESPUESTA="1"` (solo desarrollo y tests) devuelve el código sin email.
 - `GET /api/health`, `GET|PUT|DELETE /api/doc?path=`, `GET /api/collection?path=`,
   `GET /api/export` (solo lo de la cuenta y sus links públicos), `GET /api/me`
-  (`{id, email, local}`: la cuenta de quien entró).
+  (`{id, email, local, modo}`: la cuenta de quien entró).
 - Tabla `docs(path PK, parent, data JSON, updated_at)`; las colecciones se resuelven
   con `WHERE parent = ?` (índice). Rutas validadas: segmentos `[A-Za-z0-9_.:-]`,
   par = doc, impar = colección. Documentos de hasta ~1,9 MB (límite de fila de D1).
@@ -154,7 +164,8 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
   :8788) y Vite (:5173, proxy `/api`).
 - `npm run build` → `dist/`. `npm run preview`: build + wrangler sobre `dist/`.
 - `npm run check` (sintaxis), `npm run smoke` (API y aislamiento entre cuentas), `npm run test:e2e` (Playwright,
-  modo servidor con D1 limpia e IndexedDB con servidor estático). Requiere Node ≥ 20.19
+  modo servidor con D1 limpia, IndexedDB con servidor estático y `cuentas`: login con
+  `AUTH_MODE="cuentas"` en :8792, `login.spec`). Requiere Node ≥ 20.19
   (`.nvmrc`; si la shell trae otra versión, `nvm use`). Las pruebas habilitan Flujos y
   Protopersonas con `localStorage["lupa:habilitar"]`; `migracion.spec` siembra un estudio
   v1 por la API (solo modo servidor).
