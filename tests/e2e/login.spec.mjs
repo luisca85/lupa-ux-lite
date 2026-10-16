@@ -41,6 +41,7 @@ test("login: código por email, cuenta nueva, código incorrecto y cerrar sesió
   await escribirCodigo(page, codigo);
   await expect(page.getByRole("heading", { name: "Estudios" })).toBeVisible();
   await expect(page.locator("#userChip")).toContainText(email);
+  await expect(page.locator("#userChip")).not.toContainText("Luis Carlos"); // no hereda la marca de uxuaria
 
   await page.reload(); // la sesión sigue
   await expect(page.getByRole("heading", { name: "Estudios" })).toBeVisible();
@@ -131,6 +132,13 @@ test("beta: 1 estudio a la vez y 15 pantallas por estudio", async ({ page }) => 
   await crearEstudio(page, nombre);
   await expect(page.getByRole("heading", { name: nombre })).toBeVisible();
   const estId = await page.evaluate(() => JSON.parse(localStorage.getItem("lupa:active")));
+  // Una cuenta de la beta arranca sin la marca ni las propuestas de uxuaria.
+  await page.locator('#psNav [data-t="proyecto"]').click();
+  await page.locator(".cf-item", { hasText: "Marca" }).click();
+  await expect(page.locator("#br_n")).toHaveValue("");
+  await expect(page.locator("#br_wm")).toHaveValue("");
+  const props = await page.evaluate(async (id) => (await (await fetch("/api/doc?path=" + encodeURIComponent("estudios/" + id))).json()).data.reporte?.propuestas || [], estId);
+  expect(props.some((p) => /Plan Mensual|Diagnóstico completo/.test(p.titulo || ""))).toBe(false);
   await page.locator("#backHome").click();
   await expect(page.locator("#newStudy")).toBeDisabled();
   await expect(page.locator("#newStudy")).toContainText("En la beta podés tener 1 estudio");

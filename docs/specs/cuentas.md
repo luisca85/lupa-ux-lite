@@ -231,7 +231,9 @@ casillas de código, y el email con botón y código. Se ajustan mirando la vist
   (`body.solo-lectura` en `base.css`). Cualquier otro que quede visible lo frena
   `backend.js` sin ir al servidor, con el aviso "El estudio de ejemplo es de solo
   lectura.", y la API responde 403. Revisar a mano si queda algún control a la vista.
-- **A CONFIRMAR: la marca por defecto.** `marcaActual()` (`reportes/comun.js`) usa como
-  valores por defecto los datos de uxuaria: "Luis Carlos Romero León", el rol, el sitio
-  y el servicio "MV Rescue". Una cuenta nueva los ve en el menú de usuario y, si no
-  carga su marca, también en su reporte. Hay que resolverlo antes del lanzamiento (fase 4).
+- Resuelto el 2026-10-16 (`cuentaBeta()` en `reportes/comun.js`). Las cuentas de la beta
+  arrancan con la marca vacía y sin propuestas de trabajo, porque antes heredaban las de
+  uxuaria. Esos valores quedan para el administrador y para los modos sin cuentas. Además,
+  con cuentas, el aviso de una reserva le llega al dueño del estudio y no a
+  `RESERVA_TO` (salvo que el dueño sea administrador). El estudio de ejemplo conserva
+  las propuestas del estudio del que se copió.

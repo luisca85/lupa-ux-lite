@@ -234,8 +234,14 @@ async function reservar(body, meta, guardar, env, now) {
 
 async function avisarReserva(env, meta, r) {
   if (!env.RESEND_API_KEY) return false;
-  const to = (env.RESERVA_TO || "info@uxuaria.com").split(",").map((x) => x.trim()).filter(Boolean);
-  const cc = (env.RESERVA_CC || "").split(",").map((x) => x.trim()).filter(Boolean);
+  let to = (env.RESERVA_TO || "info@uxuaria.com").split(",").map((x) => x.trim()).filter(Boolean);
+  let cc = (env.RESERVA_CC || "").split(",").map((x) => x.trim()).filter(Boolean);
+  // Con cuentas (spec cta), el aviso va al dueño del estudio, no a uxuaria (salvo que el
+  // dueño sea administrador).
+  if (env.AUTH_MODE === "cuentas" && meta["dueño"]) {
+    const u = await env.DB.prepare("SELECT email FROM usuarios WHERE id = ?").bind(meta["dueño"]).first();
+    if (u && !esAdmin(env, u.email)) { to = [u.email]; cc = []; }
+  }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const estudio = meta.estNombre || "un estudio", cliente = meta.estCliente ? " (" + meta.estCliente + ")" : "";
   const fecha = new Date(r.fecha).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "long", timeStyle: "short" });

@@ -1,3 +1,4 @@
+import { state } from "../core/state.js";
 import { esc } from "../core/util.js";
 import { marcaActual } from "../reportes/comun.js";
 import { abrirOnboarding } from "./onboarding.js";
@@ -18,6 +19,7 @@ export async function mountSesion(){
     if(r.ok && (r.headers.get("content-type")||"").includes("application/json")) user = await r.json();
   }catch(e){}
   if(!user) return null;
+  state.cuenta = user; // antes de marcaActual(): una cuenta de la beta no hereda la marca de uxuaria
 
   const email = user.email || "";
   const nombre = user.local ? "Desarrollo local" : (marcaActual().nombre || email.split("@")[0] || "Sesión activa");
