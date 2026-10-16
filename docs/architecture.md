@@ -88,6 +88,14 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 
 ## Modelo de datos (API tipo Firestore sobre rutas)
 Las colecciones tienen cantidad impar de segmentos; los documentos, par.
+
+Cuentas (spec `cta`): en modo `server` cada cuenta guarda todo en D1 bajo
+`u/{idCuenta}/…`. El cliente sigue usando las rutas de abajo y el prefijo lo pone solo
+la API (`rutaReal`). Las rutas que empiezan con `u/` se rechazan. `publicos/` es la
+excepción: queda global y solo la toca su dueño (`dueño` en `publicos/{id}`). La tabla
+`usuarios` (id, email, creado) da el id; en desarrollo (`AUTH_MODE="none"`) la cuenta es
+`local`, y el encabezado `x-lupa-dev-user` simula otras para las pruebas. Los datos de
+antes de las cuentas se pasan con `scripts/migrar-cuentas.mjs`.
 - `estudios/{id}` — estudio. Incluye el objeto `reporte` embebido (resumen,
   diagnóstico, propuestas, muestra, toggles del reporte online, marca por defecto).
 - `estudios/{id}/pantallas/{pid}` — pantalla del estudio (nombre, origen imagen/url, url,
@@ -116,7 +124,8 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
 
 ## API (functions/api)
 - `GET /api/health`, `GET|PUT|DELETE /api/doc?path=`, `GET /api/collection?path=`,
-  `GET /api/export`, `GET /api/me` (quién entró: email del JWT de Access verificado).
+  `GET /api/export` (solo lo de la cuenta y sus links públicos), `GET /api/me`
+  (`{id, email, local}`: la cuenta de quien entró).
 - Tabla `docs(path PK, parent, data JSON, updated_at)`; las colecciones se resuelven
   con `WHERE parent = ?` (índice). Rutas validadas: segmentos `[A-Za-z0-9_.:-]`,
   par = doc, impar = colección. Documentos de hasta ~1,9 MB (límite de fila de D1).
@@ -141,9 +150,10 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
   En modo `idb`, un dispositivo / un navegador; se migra con Exportar/Importar datos.
 
 ## Herramientas
-- `npm run dev`: wrangler (API + D1 local, :8788) + Vite (:5173, proxy `/api`).
+- `npm run dev`: aplica las migraciones de D1 local, levanta wrangler (API + D1 local,
+  :8788) y Vite (:5173, proxy `/api`).
 - `npm run build` → `dist/`. `npm run preview`: build + wrangler sobre `dist/`.
-- `npm run check` (sintaxis), `npm run smoke` (API), `npm run test:e2e` (Playwright,
+- `npm run check` (sintaxis), `npm run smoke` (API y aislamiento entre cuentas), `npm run test:e2e` (Playwright,
   modo servidor con D1 limpia e IndexedDB con servidor estático). Requiere Node ≥ 20.19
   (`.nvmrc`; si la shell trae otra versión, `nvm use`). Las pruebas habilitan Flujos y
   Protopersonas con `localStorage["lupa:habilitar"]`; `migracion.spec` siembra un estudio

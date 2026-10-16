@@ -6,7 +6,12 @@
    PUT    /api/doc?path=col/doc       -> guarda el body JSON como data
    DELETE /api/doc?path=col/doc
    GET    /api/collection?path=col    -> {docs:[{id, data}]}  (solo hijos directos)
-   GET    /api/export                 -> {docs:[{path, data}]}  (todo, para respaldo)
+   GET    /api/export                 -> {docs:[{path, data}]}  (lo de la cuenta, para respaldo)
+   GET    /api/me                     -> {id, email, local}
+
+   Cuentas (spec cta): cada cuenta ve solo lo suyo. El cliente usa las rutas de siempre
+   ("estudios/…") y acá se guardan en "u/{idCuenta}/…". publicos/ queda global (lo lee
+   el link /r/{id}) y solo lo toca su dueño.
 
    Acceso: AUTH_MODE="access" exige un JWT válido de Cloudflare Access
    (ACCESS_TEAM_DOMAIN + ACCESS_AUD). Si falta esa config, responde 503: falla
@@ -77,16 +82,37 @@ async function verifyAccess(request, env) {
   return payload.iss === team && aud.includes(env.ACCESS_AUD) && payload.exp > now ? payload : null;
 }
 
+/* ---------- Cuentas ----------
+   La cuenta se identifica por un id opaco (tabla usuarios), no por el email. */
+async function cuentaDe(env, email, local) {
+  if (!env.DB) return { denied: json({ error: "Falta el binding D1 'DB'." }, 500) };
+  email = String(email).trim().toLowerCase();
+  const buscar = () => env.DB.prepare("SELECT id FROM usuarios WHERE email = ?").bind(email).first();
+  let row = await buscar();
+  if (!row) {
+    await env.DB.prepare("INSERT OR IGNORE INTO usuarios (id, email, creado) VALUES (?, ?, ?)").bind(crypto.randomUUID(), email, Date.now()).run();
+    row = await buscar();
+  }
+  return { user: { id: row.id, email, local } };
+}
+
 // Devuelve { denied } con una Response de error si el pedido no está autorizado,
 // o { user } con quién entró si pasa.
 async function authorize(request, env) {
   const mode = env.AUTH_MODE || "access";
-  if (mode === "none") return { user: { email: null, local: true } };
+  if (mode === "none") {
+    // Solo desarrollo: el encabezado x-lupa-dev-user simula otra cuenta (pruebas de aislamiento).
+    const dev = (request.headers.get("x-lupa-dev-user") || "").trim();
+    return dev ? cuentaDe(env, dev, true) : { user: { id: "local", email: null, local: true } };
+  }
   if (mode !== "access" || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD)
     return { denied: json({ error: "Acceso no configurado: definí ACCESS_TEAM_DOMAIN y ACCESS_AUD." }, 503) };
   try {
     const payload = await verifyAccess(request, env);
-    if (payload) return { user: { email: payload.email || null, local: false } };
+    if (payload) {
+      if (!payload.email) return { denied: json({ error: "El acceso no trae un email." }, 403) };
+      return await cuentaDe(env, payload.email, false);
+    }
   } catch (e) {
     return { denied: json({ error: "Error validando Access: " + e.message }, 503) };
   }
@@ -198,6 +224,28 @@ async function avisarReserva(env, meta, r) {
   return res.ok;
 }
 
+/* ---------- Rutas por cuenta ---------- */
+const enCuenta = (path, user) => "u/" + user.id + "/" + path;
+const esPublico = (path) => path.split("/")[0] === "publicos";
+const finCuenta = (user) => ["u/" + user.id + "/", "u/" + user.id + "0"]; // rango de paths de la cuenta ("/" < "0")
+
+// publicos/{id}[/…]: lo toca solo su dueño. Si todavía no existe, lo crea quien escribe
+// (los ids son aleatorios). La lista de publicos/ no se expone.
+async function esDuenioPublico(env, path, user) {
+  const segs = path.split("/");
+  if (segs.length < 2) return false;
+  const row = await env.DB.prepare("SELECT data FROM docs WHERE path = ?").bind("publicos/" + segs[1]).first();
+  return !row || JSON.parse(row.data)["dueño"] === user.id;
+}
+
+// Traduce la ruta del cliente a la de D1, o devuelve una Response de error.
+async function rutaReal(env, path, user) {
+  if (path.split("/")[0] === "u") return { error: json({ error: "Ruta reservada" }, 400) };
+  if (!esPublico(path)) return { path: enCuenta(path, user) };
+  if (!(await esDuenioPublico(env, path, user))) return { error: json({ error: "No encontrado" }, 404) };
+  return { path };
+}
+
 /* ---------- Handler ---------- */
 export async function onRequest({ request, env, params }) {
   const route = (params.path || []).join("/");
@@ -214,7 +262,7 @@ export async function onRequest({ request, env, params }) {
   if (denied) return denied;
 
   // Quién está usando la app (sale del token de Access ya verificado).
-  if (route === "me" && method === "GET") return json(user);
+  if (route === "me" && method === "GET") return json({ id: user.id, email: user.email, local: user.local });
 
   if (!env.DB) return json({ error: "Falta el binding D1 'DB'." }, 500);
 
@@ -225,8 +273,10 @@ export async function onRequest({ request, env, params }) {
     }
 
     if (route === "doc") {
-      const path = parsePath(url.searchParams.get("path"), "doc");
-      if (!path) return json({ error: "Ruta de documento inválida" }, 400);
+      const pedida = parsePath(url.searchParams.get("path"), "doc");
+      if (!pedida) return json({ error: "Ruta de documento inválida" }, 400);
+      const { path, error } = await rutaReal(env, pedida, user);
+      if (error) return error;
 
       if (method === "GET") {
         const row = await env.DB.prepare("SELECT data FROM docs WHERE path = ?").bind(path).first();
@@ -240,6 +290,7 @@ export async function onRequest({ request, env, params }) {
         try { data = JSON.parse(text || "{}"); } catch { return json({ error: "JSON inválido" }, 400); }
         if (data === null || typeof data !== "object" || Array.isArray(data))
           return json({ error: "El documento debe ser un objeto" }, 400);
+        if (esPublico(path) && path.split("/").length === 2) data["dueño"] = user.id;
         await env.DB.prepare(
           "INSERT INTO docs (path, parent, data, updated_at) VALUES (?1, ?2, ?3, ?4) " +
           "ON CONFLICT(path) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at"
@@ -254,15 +305,25 @@ export async function onRequest({ request, env, params }) {
     }
 
     if (route === "collection" && method === "GET") {
-      const path = parsePath(url.searchParams.get("path"), "collection");
-      if (!path) return json({ error: "Ruta de colección inválida" }, 400);
+      const pedida = parsePath(url.searchParams.get("path"), "collection");
+      if (!pedida) return json({ error: "Ruta de colección inválida" }, 400);
+      const { path, error } = await rutaReal(env, pedida, user);
+      if (error) return error;
       const { results } = await env.DB.prepare("SELECT path, data FROM docs WHERE parent = ? ORDER BY path").bind(path).all();
       return json({ docs: results.map((r) => ({ id: lastSeg(r.path), data: JSON.parse(r.data) })) });
     }
 
     if (route === "export" && method === "GET") {
-      const { results } = await env.DB.prepare("SELECT path, data FROM docs ORDER BY path").all();
-      return json({ docs: results.map((r) => ({ path: r.path, data: JSON.parse(r.data) })) });
+      // Solo lo de la cuenta (con las rutas que usa el cliente) y sus links públicos.
+      const [desde, hasta] = finCuenta(user);
+      const { results } = await env.DB.prepare("SELECT path, data FROM docs WHERE path >= ? AND path < ? ORDER BY path").bind(desde, hasta).all();
+      const docs = results.map((r) => ({ path: r.path.slice(desde.length), data: JSON.parse(r.data) }));
+      const pubs = await env.DB.prepare("SELECT path FROM docs WHERE parent = 'publicos' AND json_extract(data, '$.\"dueño\"') = ?").bind(user.id).all();
+      for (const { path } of pubs.results) {
+        const { results: rs } = await env.DB.prepare("SELECT path, data FROM docs WHERE path = ? OR parent = ? ORDER BY path").bind(path, path + "/partes").all();
+        rs.forEach((r) => docs.push({ path: r.path, data: JSON.parse(r.data) }));
+      }
+      return json({ docs });
     }
 
     return json({ error: "No encontrado" }, 404);
