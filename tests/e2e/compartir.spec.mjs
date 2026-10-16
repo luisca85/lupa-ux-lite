@@ -2,6 +2,7 @@
 // publicar, y el cliente abre el link con el PIN, filtra hallazgos y reserva una propuesta.
 // Solo en "servidor": el link público necesita la API.
 import { test, expect } from "@playwright/test";
+import { crearEstudio } from "./estudio.mjs";
 
 test("compartir: link con PIN, estado de la publicación y reserva desde Trabajemos juntos", async ({ page, context }, testInfo) => {
   test.skip(testInfo.project.name !== "servidor", "el link público necesita la API");
@@ -10,9 +11,7 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
   const estudio = `Compartir ${Date.now()}`;
 
   await page.goto("/");
-  await page.getByRole("button", { name: /Crear estudio|Nuevo estudio/ }).first().click();
-  await page.getByPlaceholder("Ej: Onboarding app de ahorro").fill(estudio);
-  await page.getByRole("button", { name: "Guardar" }).click();
+  await crearEstudio(page, estudio);
   await expect(page.getByRole("heading", { name: estudio })).toBeVisible();
 
   await test.step("Configuración: menú lateral, edición en el panel con Atrás, sin Métricas ni Protopersonas", async () => {

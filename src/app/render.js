@@ -1,6 +1,5 @@
 import { state } from "../core/state.js";
 import { LS } from "../core/util.js";
-import { USE_DB } from "../data/backend.js";
 import { prepararEstudio } from "../data/pantallas.js";
 import { store } from "../data/store.js";
 import { jrCleanupPop } from "../journey/journey.js";
@@ -9,6 +8,8 @@ import { renderCatalogo } from "../views/catalogo.js";
 import { renderStudyShell } from "../views/estudio.js";
 import { closeHzPage } from "../views/hallazgos.js";
 import { renderHome } from "../views/home.js";
+import { renderLegal } from "../views/legal.js";
+import { renderPie } from "../ui/pie.js";
 import { toast } from "../ui/modales.js";
 
 /* ============ Render raíz ============ */
@@ -57,13 +58,13 @@ export function render(){
   // La página de alta de hallazgo vive solo dentro de la sección Hallazgos.
   if(state.hzPage&&!(state.view==="study"&&state.studyTab==="hallazgos")) closeHzPage();
   renderTopbar();
-  document.getElementById("footNote").textContent = USE_DB
-    ? "Lupa UX · cada estudio agrupa sus hallazgos, flujos, protopersonas, métricas y reportes. Los datos se guardan de forma persistente."
-    : "Lupa UX · vista de trabajo local: los datos se guardan en este navegador. Publicada, guarda de forma persistente.";
+  renderPie();
   document.body.classList.toggle("in-study",state.view==="study");
   document.body.classList.toggle("in-home",state.view==="home");
+  document.body.classList.toggle("in-legal",state.view==="legal");
   const top=document.querySelector("header.top"); if(top) document.documentElement.style.setProperty("--top-h",top.offsetHeight+"px");
   if(state.view==="catalogo") return renderCatalogo();
   if(state.view==="study") return renderStudyShell();
+  if(state.view==="legal") return renderLegal();
   return renderHome();
 }

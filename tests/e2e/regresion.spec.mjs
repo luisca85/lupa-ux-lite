@@ -1,6 +1,7 @@
 // Test de regresión de la constitución (docs/AGENTS.md), automatizado.
 // Corre en dos proyectos: "servidor" (API + D1) e "indexeddb" (hosting estático).
 import { test, expect } from "@playwright/test";
+import { crearEstudio } from "./estudio.mjs";
 import { makePng } from "./png.mjs";
 
 const PIN_COMMENT = "Comentario del pin de prueba";
@@ -21,9 +22,7 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
   });
 
   await test.step("1a. crear estudio", async () => {
-    await page.getByRole("button", { name: /Crear estudio|Nuevo estudio/ }).first().click();
-    await page.getByPlaceholder("Ej: Onboarding app de ahorro").fill(estudio);
-    await page.getByRole("button", { name: "Guardar" }).click();
+    await crearEstudio(page, estudio);
     await expect(page.getByRole("heading", { name: estudio })).toBeVisible();
   });
 
@@ -59,6 +58,7 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
 
   await test.step("1d. recargar: todo persiste", async () => {
     await page.reload();
+    await page.locator("#topSearch").fill(estudio); // con muchos estudios puede no estar en la primera página
     await page.getByRole("heading", { name: estudio }).click();
     // El estudio abre en Resumen; el hallazgo se verifica en su sección.
     await expect(page.getByRole("heading", { name: "Resumen de problemas" })).toBeVisible();

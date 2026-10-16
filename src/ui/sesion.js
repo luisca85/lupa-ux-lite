@@ -1,20 +1,22 @@
 import { esc } from "../core/util.js";
 import { marcaActual } from "../reportes/comun.js";
+import { abrirOnboarding } from "./onboarding.js";
 
 /* ============ Sesión visible (Cloudflare Access) ============ */
 // El login lo hace Access antes de que cargue la app; acá solo mostramos quién
-// entró (GET /api/me) y ofrecemos el logout estándar de Access.
+// entró (GET /api/me) y ofrecemos el logout estándar de Access. Devuelve el usuario
+// (o null) para que el onboarding sepa a quién recordar.
 const LOGOUT_URL = "/cdn-cgi/access/logout";
 
 export async function mountSesion(){
   const slot = document.getElementById("userSlot");
-  if(!slot) return;
+  if(!slot) return null;
   let user = null;
   try{
     const r = await fetch("api/me", { headers:{ accept:"application/json" } });
     if(r.ok && (r.headers.get("content-type")||"").includes("application/json")) user = await r.json();
   }catch(e){}
-  if(!user) return;
+  if(!user) return null;
 
   const email = user.email || "";
   const nombre = user.local ? "Desarrollo local" : (marcaActual().nombre || email.split("@")[0] || "Sesión activa");
@@ -33,6 +35,7 @@ export async function mountSesion(){
         <div class="user-menu-s">${user.local ? "Sin login (AUTH_MODE = none)" : "Sesión de Cloudflare Access"}</div></div>
       </div>
       <div class="user-menu-mode">Datos guardados en el servidor</div>
+      <button type="button" class="user-menu-item" role="menuitem" id="userIntro">Ver introducción</button>
       <button type="button" class="user-menu-item" role="menuitem" id="userTheme">Cambiar tema claro / oscuro</button>
       ${user.local
         ? `<div class="user-menu-note">En producción acá aparece el email con el que entraste y el botón para cerrar sesión.</div>`
@@ -48,6 +51,8 @@ export async function mountSesion(){
   };
   // El botón de tema de la barra se oculta cuando hay menú de usuario: se usa desde acá.
   slot.querySelector("#userTheme").onclick = () => { document.getElementById("themeBtn").click(); close(); };
+  slot.querySelector("#userIntro").onclick = () => { close(); abrirOnboarding(email); };
   document.addEventListener("click", e => { if(!slot.contains(e.target)) close(); });
   document.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
+  return user;
 }

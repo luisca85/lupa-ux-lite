@@ -145,21 +145,26 @@ export function studyModal(e){
   `,async()=>{
     const nombre=document.getElementById("f_nombre").value.trim();
     if(!nombre){ document.getElementById("f_nombre").focus(); return false; }
-    const rec={ id:e.id||uid(), nombre,
+    await guardarEstudio({ id:e.id, nombre,
       cliente:document.getElementById("f_cliente").value.trim(),
       plataforma:document.getElementById("f_plat").value,
       url:document.getElementById("f_url").value.trim(),
       estado:document.getElementById("f_estado").value,
       fecha:document.getElementById("f_fecha").value,
       descripcion:document.getElementById("f_desc").value.trim(),
-      createdAt:e.createdAt||Date.now() };
-    await store.saveEstudio(rec);
-    state.estudios=await store.listEstudios();
-    toast(isNew?"Estudio creado":"Estudio actualizado");
-    if(isNew){ await openStudy(rec.id); } else { render(); }
+      createdAt:e.createdAt },isNew);
     return true;
   });
   setTimeout(()=>document.getElementById("f_nombre").focus(),40);
+}
+// Guarda un estudio (alta desde la home o edición desde el modal). Si es nuevo, lo abre.
+export async function guardarEstudio(datos,isNew){
+  const rec={ ...datos, id:datos.id||uid(), createdAt:datos.createdAt||Date.now() };
+  await store.saveEstudio(rec);
+  state.estudios=await store.listEstudios();
+  toast(isNew?"Estudio creado":"Estudio actualizado");
+  if(isNew){ await openStudy(rec.id); } else { render(); }
+  return rec;
 }
 export function confirmDelStudy(id){
   const e=state.estudios.find(s=>s.id===id);
