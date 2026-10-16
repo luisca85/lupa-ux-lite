@@ -169,3 +169,8 @@ Access, contraseñas o un servicio externo (Supabase, Clerk). `/api/auth/*` se s
 `u/{id}/` (el prefijo lo pone la API) y `publicos/{id}` lleva `dueño`. Motivo: lanzar
 gratis para 100 personas (Access gratis llega a 50 usuarios), sin contraseñas que
 proteger con 10 ms de CPU y sin reescribir la capa de datos.
+
+2026-10-16 - Producción pasa de `lupaux.uxuaria.com` a `lupa.uxuaria.com` con el lanzamiento
+de las cuentas. `lupaux.uxuaria.com` queda con una redirección 301 que conserva la ruta,
+para no romper los links públicos `/r/{id}` ya enviados a clientes. Motivo: nombre más
+corto y claro para la beta.

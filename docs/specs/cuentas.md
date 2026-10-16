@@ -218,8 +218,10 @@ casillas de código, y el email con botón y código. Se ajustan mirando la vist
   - el ejemplo es una app inventada;
   - las tandas son de 20, 30 y 50;
   - el diseño se hace en código.
-- `lupa.uxuaria.com` necesita el DNS de uxuaria.com en Cloudflare, o un CNAME hacia el
-  proyecto de Pages, y agregar el dominio en Pages. `acceso@uxuaria.com` sale del
+- Producción vive hoy en `lupaux.uxuaria.com` (decisión del 2026-09-23). Se pasa a
+  `lupa.uxuaria.com` (decisión del 2026-10-16) con una redirección 301 que conserva la
+  ruta: los links públicos `/r/{id}` ya enviados siguen funcionando (ver
+  `docs/lanzamiento.md`, paso 9). El DNS de uxuaria.com está en Cloudflare. `acceso@uxuaria.com` sale del
   dominio verificado en Resend: no hace falta una casilla real, pero conviene que las
   respuestas lleguen a algún lado.
 - Cada vencimiento de sesión cuesta un email. Con 30 días y 100 cuentas son ≈100

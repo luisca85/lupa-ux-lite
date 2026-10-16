@@ -24,7 +24,7 @@ muestra tus datos, porque el código nuevo los busca en `u/{id}/…`. Hacé los 
   avisos de reserva. Mirá el uso en el panel de Resend antes de cada tanda.
 
 ## 2. 🔑 Turnstile
-- Cloudflare → Turnstile → **Add widget**. Hostnames: `lupa.uxuaria.com` y
+- Cloudflare → Turnstile → **Add widget**. Hostnames: `lupa.uxuaria.com`, `lupaux.uxuaria.com` y
   `lupa-ux.pages.dev` (y el dominio de previews si vas a probar ahí). Modo: Managed.
 - Anotá la **site key** (pública) y la **secret key**.
 
@@ -75,9 +75,23 @@ documentos antes y después (tienen que coincidir), y si se repite no hace nada.
 - Entrá a la app: tiene que aparecer **Entrá o creá tu cuenta**. Entrá con tu email y
   verificá que ves tus estudios y que tus links públicos `/r/{id}` siguen abriendo.
 
-## 9. 🔑 Dominio
-Pages → `lupa-ux` → Custom domains → **lupa.uxuaria.com**. Si el DNS de uxuaria.com no
-está en Cloudflare, agregá el CNAME que te indique Pages en tu proveedor de DNS.
+## 9. 🔑 Dominio: de `lupaux.uxuaria.com` a `lupa.uxuaria.com`
+Hoy producción vive en `lupaux.uxuaria.com`, y los links públicos (`/r/{id}`) que ya
+mandaste a clientes usan esa dirección: no hay que romperlos.
+1. Pages → `lupa-ux` → **Custom domains** → **Set up a custom domain** →
+   `lupa.uxuaria.com`. El DNS de uxuaria.com está en Cloudflare, así que Pages crea el
+   registro solo.
+2. Probá que `https://lupa.uxuaria.com` abre la app y que un link `/r/{id}` funciona ahí.
+3. Redirigí la dirección vieja: Cloudflare → `uxuaria.com` → **Rules → Redirect Rules** →
+   regla "Lupa: dominio viejo". Cuando el hostname es igual a `lupaux.uxuaria.com`, URL
+   dinámica `concat("https://lupa.uxuaria.com", http.request.uri)`, código **301** y
+   conservar la query string. Así los links viejos llevan al mismo reporte en el dominio
+   nuevo.
+4. Dejá `lupaux.uxuaria.com` en Custom domains (la redirección necesita que siga
+   resolviendo). Si algún día lo quitás, hacé que el registro DNS siga existiendo con el
+   proxy activado.
+5. Si Access protegía `lupaux.uxuaria.com`, ya lo quitaste en el paso 8. No lo agregues
+   para el dominio nuevo.
 
 ## 10. Estudio de ejemplo
 - En tu cuenta, armá el estudio de ejemplo sobre una **app inventada** (pantallas hechas a
