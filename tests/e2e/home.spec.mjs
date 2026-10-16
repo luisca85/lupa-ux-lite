@@ -58,6 +58,7 @@ test("home: paginador, pie de página y páginas legales", async ({ page }, test
     await expect(pie.getByRole("link", { name: "uxuaria.com", exact: true })).toHaveAttribute("href", "https://uxuaria.com");
     await pie.getByRole("button", { name: "Política de privacidad" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Política de privacidad" })).toBeVisible();
+    await expect(page.locator(".legal-doc")).toContainText("El responsable de los datos es Luis Carlos Romero");
     await page.getByRole("navigation", { name: "Información legal" }).getByRole("button", { name: "Términos de uso" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Términos de uso" })).toBeVisible();
     await page.getByRole("navigation", { name: "Información legal" }).getByRole("button", { name: "Cookies y almacenamiento" }).click();

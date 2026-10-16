@@ -23,7 +23,7 @@ export const SECCIONES_LEGALES=[
     <h3>Cambios</h3>
     <p>Podemos actualizar estos términos. La fecha de la última actualización figura al pie de esta página.</p>` },
   { id:"privacidad", titulo:"Política de privacidad", html:`
-    <p>Esta política explica qué datos trata Lupa UX, para qué y con quién se comparten. El responsable es uxuaria; podés escribir a ${CONTACTO} por cualquier consulta.</p>
+    <p>Esta política explica qué datos trata Lupa UX, para qué y con quién se comparten. El responsable de los datos es Luis Carlos Romero, que ofrece Lupa UX con su marca uxuaria. Podés escribir a ${CONTACTO} por cualquier consulta.</p>
     <h3>Qué datos se guardan</h3>
     <ul>
       <li><b>Tu cuenta:</b> el email con el que ingresás, que verifica Cloudflare Access para darte acceso.</li>
