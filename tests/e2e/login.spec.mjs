@@ -86,3 +86,96 @@ test("login: sin sesión la API responde 401 y no entrega datos", async ({ reque
   const salir = await request.post("/api/auth/salir");
   expect(salir.ok()).toBe(true);
 });
+
+// ---------- Fase 3: límites de la beta y estudio de ejemplo ----------
+// Pedidos con la sesión del navegador (la cookie es Secure: page.request no la manda por http).
+const api = (page, method, path, data) => page.evaluate(async ([m, p, d]) => {
+  const r = await fetch("/api/doc?path=" + encodeURIComponent(p), { method: m, headers: { "content-type": "application/json" }, body: d ? JSON.stringify(d) : undefined });
+  return { status: r.status, body: await r.json().catch(() => null) };
+}, [method, path, data]);
+async function entrarCon(page, email) {
+  await page.goto("/");
+  await escribirCodigo(page, await pedirCodigo(page, email));
+  await expect(page.getByRole("heading", { name: "Estudios" })).toBeVisible();
+}
+
+test("beta: estudio de ejemplo primero y de solo lectura", async ({ page }) => {
+  const errores = [];
+  page.on("pageerror", (e) => errores.push(e.message));
+  await entrarCon(page, unico("eva"));
+  const primera = page.locator(".hp-grid [data-study]").first();
+  await expect(primera).toHaveAttribute("data-study", "ejemplo-demo");
+  await expect(primera.locator(".chip.ej")).toHaveText("Ejemplo");
+  await expect(primera.locator(".edit")).toHaveCount(0);
+
+  await primera.locator(".open-area").click();
+  await expect(page.locator(".ej-aviso")).toContainText("Estudio de ejemplo");
+  await expect(page.locator("#editStudy")).toHaveCount(0);
+  await page.locator('#psNav [data-t="hallazgos"]').click();
+  await expect(page.locator("#wsAdd")).toBeHidden();
+
+  expect((await api(page, "PUT", "estudios/ejemplo-demo", { nombre: "pisado" })).status).toBe(403);
+  expect((await api(page, "DELETE", "estudios/ejemplo-demo/hallazgos/h1")).status).toBe(403);
+  expect((await api(page, "GET", "ejemplo/estudios/x")).status).toBe(400);
+  await page.locator("#backHome").click();
+  await expect(page.locator("body")).not.toHaveClass(/solo-lectura/);
+  expect(errores).toEqual([]);
+});
+
+test("beta: 1 estudio a la vez y 15 pantallas por estudio", async ({ page }) => {
+  await entrarCon(page, unico("fede"));
+  const me = await page.evaluate(() => fetch("/api/me").then((r) => r.json()));
+  expect(me.limites).toMatchObject({ estudios: 1, pantallas: 15 });
+
+  const nombre = "Mi único estudio " + Date.now();
+  await crearEstudio(page, nombre);
+  await expect(page.getByRole("heading", { name: nombre })).toBeVisible();
+  const estId = await page.evaluate(() => JSON.parse(localStorage.getItem("lupa:active")));
+  await page.locator("#backHome").click();
+  await expect(page.locator("#newStudy")).toBeDisabled();
+  await expect(page.locator("#newStudy")).toContainText("En la beta podés tener 1 estudio");
+
+  const otro = await api(page, "PUT", "estudios/otro-" + Date.now(), { nombre: "Segundo" });
+  expect(otro.status).toBe(403);
+  expect(otro.body.limite).toBe("estudios");
+  const editar = await api(page, "PUT", "estudios/" + estId, { nombre: nombre + " (editado)", createdAt: Date.now() });
+  expect(editar.status).toBe(200); // editar el propio sigue funcionando
+
+  const pant = (i) => api(page, "PUT", `estudios/${estId}/pantallas/p${i}`, { nombre: "P" + i, orden: i });
+  for (let i = 1; i <= 15; i++) expect((await pant(i)).status).toBe(200);
+  const p16 = await pant(16);
+  expect(p16.status).toBe(403);
+  expect(p16.body.limite).toBe("pantallas");
+  expect((await pant(3)).status).toBe(200); // actualizar una existente sí
+
+  // Borrar el estudio libera el cupo (el límite es "a la vez").
+  await page.reload();
+  await expect(page.locator(".hp-grid [data-study]").first()).toBeVisible();
+  await page.locator("#topSearch").fill(nombre); // con el paginador puede no estar en la primera página
+  await page.locator(`[data-study="${estId}"] .del`).click();
+  await page.locator("#cYes").click();
+  await expect(page.locator("#newStudy")).toBeEnabled();
+});
+
+test("beta: con los cupos completos, un email nuevo queda en la lista de espera", async ({ page }) => {
+  // MAX_CUENTAS=8 en este servidor; el administrador no cuenta.
+  let r = null;
+  for (let i = 0; i < 10; i++) {
+    const email = unico("lleno" + i);
+    r = await page.request.post("/api/auth/codigo", { data: { email } });
+    if (r.status() === 403) break;
+    const { codigo } = await r.json();
+    expect((await page.request.post("/api/auth/verificar", { data: { email, codigo } })).ok()).toBe(true);
+  }
+  expect(r.status()).toBe(403);
+  expect((await r.json()).cupos).toBe(true);
+
+  await page.context().clearCookies();
+  await page.goto("/");
+  await page.getByLabel("Email").fill(unico("tarde"));
+  await page.getByRole("button", { name: "Continuar con email" }).click();
+  await expect(page.getByRole("heading", { name: "Cupos completos" })).toBeVisible();
+
+  const admin = await page.request.post("/api/auth/codigo", { data: { email: "admin@lupa.test" } });
+  expect(admin.ok()).toBe(true); // el administrador entra igual
+});

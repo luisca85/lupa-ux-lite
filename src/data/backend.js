@@ -56,14 +56,17 @@ function makeHTTPAdapter(base){
     return j;
   }
   const lastSeg=p=>{ const i=p.lastIndexOf("/"); return i<0?p:p.slice(i+1); };
+  // Estudio de ejemplo (spec cta): de solo lectura. Se corta acá, sin ir al servidor
+  // (que igual responde 403), para no mandar escrituras que van a fallar.
+  const escribir=(path,fn)=>/^estudios\/ejemplo-/.test(path)?Promise.reject(new Error("El estudio de ejemplo es de solo lectura.")):fn();
   return {
     ready:()=>call("GET","health"),
     dumpAll:async()=>(await call("GET","export")).docs,
     collection:(path)=>({ get:async()=>{ const j=await call("GET","collection",path); return {docs:j.docs.map(d=>({id:d.id,data:()=>d.data}))}; } }),
     doc:(path)=>({
       get:async()=>{ const j=await call("GET","doc",path); return {exists:j.exists,id:lastSeg(path),data:()=>j.data||{}}; },
-      set:(d)=>call("PUT","doc",path,d==null?{}:d).then(()=>{}),
-      delete:()=>call("DELETE","doc",path).then(()=>{})
+      set:(d)=>escribir(path,()=>call("PUT","doc",path,d==null?{}:d).then(()=>{})),
+      delete:()=>escribir(path,()=>call("DELETE","doc",path).then(()=>{}))
     })
   };
 }

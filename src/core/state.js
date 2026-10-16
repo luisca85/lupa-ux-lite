@@ -1,6 +1,7 @@
 import { HEUR_NIELSEN, SESGOS_BASE } from "./catalogo-base.js";
 
 export const state = {
+  cuenta:null, // GET /api/me en modo servidor: {id, email, admin, limites} (spec cta)
   view:"home", studyTab:"resumen", estudios:[], hallazgos:[], customHeur:[], customSesgos:[],
   activeId:null, catFilter:"todos", catQuery:"",
   hzTipo:"todos", hzSev:"todos", hzHeur:"todos", hzQuery:"", homeQuery:"",

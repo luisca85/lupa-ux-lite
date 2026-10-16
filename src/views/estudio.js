@@ -18,8 +18,11 @@ export function renderStudyShell(){
   if(!est){ state.view="home"; return renderHome(); }
   const tab=STUDY_TABS.find(t=>t.id===state.studyTab&&!t.oculta)||STUDY_TABS[0];
   const navBtn=t=>`<button data-t="${t.id}" class="${tab.id===t.id?'on':''}" title="${t.label}${proximamente(t.id)?" · Próximamente":""}"${tab.id===t.id?' aria-current="page"':''}>${bigIco(t.ico)}<span class="lb">${t.label}</span>${t.id==="hallazgos"?`<span class="cnt">${state.hallazgos.length}</span>`:""}${proximamente(t.id)?`<span class="pronto">Pronto</span>`:""}</button>`;
+  // Estudio de ejemplo (spec cta): se recorre pero no se edita.
+  document.body.classList.toggle("solo-lectura",!!est.ejemplo);
   view.innerHTML=`
     <div class="proj">
+    ${est.ejemplo?`<div class="ej-aviso" role="note"><b>Estudio de ejemplo</b> · solo lectura. Recorrelo para ver cómo se arma un diagnóstico.</div>`:""}
     <header class="study-head">
       <nav class="sh-crumbs" aria-label="Ruta">
         <button class="icon-btn sh-backbtn" id="backArrow" title="Volver a estudios" aria-label="Volver a estudios"><span class="fig-ico ico-volver" aria-hidden="true"></span></button>
@@ -40,7 +43,7 @@ export function renderStudyShell(){
         </div>
         <div class="sh-side">
           ${est.estado?`<span class="sh-status" data-e="${esc(est.estado)}"><i aria-hidden="true"></i>${esc(est.estado)}</span>`:""}
-          <button class="btn sm" id="editStudy">${pencil()} Editar estudio</button>
+          ${est.ejemplo?"":`<button class="btn sm" id="editStudy">${pencil()} Editar estudio</button>`}
         </div>
       </div>
     </header>
@@ -55,7 +58,7 @@ export function renderStudyShell(){
     </div>`;
   document.getElementById("backHome").onclick=goHome;
   document.getElementById("backArrow").onclick=goHome;
-  document.getElementById("editStudy").onclick=()=>studyModal(est);
+  const editar=document.getElementById("editStudy"); if(editar) editar.onclick=()=>studyModal(est);
   document.getElementById("psNav").querySelectorAll("button").forEach(b=>b.onclick=()=>goStudyTab(b.dataset.t));
   const c=document.getElementById("studyContent");
   if(proximamente(tab.id)) renderProximamente(c,tab.id);

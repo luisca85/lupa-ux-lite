@@ -97,6 +97,14 @@ excepción: queda global y solo la toca su dueño (`dueño` en `publicos/{id}`).
 `usuarios` (id, email, creado) da el id; en desarrollo (`AUTH_MODE="none"`) la cuenta es
 `local`, y el encabezado `x-lupa-dev-user` simula otras para las pruebas. Los datos de
 antes de las cuentas se pasan con `scripts/migrar-cuentas.mjs`.
+
+Beta (fase 3, solo `AUTH_MODE="cuentas"` y sin `ADMIN_EMAILS`): 1 estudio propio a la
+vez y 15 pantallas por estudio (403 con `limite`), y `MAX_CUENTAS` cuentas (por defecto
+100; los emails nuevos con los cupos llenos van a la tabla `espera`). El estudio de
+ejemplo vive en `ejemplo/estudios/ejemplo-{id}/…`. Todas las cuentas lo ven como
+`estudios/ejemplo-{id}` (la lista de `estudios` lo suma con `ejemplo: true`), de solo
+lectura: la API responde 403 y `backend.js` lo frena antes. Se publica con
+`scripts/publicar-ejemplo.mjs`. Las rutas que empiezan con `ejemplo/` se rechazan.
 - `estudios/{id}` — estudio. Incluye el objeto `reporte` embebido (resumen,
   diagnóstico, propuestas, muestra, toggles del reporte online, marca por defecto).
 - `estudios/{id}/pantallas/{pid}` — pantalla del estudio (nombre, origen imagen/url, url,
@@ -135,7 +143,7 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
   `AUTH_CODIGO_EN_RESPUESTA="1"` (solo desarrollo y tests) devuelve el código sin email.
 - `GET /api/health`, `GET|PUT|DELETE /api/doc?path=`, `GET /api/collection?path=`,
   `GET /api/export` (solo lo de la cuenta y sus links públicos), `GET /api/me`
-  (`{id, email, local, modo}`: la cuenta de quien entró).
+  (`{id, email, local, modo, admin, limites}`: la cuenta de quien entró y su uso).
 - Tabla `docs(path PK, parent, data JSON, updated_at)`; las colecciones se resuelven
   con `WHERE parent = ?` (índice). Rutas validadas: segmentos `[A-Za-z0-9_.:-]`,
   par = doc, impar = colección. Documentos de hasta ~1,9 MB (límite de fila de D1).

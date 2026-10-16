@@ -94,7 +94,28 @@ async function cuentaDe(env, email, local) {
     await env.DB.prepare("INSERT OR IGNORE INTO usuarios (id, email, creado) VALUES (?, ?, ?)").bind(crypto.randomUUID(), email, Date.now()).run();
     row = await buscar();
   }
-  return { user: { id: row.id, email, local } };
+  return { user: { id: row.id, email, local, admin: esAdmin(env, email) } };
+}
+
+/* ---------- Límites de la beta (spec cta, fase 3) ----------
+   Solo con AUTH_MODE="cuentas" y para quien no es administrador (ADMIN_EMAILS). */
+const LIMITE_ESTUDIOS = 1, LIMITE_PANTALLAS = 15;
+const admins = (env) => String(env.ADMIN_EMAILS || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+const esAdmin = (env, email) => !!email && admins(env).includes(String(email).toLowerCase());
+const conLimites = (env, user) => env.AUTH_MODE === "cuentas" && !user.admin;
+const maxCuentas = (env) => Math.max(0, Number(env.MAX_CUENTAS) || 100);
+const contar = async (env, parent) => (await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE parent = ?").bind(parent).first()).n;
+
+// Alta de un documento nuevo que choca con un límite: devuelve la Response 403, o null.
+async function chocaLimite(env, pedida, path, user) {
+  if (!conLimites(env, user)) return null;
+  const segs = pedida.split("/");
+  const esNuevo = async () => !(await env.DB.prepare("SELECT 1 FROM docs WHERE path = ?").bind(path).first());
+  if (segs.length === 2 && segs[0] === "estudios" && (await esNuevo()) && (await contar(env, parentOf(path))) >= LIMITE_ESTUDIOS)
+    return json({ error: "En la beta podés tener 1 estudio.", limite: "estudios" }, 403);
+  if (segs.length === 4 && segs[0] === "estudios" && segs[2] === "pantallas" && (await esNuevo()) && (await contar(env, parentOf(path))) >= LIMITE_PANTALLAS)
+    return json({ error: `En la beta cada estudio puede tener hasta ${LIMITE_PANTALLAS} pantallas.`, limite: "pantallas" }, 403);
+  return null;
 }
 
 // Devuelve { denied } con una Response de error si el pedido no está autorizado,
@@ -265,7 +286,7 @@ async function usuarioDeSesion(request, env) {
   const row = await env.DB.prepare(
     "SELECT u.id, u.email FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id WHERE s.token_hash = ? AND s.expira > ?"
   ).bind(await sha256hex(token), Date.now()).first();
-  return row ? { id: row.id, email: row.email, local: false } : null;
+  return row ? { id: row.id, email: row.email, local: false, admin: esAdmin(env, row.email) } : null;
 }
 
 // Crea la cuenta si es la primera vez y abre la sesión. Devuelve el encabezado Set-Cookie.
@@ -344,6 +365,17 @@ async function auth(route, request, env) {
     if (!(await verificarTurnstile(env, body.turnstile, request.headers.get("cf-connecting-ip"))))
       return json({ error: "No pudimos verificar que no seas un robot. Probá de nuevo.", turnstile: true }, 400);
 
+    // Cupos de la beta: un email nuevo con los cupos completos queda en la lista de espera.
+    if (!esAdmin(env, email) && !(await env.DB.prepare("SELECT 1 FROM usuarios WHERE email = ?").bind(email).first())) {
+      const total = (await env.DB.prepare("SELECT COUNT(*) AS n FROM usuarios").first()).n;
+      const lista = admins(env), ph = lista.map(() => "?").join(",");
+      const deAdmins = lista.length ? (await env.DB.prepare(`SELECT COUNT(*) AS n FROM usuarios WHERE email IN (${ph})`).bind(...lista).first()).n : 0;
+      if (total - deAdmins >= maxCuentas(env)) {
+        await env.DB.prepare("INSERT OR IGNORE INTO espera (email, creado) VALUES (?, ?)").bind(email, now).run();
+        return json({ error: "Los cupos de la beta están completos. Te avisamos cuando haya lugar.", cupos: true }, 403);
+      }
+    }
+
     const id = crypto.randomUUID(), codigo = codigoAzar(), token = azarHex(32);
     await env.DB.prepare("UPDATE codigos SET usado = 1 WHERE email = ? AND usado = 0").bind(email).run(); // el anterior deja de valer
     await env.DB.prepare("DELETE FROM codigos WHERE creado < ?").bind(now - 86400000).run(); // limpieza
@@ -391,9 +423,17 @@ async function esDuenioPublico(env, path, user) {
   return !row || JSON.parse(row.data)["dueño"] === user.id;
 }
 
+/* Estudio de ejemplo (spec cta, fase 3): vive en ejemplo/estudios/ejemplo-{id}/… (global)
+   y todas las cuentas lo ven como "estudios/ejemplo-{id}/…", de solo lectura. Se publica
+   desde un estudio del administrador con scripts/publicar-ejemplo.mjs. */
+const esEjemplo = (path) => { const s = path.split("/"); return s[0] === "estudios" && s.length >= 2 && s[1].startsWith("ejemplo-"); };
+const soloLectura = () => json({ error: "El estudio de ejemplo es de solo lectura.", soloLectura: true }, 403);
+
 // Traduce la ruta del cliente a la de D1, o devuelve una Response de error.
-async function rutaReal(env, path, user) {
-  if (path.split("/")[0] === "u") return { error: json({ error: "Ruta reservada" }, 400) };
+async function rutaReal(env, path, user, escribe) {
+  const raiz = path.split("/")[0];
+  if (raiz === "u" || raiz === "ejemplo") return { error: json({ error: "Ruta reservada" }, 400) };
+  if (esEjemplo(path)) return escribe ? { error: soloLectura() } : { path: "ejemplo/" + path };
   if (!esPublico(path)) return { path: enCuenta(path, user) };
   if (!(await esDuenioPublico(env, path, user))) return { error: json({ error: "No encontrado" }, 404) };
   return { path };
@@ -422,7 +462,12 @@ export async function onRequest({ request, env, params }) {
   if (denied) return denied;
 
   // Quién está usando la app (sale del token de Access ya verificado).
-  if (route === "me" && method === "GET") return json({ id: user.id, email: user.email, local: user.local, modo: env.AUTH_MODE || "access" });
+  if (route === "me" && method === "GET") {
+    const yo = { id: user.id, email: user.email, local: user.local, modo: env.AUTH_MODE || "access", admin: !!user.admin, limites: null };
+    if (env.DB && conLimites(env, user))
+      yo.limites = { estudios: LIMITE_ESTUDIOS, pantallas: LIMITE_PANTALLAS, uso: { estudios: await contar(env, enCuenta("estudios", user)) } };
+    return json(yo);
+  }
 
   if (!env.DB) return json({ error: "Falta el binding D1 'DB'." }, 500);
 
@@ -435,12 +480,15 @@ export async function onRequest({ request, env, params }) {
     if (route === "doc") {
       const pedida = parsePath(url.searchParams.get("path"), "doc");
       if (!pedida) return json({ error: "Ruta de documento inválida" }, 400);
-      const { path, error } = await rutaReal(env, pedida, user);
+      const { path, error } = await rutaReal(env, pedida, user, method !== "GET");
       if (error) return error;
 
       if (method === "GET") {
         const row = await env.DB.prepare("SELECT data FROM docs WHERE path = ?").bind(path).first();
-        return json(row ? { exists: true, data: JSON.parse(row.data) } : { exists: false, data: {} });
+        if (!row) return json({ exists: false, data: {} });
+        const data = JSON.parse(row.data);
+        if (esEjemplo(pedida) && pedida.split("/").length === 2) data.ejemplo = true;
+        return json({ exists: true, data });
       }
       if (method === "PUT") {
         const text = await request.text();
@@ -451,6 +499,8 @@ export async function onRequest({ request, env, params }) {
         if (data === null || typeof data !== "object" || Array.isArray(data))
           return json({ error: "El documento debe ser un objeto" }, 400);
         if (esPublico(path) && path.split("/").length === 2) data["dueño"] = user.id;
+        const limite = await chocaLimite(env, pedida, path, user);
+        if (limite) return limite;
         await env.DB.prepare(
           "INSERT INTO docs (path, parent, data, updated_at) VALUES (?1, ?2, ?3, ?4) " +
           "ON CONFLICT(path) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at"
@@ -467,10 +517,16 @@ export async function onRequest({ request, env, params }) {
     if (route === "collection" && method === "GET") {
       const pedida = parsePath(url.searchParams.get("path"), "collection");
       if (!pedida) return json({ error: "Ruta de colección inválida" }, 400);
-      const { path, error } = await rutaReal(env, pedida, user);
+      const { path, error } = await rutaReal(env, pedida, user, false);
       if (error) return error;
       const { results } = await env.DB.prepare("SELECT path, data FROM docs WHERE parent = ? ORDER BY path").bind(path).all();
-      return json({ docs: results.map((r) => ({ id: lastSeg(r.path), data: JSON.parse(r.data) })) });
+      const docs = results.map((r) => ({ id: lastSeg(r.path), data: JSON.parse(r.data) }));
+      // La lista de estudios suma los de ejemplo, marcados (la app los muestra primero).
+      if (pedida === "estudios") {
+        const { results: ej } = await env.DB.prepare("SELECT path, data FROM docs WHERE parent = 'ejemplo/estudios' ORDER BY path").all();
+        ej.forEach((r) => docs.push({ id: lastSeg(r.path), data: { ...JSON.parse(r.data), ejemplo: true } }));
+      }
+      return json({ docs });
     }
 
     if (route === "export" && method === "GET") {

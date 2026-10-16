@@ -89,10 +89,12 @@ Se construye en 4 fases, en este orden. Cada fase se revisa antes de seguir:
   hallazgos y la vista previa del reporte. Arriba hay un aviso "Estudio de ejemplo ·
   solo lectura". No se pueden editar, agregar ni borrar cosas ni compartirlo: los
   controles no aparecen y la API responde 403 a cualquier escritura.
-- Dado el administrador (`ADMIN_EMAILS`), cuando entra, entonces puede editar el
-  estudio de ejemplo (vive en `ejemplo/estudios/{id}`, sin prefijo de cuenta). El
-  administrador no ocupa uno de los 100 cupos ni tiene límites de estudios o
-  pantallas.
+- Dado el administrador (`ADMIN_EMAILS`), cuando quiere cambiar el ejemplo, entonces
+  edita un estudio propio en la app y lo publica con `scripts/publicar-ejemplo.mjs`,
+  que lo copia a `ejemplo/estudios/ejemplo-{id}` (sin prefijo de cuenta y sin su link
+  público). Volver a correrlo reemplaza la copia. El ejemplo no se edita desde la app,
+  ni siquiera el administrador. El administrador no ocupa uno de los 100 cupos ni
+  tiene límites de estudios o pantallas.
 - Dado el estudio de ejemplo, cuando se arma, entonces evalúa una app **inventada**,
   con pantallas hechas a propósito (sin capturas de productos reales). Así no hay
   problemas de derechos.
@@ -225,3 +227,11 @@ casillas de código, y el email con botón y código. Se ajustan mirando la vist
 - Cuando se acerquen los límites gratis: Resend Pro (US$20 por mes) si se pasan los
   100 emails por día, y Workers Paid (US$5 por mes, 10 GB en D1) o R2 para las
   imágenes si la base se acerca a 500 MB. R2 pide una tarjeta para activarse.
+- Fase 3 (2026-10-16): en el ejemplo se ocultan los controles principales de edición
+  (`body.solo-lectura` en `base.css`). Cualquier otro que quede visible lo frena
+  `backend.js` sin ir al servidor, con el aviso "El estudio de ejemplo es de solo
+  lectura.", y la API responde 403. Revisar a mano si queda algún control a la vista.
+- **A CONFIRMAR: la marca por defecto.** `marcaActual()` (`reportes/comun.js`) usa como
+  valores por defecto los datos de uxuaria: "Luis Carlos Romero León", el rol, el sitio
+  y el servicio "MV Rescue". Una cuenta nueva los ve en el menú de usuario y, si no
+  carga su marca, también en su reporte. Hay que resolverlo antes del lanzamiento (fase 4).

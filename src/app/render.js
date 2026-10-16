@@ -60,6 +60,7 @@ export function render(){
   renderTopbar();
   renderPie();
   document.body.classList.toggle("in-study",state.view==="study");
+  if(state.view!=="study") document.body.classList.remove("solo-lectura");
   document.body.classList.toggle("in-home",state.view==="home");
   document.body.classList.toggle("in-legal",state.view==="legal");
   const top=document.querySelector("header.top"); if(top) document.documentElement.style.setProperty("--top-h",top.offsetHeight+"px");

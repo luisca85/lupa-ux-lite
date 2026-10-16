@@ -56,7 +56,9 @@ function renderStage(){
       <button class="ws-nav" id="wsNext" aria-label="Ver más pantallas" title="Más pantallas" hidden>${chevR()}</button>
       <div class="ws-all-wrap"><button class="ws-all" id="wsAll" aria-haspopup="listbox" aria-expanded="false" title="Ver todas las pantallas" hidden>Todas <span class="c">${ps.length}</span></button>
         <div class="ws-all-menu" id="wsAllMenu" role="listbox" aria-label="Todas las pantallas" hidden>${ps.map((x,i)=>`<button role="option" aria-selected="${x.id===p.id}" class="${x.id===p.id?'on':''}" data-p="${x.id}"><span class="i">${i+1}</span><span class="nm">${esc(x.nombre)}</span>${x.origen==="url"?`<span class="url-b">URL</span>`:""}<span class="c">${cnt(x.id)}</span></button>`).join("")}</div></div>
-      <button class="ws-new" id="wsAdd">Nueva pantalla <span class="fig-ico ico-mas" aria-hidden="true"></span></button>
+      ${(()=>{ const lim=state.cuenta&&state.cuenta.limites; return lim&&ps.length>=lim.pantallas
+        ?`<button class="ws-new off" id="wsAdd" disabled title="En la beta cada estudio puede tener hasta ${lim.pantallas} pantallas">${ps.length} de ${lim.pantallas} pantallas</button>`
+        :`<button class="ws-new" id="wsAdd">Nueva pantalla <span class="fig-ico ico-mas" aria-hidden="true"></span></button>`; })()}
     </div>
     <div class="ws-canvas" id="wsCanvas">
       <div class="ws-tools"><button class="ws-tool" id="wsCambiar" title="Cambiar pantalla (nombre, URL o imagen)" aria-label="Cambiar pantalla"><span class="fig-ico ico-pant-cambiar" aria-hidden="true"></span></button>

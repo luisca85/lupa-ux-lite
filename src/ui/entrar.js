@@ -63,6 +63,7 @@ export function mostrarEntrada({ turnstile = null } = {}){
       const r = await post("codigo", { email, turnstile:tsToken });
       if(r.ok){ return pasoCodigo(r.codigo); }
       if(r.status === 429 && r.espera) return pasoCodigo(null, r.error, r.espera); // ya hay un código en camino
+      if(r.cupos) return pasoCupos(r.error);
       btn.disabled = false; btn.textContent = "Continuar con email"; err.textContent = r.error;
       if(turnstile && window.turnstile && tsId != null){ window.turnstile.reset(tsId); tsToken = ""; }
     };
@@ -111,6 +112,17 @@ export function mostrarEntrada({ turnstile = null } = {}){
     };
     el.querySelector("#entVolver").onclick = () => pasoEmail();
     ds[0].focus();
+  }
+
+  // Beta llena (MAX_CUENTAS): el email quedó en la lista de espera; no se mandó nada.
+  function pasoCupos(msg){
+    el.innerHTML = `<div class="ent-box">${marca}
+      <h1 class="ent-t">Cupos completos</h1>
+      <p class="ent-s">${esc(msg || "Los cupos de la beta están completos. Te avisamos cuando haya lugar.")}</p>
+      <p class="ent-s">Anotamos <b>${esc(email)}</b> en la lista de espera.</p>
+      <div class="ent-acts"><button type="button" class="ent-link" id="entVolver">← Usar otro email</button></div>
+    </div>`;
+    el.querySelector("#entVolver").onclick = () => pasoEmail();
   }
 
   pasoEmail(avisoLink);

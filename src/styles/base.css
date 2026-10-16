@@ -1138,3 +1138,12 @@ body.entrando header.top,body.entrando #view,body.entrando .site-pie{display:non
 .ent-link:disabled{color:var(--muted);text-decoration:none;cursor:default}
 .ent-dev{margin:0;font-size:12.5px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:6px;padding:8px 10px}
 @media (max-width:420px){.ent-box{padding:24px 18px}.ent-cod{gap:6px}}
+/* Beta (spec cta): estudio de ejemplo de solo lectura y límites */
+.chip.ej{background:#eef4ff;color:#1d4fb8;border-color:#c9d9fb}
+.study-card.ejemplo{border-style:dashed}
+.study-add.off,.study-add.off:hover{cursor:default;opacity:.7;border-color:var(--line-strong);background:var(--surface-2)}
+.ws-new.off{opacity:.65;cursor:default}
+.ej-aviso{padding:9px 32px;background:#eef4ff;color:#1d3f8a;border-bottom:1px solid #c9d9fb;font-size:13px}
+@media (max-width:640px){.ej-aviso{padding:9px 16px}}
+/* En el ejemplo no se muestran los controles que editan: lo que quede, lo frena backend.js */
+body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave,#hfDel,#dashNewHz,#rpShare,#rptShareCard,#shPinNew,#cfSave,#cfDel,#rptAddProp){display:none!important}

@@ -50,6 +50,8 @@ async function init(){
   }
   state.view="home";
   render();
+  // Cuenta y límites de la beta (spec cta): la home los usa para la tarjeta "Nuevo estudio".
+  sesion.then(u=>{ state.cuenta=u||null; if(u&&u.limites&&state.view==="home") render(); }).catch(()=>{});
   // Bienvenida la primera vez de cada usuario (por email de Access; sin login, "local").
   sesion.then(u=>onboardingInicial(u&&!u.local?u.email:null)).catch(()=>onboardingInicial(null));
 }
