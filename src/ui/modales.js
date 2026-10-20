@@ -37,6 +37,10 @@ export function openConfirm(title,msg,onYes,yesLabel="Eliminar"){
   document.getElementById("cYes").onclick=async()=>{await onYes();close();};
 }
 let toastT;
+// Indicador de carga para la vista principal (abrir la app, abrir un estudio).
+export function vistaCargando(texto){
+  return `<div class="cargando" role="status" aria-live="polite"><span class="cargando-giro" aria-hidden="true"></span><span>${esc(texto||"Cargando…")}</span></div>`;
+}
 export function toast(msg){
   const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1900);

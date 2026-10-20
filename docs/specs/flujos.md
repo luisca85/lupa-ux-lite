@@ -7,6 +7,41 @@ Objetivo: evaluar recorridos por tarea o escenario, no pantallas sueltas: un
 diagrama de interacciones conectadas, cada una con su imagen y sus hallazgos.
 
 ## Criterios de aceptación
+
+### Sección Flujos (habilitada el 2026-10-20, exploración `explorar/seccion-flujos`)
+- Dada la barra del estudio, cuando se ve, entonces "Flujos" ya no dice "Pronto" y abre
+  la sección. Protopersonas sigue en "Próximamente".
+- Dado un estudio sin flujos, cuando se abre Flujos, entonces se ve un estado vacío:
+  - a la izquierda, una explicación breve (ilustración, "Hallazgos en cada paso", "En el
+    reporte");
+  - a la derecha, dos cards grandes: **User Journey** ("Crear user journey") y
+    **User Flow** ("Crear user flow"), cada una con su explicación.
+
+  En pantallas de 900 px o menos, las cards van primero.
+- Dada una de esas cards, cuando se toca, entonces se abre el alta ("Nuevo User Journey"
+  o "Nuevo User Flow") con el tipo ya elegido y fijo. Solo pide nombre y descripción.
+  Al guardar se abre el editor de ese tipo.
+- Dado un estudio con flujos, cuando se abre Flujos, entonces se ve:
+  - el título "Flujos" con la cantidad y los botones **+ User Flow** y
+    **+ User Journey**;
+  - los flujos agrupados en "User Flows" y "User Journeys", con su cantidad. Un grupo
+    vacío ofrece "Todavía no hay … Crear el primero".
+- Dada una card de flujo, cuando se ve, entonces muestra una vista previa (hasta 4
+  pantallas del User Flow, o la curva emocional del journey) y sus conteos:
+  - User Flow: interacciones, conexiones y hallazgos;
+  - User Journey: etapas, pasos y hallazgos.
+
+  Los más nuevos van primero.
+- Dada una interacción sin imagen, cuando se abre, entonces ofrece **"Usar una pantalla
+  del estudio"**, con las pantallas de Hallazgos en miniatura. Abajo sigue la opción de
+  subir una captura solo para el flujo.
+  - Al elegir una pantalla, la interacción la usa sin copiarla (`pantallaId`) y toma su
+    nombre si todavía se llamaba "Interacción N".
+  - Un hallazgo marcado sobre esa imagen queda también en esa pantalla (`pantallaId` y
+    `pin`), así que se ve en Hallazgos.
+  - "Desvincular la pantalla" no la borra de Hallazgos.
+
+### User Flows
 - Dado un estudio, cuando se crea un flujo con nombre, tipo (`User Flow` o
   `User Journey`) y descripción opcional, entonces aparece en la lista y se abre
   su editor (el journey abre su propio editor, ver `journeys.md`). Sin nombre no se crea.
@@ -75,9 +110,13 @@ N/A
 ## Dónde vive
 `src/flujos/flujos.js` (`flowStore`, lista, modal), `diagrama.js` (editor),
 `detalle-nodo.js` (imagen, marcadores, hallazgos). Datos:
-`estudios/{id}/flujos/{fid}` con `nodes:[{id,x,y,titulo,ve,hace,imgId,imgThumb,
-markers:[{id,x,y,hallazgoId}]}]` y `edges:[{id,from,to,tipo,label}]`; imágenes en
+`estudios/{id}/flujos/{fid}` con `nodes:[{id,x,y,titulo,ve,hace,pantallaId,imgId,imgThumb,
+markers:[{id,x,y,hallazgoId}]}]` (`pantallaId`: pantalla del estudio; si no, `imgId` propia) y `edges:[{id,from,to,tipo,label}]`; imágenes en
 `.../flujos/{fid}/imgs/{imgId}`.
+
+Sección y lista: `renderFlujosVacio`, `OPCIONES_FLUJO`, `renderFlowList`, `flowPreview` y
+`flowCard` en `flujos.js`. Pantallas del estudio en la interacción: `usarPantalla` y
+`tieneImagen` en `detalle-nodo.js`. Estilos: `.flx-*` y `.nd-pant*` en `base.css`.
 
 ## Conocido
 - Una interacción nueva aparece casi encima de la anterior en el diagrama.

@@ -9,23 +9,31 @@ import { esc } from "./core/util.js";
 import { DB_MODE, initBackend } from "./data/backend.js";
 import { store } from "./data/store.js";
 import { mountSesion } from "./ui/sesion.js";
+import { mostrarEntrada } from "./ui/entrar.js";
 import { onboardingInicial } from "./ui/onboarding.js";
 import { abrirReportePublico, idPublicoDeLaURL } from "./share/publico.js";
 import { brandStore } from "./reportes/comun.js";
-import { toast } from "./ui/modales.js";
+import { toast, vistaCargando } from "./ui/modales.js";
 import { initTheme } from "./ui/tema.js";
+import { abrirLegalPublica, idLegalDeLaURL } from "./views/legal.js";
 
 /* ============ Init ============ */
 async function init(){
   // Link público /r/{id}: solo pide el PIN y muestra la foto publicada; no inicia la app.
   const pubId=idPublicoDeLaURL();
   if(pubId){ abrirReportePublico(pubId); return; }
+  // Términos y privacidad públicos (/legal/{id}): sin login ni API.
+  const legalId=idLegalDeLaURL();
+  if(legalId){ initTheme(); abrirLegalPublica(legalId); return; }
   // Un guardado que falla (sin conexión, sesión vencida, documento muy grande) no
   // debe pasar en silencio: lo mostramos como aviso.
   window.addEventListener("unhandledrejection",e=>{ const m=e.reason&&e.reason.message; if(m&&DB_MODE==="server")toast(m); });
   initTheme();
+  view.innerHTML=vistaCargando("Cargando tus estudios…");
   document.getElementById("brandBtn").onclick=goHome;
   const apiErr=await initBackend();
+  // Servidor con cuentas y sin sesión: pantalla de entrada (email + código).
+  if(apiErr&&apiErr.entrar){ mostrarEntrada(apiErr.entrar); return; }
   if(apiErr){
     view.innerHTML=`<div class="empty"><h3>El servidor no está disponible</h3><p>${esc(apiErr)}</p><button class="btn primary" onclick="location.reload()">Reintentar</button></div>`;
     return;
@@ -47,6 +55,8 @@ async function init(){
   }
   state.view="home";
   render();
+  // Cuenta y límites de la beta (spec cta): la home los usa para la tarjeta "Nuevo estudio".
+  sesion.then(u=>{ state.cuenta=u||null; if(u&&u.limites&&state.view==="home") render(); }).catch(()=>{});
   // Bienvenida la primera vez de cada usuario (por email de Access; sin login, "local").
   sesion.then(u=>onboardingInicial(u&&!u.local?u.email:null)).catch(()=>onboardingInicial(null));
 }

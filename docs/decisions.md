@@ -161,3 +161,24 @@ Luis Carlos Romero; uxuaria es su marca. Si cambia el tratamiento de datos, hay 
 actualizar el texto y `ACTUALIZADO`. Pendiente: revisión legal, jurisdicción y que el
 cliente pueda leer las condiciones desde el link público. Motivo: que quien usa la
 herramienta sepa qué se guarda, dónde y con quién se comparte.
+
+2026-10-16 - Cuentas propias con código por email (spec `cta`) en lugar de Cloudflare
+Access, contraseñas o un servicio externo (Supabase, Clerk). `/api/auth/*` se suma a
+`POST /api/publico` como única ruta fuera de `authorize()`; solo toca `codigos`,
+`sesiones` y `usuarios`, y guarda solo hashes. Cada cuenta guarda sus datos bajo
+`u/{id}/` (el prefijo lo pone la API) y `publicos/{id}` lleva `dueño`. Motivo: lanzar
+gratis para 100 personas (Access gratis llega a 50 usuarios), sin contraseñas que
+proteger con 10 ms de CPU y sin reescribir la capa de datos.
+
+2026-10-16 - Producción pasa de `lupaux.uxuaria.com` a `lupa.uxuaria.com` con el lanzamiento
+de las cuentas. `lupaux.uxuaria.com` queda con una redirección 301 que conserva la ruta,
+para no romper los links públicos `/r/{id}` ya enviados a clientes. Motivo: nombre más
+corto y claro para la beta.
+
+2026-10-20 - Legales: rigen las leyes de Argentina (Ley 25.326) y el responsable es Luis
+Carlos Romero León (marca uxuaria). Las condiciones del link público son genéricas para
+todas las cuentas. La cláusula de mención en redes y portfolio solo se pide en los
+reportes de uxuaria (`mencion`, que fija el servidor). `/legal/{id}` se lee sin cuenta.
+La beta se lanza **sin revisión legal**: el riesgo lo asume el responsable y la
+revisión queda pendiente. Motivo: abrir la beta gratis ya y revisar con un abogado
+antes de crecer más allá de los 100 cupos.

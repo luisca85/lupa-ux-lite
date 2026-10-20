@@ -1,11 +1,13 @@
+import { state } from "../core/state.js";
 import { esc } from "../core/util.js";
 import { marcaActual } from "../reportes/comun.js";
 import { abrirOnboarding } from "./onboarding.js";
 
-/* ============ Sesión visible (Cloudflare Access) ============ */
-// El login lo hace Access antes de que cargue la app; acá solo mostramos quién
-// entró (GET /api/me) y ofrecemos el logout estándar de Access. Devuelve el usuario
-// (o null) para que el onboarding sepa a quién recordar.
+/* ============ Sesión visible ============ */
+// Con cuentas (AUTH_MODE="cuentas") se entra con código por email (ui/entrar.js) y se
+// cierra sesión con POST /api/auth/salir. Con Cloudflare Access, el login lo hace Access
+// y se usa su logout estándar. Acá mostramos quién entró (GET /api/me). Devuelve el
+// usuario (o null) para que el onboarding sepa a quién recordar.
 const LOGOUT_URL = "/cdn-cgi/access/logout";
 
 export async function mountSesion(){
@@ -17,6 +19,7 @@ export async function mountSesion(){
     if(r.ok && (r.headers.get("content-type")||"").includes("application/json")) user = await r.json();
   }catch(e){}
   if(!user) return null;
+  state.cuenta = user; // antes de marcaActual(): una cuenta de la beta no hereda la marca de uxuaria
 
   const email = user.email || "";
   const nombre = user.local ? "Desarrollo local" : (marcaActual().nombre || email.split("@")[0] || "Sesión activa");
@@ -32,14 +35,16 @@ export async function mountSesion(){
       <div class="user-menu-h">
         <span class="user-av lg">${esc(initial)}</span>
         <div><div class="user-menu-t">${esc(user.local ? nombre : (email || nombre))}</div>
-        <div class="user-menu-s">${user.local ? "Sin login (AUTH_MODE = none)" : "Sesión de Cloudflare Access"}</div></div>
+        <div class="user-menu-s">${user.local ? "Sin login (AUTH_MODE = none)" : user.modo === "cuentas" ? "Entraste con tu email" : "Sesión de Cloudflare Access"}</div></div>
       </div>
       <div class="user-menu-mode">Datos guardados en el servidor</div>
       <button type="button" class="user-menu-item" role="menuitem" id="userIntro">Ver introducción</button>
       <button type="button" class="user-menu-item" role="menuitem" id="userTheme">Cambiar tema claro / oscuro</button>
       ${user.local
         ? `<div class="user-menu-note">En producción acá aparece el email con el que entraste y el botón para cerrar sesión.</div>`
-        : `<a class="user-menu-item out" role="menuitem" href="${LOGOUT_URL}">Cerrar sesión</a>`}
+        : user.modo === "cuentas"
+          ? `<button type="button" class="user-menu-item out" role="menuitem" id="userSalir">Cerrar sesión</button>`
+          : `<a class="user-menu-item out" role="menuitem" href="${LOGOUT_URL}">Cerrar sesión</a>`}
     </div>`;
 
   const chip = slot.querySelector("#userChip"), menu = slot.querySelector("#userMenu");
@@ -52,6 +57,12 @@ export async function mountSesion(){
   // El botón de tema de la barra se oculta cuando hay menú de usuario: se usa desde acá.
   slot.querySelector("#userTheme").onclick = () => { document.getElementById("themeBtn").click(); close(); };
   slot.querySelector("#userIntro").onclick = () => { close(); abrirOnboarding(email); };
+  const salir = slot.querySelector("#userSalir");
+  if(salir) salir.onclick = async () => {
+    salir.disabled = true; salir.textContent = "Cerrando…";
+    try{ await fetch("api/auth/salir", { method:"POST", credentials:"same-origin" }); }catch(e){}
+    location.replace(location.pathname || "/");
+  };
   document.addEventListener("click", e => { if(!slot.contains(e.target)) close(); });
   document.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
   return user;

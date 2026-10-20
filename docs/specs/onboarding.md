@@ -21,7 +21,7 @@ y volver a ver desde el menú de usuario. Surgió en la exploración `explorar/o
 - Dados los 5 pasos, cuando se recorren, entonces son, en orden:
   1. El espíritu: "El criterio humano es irreemplazable".
   2. Hallazgos: "El eureka: donde empieza todo diagnóstico".
-  3. Flujos: "El camino del usuario, de principio a fin", con la marca "Pronto".
+  3. Flujos: "El camino del usuario, de principio a fin" (sin "Pronto" desde el 2026-10-20).
   4. Personas: "A quién nos dirigimos", con la marca "Pronto".
   5. Reportes: "Un reporte que construye relaciones".
 - Dado el paso 1, cuando se ve, entonces "← Atrás" está deshabilitado. Dado el paso 5,
@@ -99,8 +99,8 @@ litografías antiguas de dominio público.
 - `tests/e2e/onboarding.spec.mjs`.
 
 ## Conocido
-- Los pasos 3 (Flujos) y 4 (Personas) dicen "Pronto". Cuando esas secciones estén
-  listas, hay que sacar `pronto` y el texto de cierre de `PASOS`.
+- El paso 4 (Personas) dice "Pronto". Cuando la sección esté lista, hay que sacar
+  `pronto` y el texto de cierre de `PASOS`. El paso 3 (Flujos) ya no lo dice.
 - La fuente exacta de cada imagen no quedó registrada: **A CONFIRMAR** (para dar
   crédito si hace falta).
 - "Ver introducción" solo existe en el menú de usuario, que no aparece en modo `idb`:

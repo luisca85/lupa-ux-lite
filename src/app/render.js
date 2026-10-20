@@ -10,7 +10,7 @@ import { closeHzPage } from "../views/hallazgos.js";
 import { renderHome } from "../views/home.js";
 import { renderLegal } from "../views/legal.js";
 import { renderPie } from "../ui/pie.js";
-import { toast } from "../ui/modales.js";
+import { toast, vistaCargando } from "../ui/modales.js";
 
 /* ============ Render raíz ============ */
 export const view=document.getElementById("view");
@@ -22,6 +22,9 @@ export async function openStudy(id){
   Object.assign(state,{hzGroup:null,hzQuick:null,hzForm:null,hzFormNuevo:false,hzSevF:"todas",hzPanel:"lista",hzSel:null});
   state.hzTipo="todos"; state.hzSev="todos"; state.hzHeur="todos"; state.hzQuery="";
   const est=state.estudios.find(e=>e.id===id);
+  // Abrir trae pantallas y hallazgos del servidor (y puede migrar un estudio viejo): mientras tanto, aviso.
+  document.body.classList.remove("in-home"); window.scrollTo(0,0);
+  view.innerHTML=vistaCargando(est&&est.nombre?`Abriendo ${est.nombre}…`:"Abriendo el estudio…");
   if(est){
     const r=await prepararEstudio(est);
     state.hallazgos=r.hallazgos; state.pantallas=r.pantallas;
@@ -60,6 +63,7 @@ export function render(){
   renderTopbar();
   renderPie();
   document.body.classList.toggle("in-study",state.view==="study");
+  if(state.view!=="study") document.body.classList.remove("solo-lectura");
   document.body.classList.toggle("in-home",state.view==="home");
   document.body.classList.toggle("in-legal",state.view==="legal");
   const top=document.querySelector("header.top"); if(top) document.documentElement.style.setProperty("--top-h",top.offsetHeight+"px");

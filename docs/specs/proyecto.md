@@ -58,7 +58,9 @@ reemplazó por la barra).
   (antes era Hallazgos).
 - Reportes y Configuración: ver spec `rpt`. Métricas queda oculta en la barra.
 - Hallazgos se arma como área de trabajo con pantallas + panel derecho (spec `hz`).
-- **Flujos y Protopersonas están deshabilitadas provisionalmente** (lista `PROXIMAMENTE` en
+- **Protopersonas está deshabilitada provisionalmente** (Flujos se habilitó el 2026-10-20,
+  spec `flujos`). Lo que sigue aplica hoy solo a Protopersonas. Antes: **Flujos y
+  Protopersonas estaban deshabilitadas provisionalmente** (lista `PROXIMAMENTE` en
   `views/estudio.js`; el código y los datos se conservan). En la barra llevan la etiqueta
   "Pronto" y, al entrar, muestran un aviso con una ilustración propia en SVG (usa los
   tokens del tema), la etiqueta "Próximamente", una explicación ("Próximamente vas a poder

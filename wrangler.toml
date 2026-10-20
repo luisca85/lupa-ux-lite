@@ -19,8 +19,16 @@ migrations_dir = "migrations"
 
 # --- Producción (rama main) ---
 # Los bindings no se heredan entre entornos: hay que repetir D1 acá.
+# Cuentas con código por email (spec cta). Los secretos NO van acá (el repo es público):
+#   npx wrangler pages secret put RESEND_API_KEY      (y TURNSTILE_SITE_KEY, TURNSTILE_SECRET,
+#   ADMIN_EMAILS, RESERVA_TO) — ver docs/lanzamiento.md.
+# MAX_CUENTAS sube por tandas: 20 → 50 → 100.
+# ACCESS_* queda hasta quitar Cloudflare Access (último paso del lanzamiento).
 [env.production.vars]
-AUTH_MODE = "access"
+AUTH_MODE = "cuentas"
+MAX_CUENTAS = "20"
+SESION_DIAS = "30"
+AUTH_FROM = "Lupa UX <acceso@uxuaria.com>"
 ACCESS_TEAM_DOMAIN = "https://tight-forest-2b64.cloudflareaccess.com"
 ACCESS_AUD = "1bc8e4aad1fce1a0ecb9b9af4004346d9fd1f10105b0cb444c74bb47bee2da79"
 
@@ -32,8 +40,12 @@ migrations_dir = "migrations"
 
 # --- Previews (otras ramas) ---
 # Mismo candado que producción, pero base APARTE: una rama nunca toca datos reales.
+# Sirve para probar el login con cuentas antes de pasarlo a main.
 [env.preview.vars]
-AUTH_MODE = "access"
+AUTH_MODE = "cuentas"
+MAX_CUENTAS = "20"
+SESION_DIAS = "30"
+AUTH_FROM = "Lupa UX <acceso@uxuaria.com>"
 ACCESS_TEAM_DOMAIN = "https://tight-forest-2b64.cloudflareaccess.com"
 ACCESS_AUD = "1bc8e4aad1fce1a0ecb9b9af4004346d9fd1f10105b0cb444c74bb47bee2da79"
 

@@ -25,8 +25,12 @@ function porPagina(){
 let alRedimensionar=null;
 export function renderHome(){
   const all=state.estudios, q=state.homeQuery.trim().toLowerCase();
-  // Los más recientes primero: con paginador, el que acabás de crear queda en la primera página.
-  const list=all.filter(e=>matchStudy(e,q)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  // El de ejemplo primero; después, los más recientes (con paginador, el que acabás de
+  // crear queda en la primera página).
+  const list=all.filter(e=>matchStudy(e,q)).sort((a,b)=>(!!b.ejemplo-!!a.ejemplo)||((b.createdAt||0)-(a.createdAt||0)));
+  // Límite de la beta (spec cta): con el cupo de estudios propios lleno, no se crean más.
+  const lim=state.cuenta&&state.cuenta.limites, propios=all.filter(e=>!e.ejemplo).length;
+  const sinCupo=!!lim&&propios>=lim.estudios;
   const sub=!all.length?"Todavía no hay estudios. Creá el primero para empezar a evaluar un sitio o app."
     :q?`${list.length} de ${all.length} ${all.length===1?"estudio":"estudios"} coinciden con “${esc(state.homeQuery.trim())}”`
     :`${all.length} ${all.length===1?"estudio":"estudios"}`;
@@ -34,7 +38,9 @@ export function renderHome(){
   if(state.homeQ!==q){ state.homeQ=q; state.homePagina=0; }
   const pag=Math.min(state.homePagina||0,paginas-1); state.homePagina=pag;
   const visibles=list.slice(pag*n,pag*n+n);
-  const nuevo=`<button class="study-add" id="newStudy"><span class="sa-ico" aria-hidden="true"><span class="fig-ico ico-plus"></span></span><span class="sa-t">Nuevo estudio</span><span class="sa-s">Cargá cliente, plataforma y URL</span></button>`;
+  const nuevo=sinCupo
+    ?`<button class="study-add off" id="newStudy" disabled aria-disabled="true"><span class="sa-ico" aria-hidden="true"><span class="fig-ico ico-plus"></span></span><span class="sa-t">Nuevo estudio</span><span class="sa-s">En la beta podés tener ${lim.estudios} estudio</span></button>`
+    :`<button class="study-add" id="newStudy"><span class="sa-ico" aria-hidden="true"><span class="fig-ico ico-plus"></span></span><span class="sa-t">Nuevo estudio</span><span class="sa-s">Cargá cliente, plataforma y URL</span></button>`;
   if(state.homeNuevo){
     view.innerHTML=`<div class="home"><aside class="home-rec" id="homeRec" aria-label="Recursos"></aside><section class="home-panel home-est" id="nuevoEstudio"></section></div>`;
     renderRecursos(document.getElementById("homeRec"));
@@ -50,14 +56,15 @@ export function renderHome(){
     </section>
   </div>`;
   renderRecursos(document.getElementById("homeRec"));
-  document.getElementById("newStudy").onclick=()=>{ state.homeNuevo={paso:1,datos:{plataforma:PLATAFORMAS[0],estado:"En curso",fecha:new Date().toISOString().slice(0,10)}}; renderHome(); };
+  if(!sinCupo) document.getElementById("newStudy").onclick=()=>{ state.homeNuevo={paso:1,datos:{plataforma:PLATAFORMAS[0],estado:"En curso",fecha:new Date().toISOString().slice(0,10)}}; renderHome(); };
   view.querySelectorAll("[data-pag]").forEach(b=>b.onclick=()=>{ state.homePagina=+b.dataset.pag; renderHome(); const h=view.querySelector(".home-est"); if(h) h.scrollIntoView({block:"nearest"}); });
   view.querySelectorAll("[data-study]").forEach(c=>{
     const oa=c.querySelector(".open-area");
     oa.onclick=()=>openStudy(c.dataset.study);
     oa.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openStudy(c.dataset.study);}};
-    c.querySelector(".edit").onclick=e=>{e.stopPropagation();studyModal(state.estudios.find(s=>s.id===c.dataset.study));};
-    c.querySelector(".del").onclick=e=>{e.stopPropagation();confirmDelStudy(c.dataset.study);};
+    const ed=c.querySelector(".edit"), del=c.querySelector(".del");
+    if(ed) ed.onclick=e=>{e.stopPropagation();studyModal(state.estudios.find(s=>s.id===c.dataset.study));};
+    if(del) del.onclick=e=>{e.stopPropagation();confirmDelStudy(c.dataset.study);};
   });
   // conteo de hallazgos por estudio (asíncrono)
   visibles.forEach(async e=>{
@@ -121,7 +128,7 @@ function paginador(pag,paginas,total,n){
   </nav>`;
 }
 function studyCard(e){
-  return `<div class="card study-card" data-study="${e.id}">
+  return `<div class="card study-card${e.ejemplo?" ejemplo":""}" data-study="${e.id}">
     <div class="open-area" role="button" tabindex="0">
       <div class="top-row"><div>
         <h3>${esc(e.nombre)}</h3>
@@ -129,16 +136,17 @@ function studyCard(e){
       </div>${chevR()}</div>
       ${e.url?`<div class="url">${esc(e.url)}</div>`:""}
       <div class="meta">
+        ${e.ejemplo?`<span class="chip ej">Ejemplo</span>`:""}
         ${e.plataforma?`<span class="chip plat">${esc(e.plataforma)}</span>`:""}
         ${e.estado?`<span class="chip estado" data-e="${esc(e.estado)}">${esc(e.estado)}</span>`:""}
       </div>
     </div>
     <div class="foot">
       <span class="stat"><b class="hz-count">·</b> hallazgos</span>
-      <div class="actions">
+      ${e.ejemplo?`<span class="stat">Solo lectura</span>`:`<div class="actions">
         <button class="icon-btn sm edit" title="Editar" style="width:30px;height:30px">${pencil()}</button>
         <button class="icon-btn sm del" title="Eliminar" style="width:30px;height:30px">${trash()}</button>
-      </div>
+      </div>`}
     </div>
   </div>`;
 }

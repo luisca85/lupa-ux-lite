@@ -1112,3 +1112,206 @@ body.in-home,body.in-legal{display:flex;flex-direction:column;min-height:100vh}
 .ne-acts .btn-q{height:44px;padding:0 22px;font-size:14.5px;font-weight:500;border-radius:var(--r-btn)}
 .ne-acts .btn-q.sel{min-width:180px;font-weight:600}
 @media (max-width:640px){.ne-form .pf-row{grid-template-columns:1fr}.ne-acts{flex-wrap:wrap}.ne-acts .grow{display:none}.ne-acts .btn-q{flex:1}.ne-acts .btn-q.sel{flex-basis:100%;order:-1}}
+/* Entrar: login con código por email (spec cta). Pantalla completa, sin barra ni pie. */
+body.entrando header.top,body.entrando #view,body.entrando .site-pie{display:none}
+.ent{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:var(--canvas,var(--surface-2))}
+.ent-box{width:min(400px,100%);display:flex;flex-direction:column;gap:14px;padding:32px 28px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.ent-marca{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ent-marca .brand-txt{display:flex;flex-direction:column;line-height:1.1}
+.ent-marca .brand-txt b{font-family:Inter,var(--font,sans-serif);font-weight:800;font-size:18px}
+.ent-marca .brand-txt small{display:block;font-size:12px;color:var(--muted)}
+.ent-t{margin:0;font-size:24px;font-weight:500;letter-spacing:-.8px;color:var(--ink)}
+.ent-s{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
+.ent-s b{color:var(--ink);font-weight:600;word-break:break-all}
+.ent-form{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.ent-form .pf input{font-size:15px;padding:10px 11px}
+.ent-ts{min-height:65px}
+.ent-err{margin:0;min-height:18px;font-size:13px;color:var(--prob)}
+.ent-btn{height:42px;border:none;border-radius:var(--r-field,6px);background:var(--primary);color:var(--primary-fg);font:inherit;font-size:14.5px;font-weight:600;cursor:pointer}
+.ent-btn:disabled{opacity:.6;cursor:default}
+.ent-btn:focus-visible,.ent-link:focus-visible,.ent-d:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.ent-cod{display:flex;gap:8px;justify-content:space-between;margin-top:6px}
+.ent-d{width:100%;max-width:50px;aspect-ratio:5/6;text-align:center;font-size:22px;font-family:var(--mono);border:1px solid var(--line-input);border-radius:var(--r-field,6px);background:var(--surface);color:var(--ink)}
+.ent-d:disabled{opacity:.6}
+.ent-acts{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ent-link{border:none;background:none;padding:4px 0;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.ent-link:disabled{color:var(--muted);text-decoration:none;cursor:default}
+.ent-dev{margin:0;font-size:12.5px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:6px;padding:8px 10px}
+@media (max-width:420px){.ent-box{padding:24px 18px}.ent-cod{gap:6px}}
+/* Beta (spec cta): estudio de ejemplo de solo lectura y límites */
+.chip.ej{background:#eef4ff;color:#1d4fb8;border-color:#c9d9fb}
+.study-card.ejemplo{border-style:dashed}
+.study-add.off,.study-add.off:hover{cursor:default;opacity:.7;border-color:var(--line-strong);background:var(--surface-2)}
+.ws-new.off{opacity:.65;cursor:default}
+.ej-aviso{padding:9px 32px;background:#eef4ff;color:#1d3f8a;border-bottom:1px solid #c9d9fb;font-size:13px}
+@media (max-width:640px){.ej-aviso{padding:9px 16px}}
+/* En el ejemplo no se muestran los controles que editan: lo que quede, lo frena backend.js */
+body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave,#hfDel,#dashNewHz,#rpShare,#rptShareCard,#shPinNew,#cfSave,#cfDel,#rptAddProp){display:none!important}
+.ent-pie{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.ent-pie .ent-link{font-size:12.5px;padding:0;color:var(--muted)}
+.ent-legal{width:min(720px,100%)}
+.ent-legal .legal-doc{padding:0;border:none;background:none;max-width:none}
+.ent-legal-nav{display:flex;gap:14px;flex-wrap:wrap}
+.ent-legal-nav .ent-link.on{font-weight:600;text-decoration:none}
+/* Indicador de carga de la vista principal (abrir la app o un estudio) */
+.cargando{min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-size:14px;padding:24px;text-align:center}
+.cargando-giro{width:28px;height:28px;border-radius:50%;border:3px solid var(--line-strong);border-top-color:var(--ink);animation:cargandoGiro .8s linear infinite}
+@keyframes cargandoGiro{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.cargando-giro{animation-duration:2.4s}}
+/* Legales públicos (/legal/{id}), sin barra ni pie */
+.legal-pub{padding-top:24px}
+.legal-pub .legal-nav a{text-decoration:none;color:inherit}
+/* Flujos: estado vacío con explicación y dos cards para empezar */
+.flx-vacio{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;align-items:stretch;margin:8px 0}
+.flx-info{padding:32px 28px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-empty);display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.flx-info h2{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.flx-info .soon-ilu{max-width:320px}
+.flx-info .soon-list{text-align:left}
+.flx-ops{display:flex;flex-direction:column;gap:16px}
+.flx-op{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:28px 26px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:border-color .15s,box-shadow .15s,transform .15s}
+.flx-op:hover{border-color:var(--ink);box-shadow:0 14px 30px -18px rgba(0,0,0,.45);transform:translateY(-1px)}
+.flx-op:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.flx-op-ico{width:44px;height:44px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center}
+.flx-op-t{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.flx-op-d{font-size:14px;line-height:21px;color:var(--muted);max-width:46ch}
+.flx-op-cta{margin-top:auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--ink)}
+@media (max-width:900px){.flx-vacio{grid-template-columns:1fr}.flx-ops{order:-1}}
+/* Flujos: elegir una pantalla del estudio para una interacción */
+.nd-pants{padding:18px;display:flex;flex-direction:column;gap:12px}
+.nd-pants-h{display:flex;flex-direction:column;gap:2px}
+.nd-pants-h b{font-size:14px}
+.nd-pants-h span{font-size:12.5px;color:var(--muted)}
+.nd-pants-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.nd-pant{display:flex;flex-direction:column;gap:6px;padding:6px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);color:var(--ink);font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.nd-pant:hover{border-color:var(--ink)}
+.nd-pant:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.nd-pant img,.nd-pant-sin{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:top;border-radius:4px;background:var(--surface-2);display:grid;place-items:center}
+.nd-pant>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nd-pants-o{font-size:12.5px;color:var(--muted);text-align:center;padding-top:4px}
+/* Con pantallas para elegir, el lienzo pasa a una columna con scroll: pantallas arriba y la captura abajo */
+.nd-stage.con-pants{overflow:auto;background-image:none;background:var(--surface);display:flex;flex-direction:column}
+.nd-stage.con-pants .ev-drop{position:static;inset:auto;margin:0 18px 18px;min-height:140px;flex:none}
+/* Flujos: lista con cabecera, dos botones para crear y grupos por tipo */
+.flx-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.flx-h{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.flx-sub{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
+.flx-nuevos{display:flex;gap:8px;flex-wrap:wrap}
+.flx-grupo{margin-bottom:24px}
+.flx-gh{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px;font-weight:600}
+.flx-gh svg{width:16px;height:16px}
+.flx-gh .cnt{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:1px 7px}
+.flx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.flx-card .open-area{display:flex;flex-direction:column;gap:10px}
+.flx-prev{height:72px;border-radius:6px;background:var(--surface-2);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.flx-prev.pants{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;align-items:stretch;justify-content:stretch}
+.flx-prev.pants img{width:100%;height:100%;object-fit:cover;object-position:top}
+.flx-prev.vacia{font-size:12px;color:var(--faint)}
+.flx-prev svg{width:100%;height:100%}
+.flx-curva{fill:none;stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke}
+.flx-punto{fill:var(--card);stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.flx-falta{width:100%;display:flex;align-items:center;gap:8px;padding:16px;border:1.5px dashed var(--line-strong);border-radius:var(--r-card);background:var(--surface);color:var(--muted);font:inherit;font-size:13.5px;cursor:pointer;text-align:left}
+.flx-falta:hover{border-color:var(--ink);color:var(--ink)}
+/* Journey: etapas por defecto (vista previa en el journey vacío) y editor de etapas */
+.jr-etapas-prev{list-style:none;margin:8px auto 0;padding:0;display:flex;flex-direction:column;gap:6px;text-align:left;max-width:520px;width:100%}
+.jr-etapas-prev li{display:grid;grid-template-columns:10px minmax(110px,170px) 1fr auto;align-items:baseline;gap:4px 10px;font-size:13px}
+@media (max-width:560px){.jr-etapas-prev li{grid-template-columns:10px 1fr}.jr-etapas-prev li span:last-child{grid-column:2}}
+.jr-etapas-prev li span:last-child{color:var(--muted)}
+.jr-et-dot{width:10px;height:10px;border-radius:50%;align-self:center}
+.jr-etapas-nota{font-size:12.5px!important;color:var(--muted)}
+.et-ayuda{margin:0 0 10px;font-size:12.5px;color:var(--muted)}
+.et-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.et-item{display:flex;align-items:flex-start;gap:8px;padding:8px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface)}
+.et-orden{display:flex;flex-direction:column;align-items:center;gap:2px}
+.et-orden .icon-btn{width:24px;height:22px}
+.et-orden .icon-btn:disabled{opacity:.3}
+.et-n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.et-campos{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.et-campos input{width:100%;border:1px solid var(--line-input);border-radius:6px;padding:6px 8px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px}
+.et-campos input:not(.et-desc){font-weight:600}
+.et-cols{display:flex;gap:6px}
+.et-col{width:18px;height:18px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer}
+.et-del{width:28px;height:28px;flex:none}
+/* Journey: agregar etapas y pasos por etapa */
+.jr-band{display:flex;align-items:center;gap:6px}
+.jr-band-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jr-band-add{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.15);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer}
+.jr-band-add:hover{background:rgba(255,255,255,.3)}
+.jr-band-add svg{width:12px;height:12px}
+.jr-sin-pasos{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px}
+.jr-sin-pasos>b{color:var(--muted);font-weight:600}
+.jr-sp{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px dashed var(--line-strong);border-radius:999px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.jr-sp:hover{border-color:var(--ink)}
+.jr-sp-add{display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:12px}
+.jr-sp-add svg{width:11px;height:11px}
+.et-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.et-top .et-ayuda{margin:0;flex:1;min-width:200px}
+.modal.et-modal{display:flex;flex-direction:column;max-height:calc(100vh - 88px)}
+.modal.et-modal .modal-b{overflow-y:auto;min-height:0}
+.jr-li-add{border:1px dashed var(--line-strong);border-radius:999px;background:var(--surface);padding:3px 9px;cursor:pointer;font:inherit;font-size:12px;align-self:center}
+.jr-li-add:hover{border-color:var(--ink);color:var(--ink)}
+@media (max-width:560px){.jr-li-add{grid-column:2;justify-self:start}}
+/* Journey: mover etapas desde el mapa y modal de etapas como selector */
+.jr-band-mov{flex:none;width:20px;height:20px;border-radius:4px;border:none;background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;opacity:.75}
+.jr-band-mov:hover{opacity:1;background:rgba(255,255,255,.28)}
+.jr-band-mov:disabled{opacity:.2;cursor:default;background:none}
+.jr-band-mov:focus-visible,.jr-band-add:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.et-sec{display:flex;flex-direction:column;gap:8px}
+.et-sec h4{margin:0;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.et-sec h4 .cnt{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:1px 7px}
+.et-item .et-n{align-self:center;min-width:16px;text-align:center}
+.et-disp{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.et-op{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:9px 11px;border:1px dashed var(--line-strong);border-radius:var(--r-card);background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.et-op:hover{border-color:var(--ink)}
+.et-op:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.et-op-t{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600}
+.et-op-t svg{width:12px;height:12px}
+.et-op-d{font-size:12px;line-height:17px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.et-nueva{display:flex;flex-direction:column;gap:6px}
+.et-nueva input{width:100%;border:1px solid var(--line-input);border-radius:6px;padding:7px 9px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px}
+.et-nueva .btn{align-self:flex-start}
+/* Journey: arrastrar bandas de etapa */
+.jr-band[data-band]{cursor:grab;touch-action:pan-y;user-select:none}
+.jr-band.arrastrando{cursor:grabbing;position:relative;z-index:5;box-shadow:0 10px 24px -8px rgba(0,0,0,.5);opacity:.92;transition:none}
+.jr-etapas .jr-cells{position:relative}
+.jr-drop-line{position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;background:var(--ink);pointer-events:none}
+.ordenando .jr-band:not(.arrastrando){transition:opacity .15s;opacity:.7}
+/* Las flechas quedan para teclado: aparecen con hover o foco */
+.jr-band-mov{opacity:0}
+.jr-band:hover .jr-band-mov:not(:disabled),.jr-band:focus-within .jr-band-mov:not(:disabled){opacity:.75}
+.jr-band .jr-band-mov:focus-visible{opacity:1}
+@media (hover:none){.jr-band-mov{display:none}}
+/* Journey: "+ Etapa" al final de la fila de etapas y lista de etapas prehechas */
+.jr-band-nueva{flex:none;height:30px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1.5px dashed var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;margin-left:8px}
+.jr-band-nueva:hover{border-color:var(--ink)}
+.jr-band-nueva svg{width:12px;height:12px}
+.et-pop{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow-lg);padding:10px;display:flex;flex-direction:column;gap:8px;max-height:min(460px,calc(100vh - 16px))}
+.et-pop-h{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:2px 4px}
+.et-pop-list{display:flex;flex-direction:column;gap:2px;overflow-y:auto;min-height:0}
+.et-pop-op{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px;border:none;border-radius:8px;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.et-pop-op:hover:not(:disabled),.et-pop-op:focus-visible{background:var(--surface-2);outline:none}
+.et-pop-op:disabled{cursor:default;color:var(--faint)}
+.et-pop-t{display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600}
+.et-pop-t svg{width:12px;height:12px}
+.et-pop-t em{font-style:normal;font-weight:400;font-size:11.5px;color:var(--faint)}
+.et-pop-d{font-size:12px;line-height:17px;color:var(--muted)}
+.et-pop-op:disabled .et-pop-d{color:var(--faint)}
+.et-pop-nueva{display:flex;gap:6px;border-top:1px solid var(--line);padding-top:8px}
+.et-pop-nueva input{flex:1;min-width:0;border:1px solid var(--line-input);border-radius:6px;padding:6px 8px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px}
+/* Journey: menú de una etapa (clic en la banda) */
+.jr-band[data-band]:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.et-menu{gap:10px}
+.et-edit{display:flex;flex-direction:column;gap:6px}
+.et-edit input,.et-edit textarea{width:100%;border:1px solid var(--line-input);border-radius:6px;padding:7px 9px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px;resize:vertical}
+.et-edit input{font-weight:600}
+.et-edit-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.et-cambiar{border-top:1px solid var(--line);padding-top:8px;min-height:0;display:flex;flex-direction:column}
+.et-cambiar summary{cursor:pointer;font-size:13px;font-weight:600;padding:2px 4px}
+.et-cambiar .et-pop-list{max-height:220px;margin-top:6px}
+.et-eliminar{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;border:none;background:none;color:var(--prob);font:inherit;font-size:13px;font-weight:600;padding:6px 4px;cursor:pointer;border-top:1px solid var(--line);width:100%}
+.et-eliminar svg{width:14px;height:14px}
+/* Botón ⋯ de cada etapa (abre su menú) y menú con scroll propio */
+.jr-band-menu{flex:none;width:24px;height:22px;border-radius:5px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer}
+.jr-band-menu:hover{background:rgba(255,255,255,.34)}
+.jr-band-menu:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.et-pop.et-menu{overflow-y:auto}
+.et-menu .et-cambiar[open] .et-pop-list{max-height:none;overflow:visible}

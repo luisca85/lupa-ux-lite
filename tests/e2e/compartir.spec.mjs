@@ -90,6 +90,13 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     await cli.locator("#pubPin").fill(pin);
     await cli.locator("#pubNombre").fill("Ana Cliente");
     await cli.locator("#pubAcepto").check();
+    await expect(cli.getByRole("link", { name: "política de privacidad" })).toHaveAttribute("href", "/legal/privacidad");
+    await cli.getByRole("button", { name: "Ver reporte" }).click();
+    // Reporte de uxuaria (sin cuentas): pide además la condición de mención.
+    await expect(cli.locator("#pubMencionBox")).toBeVisible();
+    await cli.getByRole("button", { name: "Ver reporte" }).click();
+    await expect(cli.locator("#pubErr")).toHaveText("Para ver este reporte tenés que aceptar la condición de uxuaria.");
+    await cli.locator("#pubMencion").check();
     await cli.getByRole("button", { name: "Ver reporte" }).click();
     await expect(cli.getByRole("heading", { name: estudio })).toBeVisible();
     await expect(cli.getByRole("button", { name: "Contacto" })).toHaveCount(0); // se publicó sin Contacto

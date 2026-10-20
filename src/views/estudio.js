@@ -18,8 +18,11 @@ export function renderStudyShell(){
   if(!est){ state.view="home"; return renderHome(); }
   const tab=STUDY_TABS.find(t=>t.id===state.studyTab&&!t.oculta)||STUDY_TABS[0];
   const navBtn=t=>`<button data-t="${t.id}" class="${tab.id===t.id?'on':''}" title="${t.label}${proximamente(t.id)?" · Próximamente":""}"${tab.id===t.id?' aria-current="page"':''}>${bigIco(t.ico)}<span class="lb">${t.label}</span>${t.id==="hallazgos"?`<span class="cnt">${state.hallazgos.length}</span>`:""}${proximamente(t.id)?`<span class="pronto">Pronto</span>`:""}</button>`;
+  // Estudio de ejemplo (spec cta): se recorre pero no se edita.
+  document.body.classList.toggle("solo-lectura",!!est.ejemplo);
   view.innerHTML=`
     <div class="proj">
+    ${est.ejemplo?`<div class="ej-aviso" role="note"><b>Estudio de ejemplo</b> · solo lectura. Recorrelo para ver cómo se arma un diagnóstico.</div>`:""}
     <header class="study-head">
       <nav class="sh-crumbs" aria-label="Ruta">
         <button class="icon-btn sh-backbtn" id="backArrow" title="Volver a estudios" aria-label="Volver a estudios"><span class="fig-ico ico-volver" aria-hidden="true"></span></button>
@@ -40,7 +43,7 @@ export function renderStudyShell(){
         </div>
         <div class="sh-side">
           ${est.estado?`<span class="sh-status" data-e="${esc(est.estado)}"><i aria-hidden="true"></i>${esc(est.estado)}</span>`:""}
-          <button class="btn sm" id="editStudy">${pencil()} Editar estudio</button>
+          ${est.ejemplo?"":`<button class="btn sm" id="editStudy">${pencil()} Editar estudio</button>`}
         </div>
       </div>
     </header>
@@ -55,7 +58,7 @@ export function renderStudyShell(){
     </div>`;
   document.getElementById("backHome").onclick=goHome;
   document.getElementById("backArrow").onclick=goHome;
-  document.getElementById("editStudy").onclick=()=>studyModal(est);
+  const editar=document.getElementById("editStudy"); if(editar) editar.onclick=()=>studyModal(est);
   document.getElementById("psNav").querySelectorAll("button").forEach(b=>b.onclick=()=>goStudyTab(b.dataset.t));
   const c=document.getElementById("studyContent");
   if(proximamente(tab.id)) renderProximamente(c,tab.id);
@@ -69,9 +72,9 @@ export function renderStudyShell(){
 export function goStudyTab(t){ if(state.hzPage&&t==="hallazgos") closeHzPage(); state.studyTab=t; if(t==="flujos")state.flowMode="list"; render(); window.scrollTo(0,0); }
 /* Secciones deshabilitadas provisionalmente: el código sigue, solo se muestra un aviso.
    Para habilitarlas en desarrollo o en las pruebas: localStorage "lupa:habilitar" = ["flujos", …]. */
-const PROXIMAMENTE=["flujos","protopersonas"];
+const PROXIMAMENTE=["protopersonas"];
 export const proximamente=id=>PROXIMAMENTE.includes(id)&&!(LS.get("lupa:habilitar",[])||[]).includes(id);
-const ilustraFlujos=`<svg viewBox="0 0 320 180" fill="none" aria-hidden="true">
+export const ilustraFlujos=`<svg viewBox="0 0 320 180" fill="none" aria-hidden="true">
   <rect x="8" y="58" width="74" height="54" rx="8" class="il-card"/><rect x="18" y="68" width="54" height="22" rx="4" class="il-soft"/><rect x="18" y="96" width="34" height="6" rx="3" class="il-line"/>
   <rect x="124" y="20" width="74" height="54" rx="8" class="il-card"/><rect x="134" y="30" width="54" height="22" rx="4" class="il-soft"/><rect x="134" y="58" width="40" height="6" rx="3" class="il-line"/>
   <rect x="124" y="108" width="74" height="54" rx="8" class="il-card il-dash"/><rect x="134" y="118" width="54" height="22" rx="4" class="il-soft"/><rect x="134" y="146" width="28" height="6" rx="3" class="il-line"/>

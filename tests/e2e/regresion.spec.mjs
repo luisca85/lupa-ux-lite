@@ -42,18 +42,38 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
 
   await test.step("1c. crear un flujo y un journey", async () => {
     await page.getByRole("button", { name: "Flujos", exact: true }).click();
-    await page.getByRole("button", { name: /Crear flujo|Nuevo flujo/ }).first().click();
+    // Sin flujos, Flujos muestra dos cards: el primero se crea desde "Crear user flow".
+    await page.getByRole("button", { name: /Crear user flow/ }).click();
     await page.getByPlaceholder("Ej: Alta de cuenta y primer depósito").fill("Checkout");
     await page.getByRole("button", { name: "Guardar" }).click();
     await expect(page.getByText("Flujo creado")).toBeVisible();
     await page.getByRole("button", { name: "Agregar interacción" }).click();
 
     await page.getByRole("button", { name: "Flujos", exact: true }).first().click();
-    await page.getByRole("button", { name: /Crear flujo|Nuevo flujo/ }).first().click();
-    await page.getByPlaceholder("Ej: Alta de cuenta y primer depósito").fill("Journey de compra");
-    await page.getByRole("combobox").last().selectOption("User Journey");
+    // Con flujos, la lista tiene un botón por tipo arriba.
+    await page.locator('.flx-nuevos [data-nuevo="User Journey"]').click();
+    await page.getByPlaceholder("Ej: Primera compra desde el celular").fill("Journey de compra");
     await page.getByRole("button", { name: "Guardar" }).click();
-    await page.getByRole("button", { name: "Agregar paso" }).click();
+    // Un journey nuevo arranca vacío: se agregan etapas desde la lista (por defecto o nuevas).
+    await page.locator("#jrPrimeraEtapa").click();
+    await page.locator(".et-pop-op", { hasText: "Descubrimiento" }).click();
+    await page.locator("#jrBandNueva").click();
+    await page.locator(".et-pop-op", { hasText: "Consideración" }).click();
+    await page.locator("#jrBandNueva").click();
+    await page.locator("#etPopNom").fill("Recomendación");
+    await page.locator("#etPopCrear").click();
+    await expect(page.locator(".jr-band-t")).toHaveText(["Descubrimiento", "Consideración", "Recomendación"]);
+    await expect(page.locator(".jr-phead")).toHaveCount(3); // cada etapa entra con su paso
+    // Clic en una etapa: menú para editar, cambiar o eliminar.
+    await page.locator('.jr-band[data-band]', { hasText: "Recomendación" }).locator(".jr-band-menu").click();
+    await page.locator(".et-cambiar summary").click();
+    await page.locator(".et-cambiar .et-pop-op", { hasText: "Fidelización" }).click();
+    await expect(page.locator(".jr-band-t").last()).toHaveText("Fidelización");
+    await page.locator('.jr-band[data-band]', { hasText: "Fidelización" }).locator(".jr-band-menu").click();
+    await page.locator("#etmDel").click();
+    await page.locator("#cYes").click();
+    await expect(page.locator(".jr-band-t")).toHaveText(["Descubrimiento", "Consideración"]);
+    await expect(page.locator(".jr-phead")).toHaveCount(2);
   });
 
   await test.step("1d. recargar: todo persiste", async () => {

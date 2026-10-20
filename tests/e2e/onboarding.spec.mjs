@@ -22,7 +22,8 @@ test("onboarding: 5 pasos, ir y volver, saltar y volver a verlo", async ({ page 
   await expect(page.locator(".onb-tag")).toContainText("Hallazgos");
   await page.keyboard.press("ArrowRight");
   await expect(paso).toHaveText("Paso 3 de 5");
-  await expect(page.locator(".onb-pronto")).toHaveText("Pronto");
+  await expect(page.locator(".onb-tag")).toContainText("Flujos");
+  await expect(page.locator(".onb-pronto")).toHaveCount(0); // Flujos ya está habilitada
   await page.getByRole("button", { name: "← Atrás" }).click();
   await expect(paso).toHaveText("Paso 2 de 5");
   await page.getByRole("tab", { name: /Paso 5/ }).click();

@@ -1,6 +1,6 @@
 import { state } from "../core/state.js";
 import { esc, uid } from "../core/util.js";
-import { brandStore, ensureReporte, marcaActual, saveReporte } from "./comun.js";
+import { brandStore, ensureReporte, marcaActual, saveReporte, cuentaBeta } from "./comun.js";
 import { PROP_DESC, normalizePropuesta, propMoney, propPriceLine } from "./propuestas.js";
 import { plus, trash } from "../ui/iconos.js";
 import { loadBitmap, scaleImg } from "../ui/imagenes.js";
@@ -122,12 +122,12 @@ function renderMarca(box){
     <div class="pf"><label for="br_bien">Texto de bienvenida <span class="hint">vacío = texto por defecto</span></label><textarea id="br_bien" data-k="bienvenida" placeholder="¡Hola! Gracias por tu tiempo y por el interés en este diagnóstico...">${esc(m.bienvenida||"")}</textarea></div>
     <div class="pf"><label for="br_nia">Aclaración "Hecho por una persona"</label><textarea id="br_nia" data-k="notaIA" placeholder="Este diagnóstico no fue generado por una herramienta automática de IA...">${esc(m.notaIA||"")}</textarea></div>
     <div class="pf"><label for="br_nini">Aclaración "Diagnóstico inicial"</label><textarea id="br_nini" data-k="notaInicial" placeholder="Está basado en la información que compartieron y en lo que pude explorar...">${esc(m.notaInicial||"")}</textarea></div>
-    <div class="pf-row"><div class="pf"><label for="br_svcn">Servicio destacado</label><input id="br_svcn" data-k="servicioNombre" value="${esc(m.servicioNombre||"")}" placeholder="MV Rescue"></div><div class="pf"><label for="br_svcu">URL del servicio</label><input id="br_svcu" data-k="servicioUrl" value="${esc(m.servicioUrl||"")}" placeholder="https://..."></div></div>
+    <div class="pf-row"><div class="pf"><label for="br_svcn">Servicio destacado</label><input id="br_svcn" data-k="servicioNombre" value="${esc(m.servicioNombre||"")}" placeholder="Ej: Auditoría UX"></div><div class="pf"><label for="br_svcu">URL del servicio</label><input id="br_svcu" data-k="servicioUrl" value="${esc(m.servicioUrl||"")}" placeholder="https://..."></div></div>
     <div class="pf"><label for="br_svcd">Descripción del servicio</label><textarea id="br_svcd" data-k="servicioDesc" placeholder="Qué es y a quién ayuda">${esc(m.servicioDesc||"")}</textarea></div>
     <span class="hint" id="brMsg">Los cambios se guardan solos.</span>
   </div>`;
   let t=null;
-  const guardar=async(cambios)=>{ const rec={...marcaActual(),...cambios}; if(!rec.wordmark) rec.wordmark="uxuaria"; state.marca=rec;
+  const guardar=async(cambios)=>{ const rec={...marcaActual(),...cambios}; if(!rec.wordmark&&!cuentaBeta()) rec.wordmark="uxuaria"; state.marca=rec;
     const msg=box.querySelector("#brMsg"); if(msg) msg.textContent="Guardando…";
     try{ await brandStore.save(rec); if(msg) msg.textContent="Guardado"; }
     catch(e){ console.error("marca",e); if(msg) msg.textContent="No se pudo guardar la marca."; } };

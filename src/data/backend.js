@@ -1,3 +1,5 @@
+import { mostrarEntrada } from "../ui/entrar.js";
+
 export let DB=null, USE_DB=false;
 /* Adaptador IndexedDB con la MISMA API tipo Firestore que espera store/flowStore/
    brandStore (DB.collection(path).get() y DB.doc(path).get()/set()/delete()).
@@ -48,18 +50,23 @@ function makeHTTPAdapter(base){
     const ct=r.headers.get("content-type")||"";
     if(!ct.includes("application/json")) throw new Error("La sesión venció o el servidor no respondió bien. Recargá la página.");
     const j=await r.json();
+    // Sesión vencida (AUTH_MODE="cuentas"): volver a la pantalla de entrada.
+    if(r.status===401&&j.login){ mostrarEntrada(j); throw new Error("Tu sesión venció. Volvé a entrar con tu email."); }
     if(!r.ok) throw new Error(j.error||("Error "+r.status));
     return j;
   }
   const lastSeg=p=>{ const i=p.lastIndexOf("/"); return i<0?p:p.slice(i+1); };
+  // Estudio de ejemplo (spec cta): de solo lectura. Se corta acá, sin ir al servidor
+  // (que igual responde 403), para no mandar escrituras que van a fallar.
+  const escribir=(path,fn)=>/^estudios\/ejemplo-/.test(path)?Promise.reject(new Error("El estudio de ejemplo es de solo lectura.")):fn();
   return {
     ready:()=>call("GET","health"),
     dumpAll:async()=>(await call("GET","export")).docs,
     collection:(path)=>({ get:async()=>{ const j=await call("GET","collection",path); return {docs:j.docs.map(d=>({id:d.id,data:()=>d.data}))}; } }),
     doc:(path)=>({
       get:async()=>{ const j=await call("GET","doc",path); return {exists:j.exists,id:lastSeg(path),data:()=>j.data||{}}; },
-      set:(d)=>call("PUT","doc",path,d==null?{}:d).then(()=>{}),
-      delete:()=>call("DELETE","doc",path).then(()=>{})
+      set:(d)=>escribir(path,()=>call("PUT","doc",path,d==null?{}:d).then(()=>{})),
+      delete:()=>escribir(path,()=>call("DELETE","doc",path).then(()=>{}))
     })
   };
 }
@@ -67,7 +74,8 @@ function makeHTTPAdapter(base){
    "idb" (IndexedDB del navegador) o "none" (sin persistencia disponible). */
 export let DB_MODE="none";
 /* Elige el backend. Devuelve un mensaje de error si la API existe pero falla
-   (en ese caso NO se cae a IndexedDB), o null si quedó un backend listo. */
+   (en ese caso NO se cae a IndexedDB), {entrar:{turnstile}} si hay servidor con cuentas
+   pero no hay sesión, o null si quedó un backend listo. */
 export async function initBackend(){
   // Hosteado con backend (Cloudflare Pages + D1): si /api/health responde, usamos el servidor.
   // Solo caemos a IndexedDB si la API NO existe (404 o respuesta que no es JSON, típico
@@ -78,7 +86,11 @@ export async function initBackend(){
       const r=await fetch("api/health",{credentials:"same-origin",cache:"no-store",signal:AbortSignal.timeout(6000)});
       const isJson=(r.headers.get("content-type")||"").includes("application/json");
       if(r.ok&&isJson){ DB=makeHTTPAdapter("api"); USE_DB=true; DB_MODE="server"; return null; }
-      if(isJson){ const j=await r.json().catch(()=>({})); return j.error||("Error "+r.status); }
+      if(isJson){
+        const j=await r.json().catch(()=>({}));
+        if(r.status===401&&j.login){ DB_MODE="server"; return { entrar:{ turnstile:j.turnstile||null } }; }
+        return j.error||("Error "+r.status);
+      }
     }catch(e){ return "No se pudo contactar al servidor. Revisá la conexión."; }
   }
   // Sin backend (archivo local u hosting estático): IndexedDB del navegador.

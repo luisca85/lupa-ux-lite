@@ -5,6 +5,7 @@ import { execFileSync, spawn } from "node:child_process";
 
 const npx = process.platform === "win32" ? "npx.cmd" : "npx";
 if (!existsSync("dist/index.html")) execFileSync(npx, ["vite", "build"], { stdio: "inherit" });
+execFileSync(npx, ["wrangler", "d1", "migrations", "apply", "lupaux", "--local"], { stdio: "inherit" });
 
 const procs = [
   spawn(npx, ["wrangler", "pages", "dev", "dist", "--port", "8788", "--ip", "127.0.0.1"], { stdio: "inherit" }),

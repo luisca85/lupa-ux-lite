@@ -34,9 +34,10 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   catálogo, hallazgos (`hallazgos-ws.js`: pestañas de pantallas, lienzo con zoom y pines,
   popover de carga rápida, panel con filtros por severidad, edición y catálogo;
   `hallazgos.js`: editor completo `hzEditor` para la página de alta y el modal, borrado).
-  Flujos y Protopersonas pasan por `proximamente()` (aviso "Próximamente").
+  Protopersonas pasa por `proximamente()` (aviso "Próximamente"); Flujos ya está habilitada.
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
-  (motor de pines y dibujo), tema, descargas, sesion (chip de usuario de Access, "Ver introducción"), onboarding
+  (motor de pines y dibujo), tema, descargas, sesion (chip de usuario, "Ver introducción", cerrar sesión), entrar
+  (pantalla de login con código por email, spec `cta`), onboarding
   (bienvenida en 5 pasos, la primera vez por usuario y navegador), pie (pie de página
   de la home y las páginas legales: contacto, legales, Exportar / Importar datos).
 - `flujos/`: flujos (store + lista), diagrama (editor), detalle-nodo.
@@ -71,14 +72,15 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Estudios (alta en dos pasos en la home, edición en modal, borrado) | Hecho | `specs/home.md` (alta) |
 | Hallazgos sobre pantallas (modelo v2, migración, pines, zoom) | Hecho | `specs/hallazgos.md` |
 | Catálogo de heurísticas y sesgos | Hecho | `specs/catalogo.md` |
-| User Flows | Hecho; sección en "Próximamente" (spec `proy`) | `specs/flujos.md` |
-| User Journeys | Hecho; sección en "Próximamente" (spec `proy`) | `specs/journeys.md` |
+| User Flows (sección Flujos habilitada: estado vacío, lista por tipo, pantallas del estudio) | Hecho | `specs/flujos.md` |
+| User Journeys (etapas por defecto, + Etapa, menú ⋯, arrastrar) | Hecho | `specs/journeys.md` |
 | Reportes (Compartir, vista previa en vivo, reserva de propuestas) y Configuración | Hecho | `specs/reportes.md` |
 | Propuestas de trabajo | Hecho | `specs/propuestas.md` |
 | Protopersonas | "Próximamente"; ya no se cargan en Configuración (los datos guardados se conservan) | `specs/reportes.md` |
 | Métricas | No implementado; pestaña oculta | — |
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
-| Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
+| Sesión visible (menú de usuario, cerrar sesión con cuentas o con Access) | Hecho | `specs/sesion.md` |
+| Cuentas por email, datos por cuenta, límites de la beta y estudio de ejemplo | Hecho en `construir/cuentas-fase1` y probado en preview; falta lanzar en producción (`docs/lanzamiento.md`) | `specs/cuentas.md` |
 | Home (Recursos, Estudios con paginador, pie de página) y barra superior (Figma) | Hecho | `specs/home.md` |
 | Onboarding de bienvenida en 5 pasos | Hecho | `specs/onboarding.md` |
 | Páginas legales (términos, privacidad, almacenamiento) | Hecho; falta revisión legal | `specs/legal.md` |
@@ -88,6 +90,27 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 
 ## Modelo de datos (API tipo Firestore sobre rutas)
 Las colecciones tienen cantidad impar de segmentos; los documentos, par.
+
+Cuentas (spec `cta`): en modo `server` cada cuenta guarda todo en D1 bajo
+`u/{idCuenta}/…`. El cliente sigue usando las rutas de abajo y el prefijo lo pone solo
+la API (`rutaReal`). Las rutas que empiezan con `u/` se rechazan. `publicos/` es la
+excepción: queda global y solo la toca su dueño (`dueño` en `publicos/{id}`). La tabla
+`usuarios` (id, email, creado) da el id; en desarrollo (`AUTH_MODE="none"`) la cuenta es
+`local`, y el encabezado `x-lupa-dev-user` simula otras para las pruebas. Los datos de
+antes de las cuentas se pasan con `scripts/migrar-cuentas.mjs`.
+
+Beta (fase 3, solo `AUTH_MODE="cuentas"` y sin `ADMIN_EMAILS`): 1 estudio propio a la
+vez y 15 pantallas por estudio (403 con `limite`), y `MAX_CUENTAS` cuentas (por defecto
+100; los emails nuevos con los cupos llenos van a la tabla `espera`). El estudio de
+ejemplo vive en `ejemplo/estudios/ejemplo-{id}/…`. Todas las cuentas lo ven como
+`estudios/ejemplo-{id}` (la lista de `estudios` lo suma con `ejemplo: true`), de solo
+lectura: la API responde 403 y `backend.js` lo frena antes. Se publica con
+`scripts/publicar-ejemplo.mjs`. Las rutas que empiezan con `ejemplo/` se rechazan.
+
+Producción y previews corren con `AUTH_MODE="cuentas"` (`wrangler.toml`). Los secretos
+(`RESEND_API_KEY`, `TURNSTILE_*`, `ADMIN_EMAILS`, `RESERVA_TO`) van en el panel de Pages. Los
+pasos para lanzar (respaldo, migraciones, deploy, `migrar-cuentas`, quitar Access, dominio
+`lupa.uxuaria.com`, ejemplo y tandas) están en `docs/lanzamiento.md`.
 - `estudios/{id}` — estudio. Incluye el objeto `reporte` embebido (resumen,
   diagnóstico, propuestas, muestra, toggles del reporte online, marca por defecto).
 - `estudios/{id}/pantallas/{pid}` — pantalla del estudio (nombre, origen imagen/url, url,
@@ -115,8 +138,18 @@ Las colecciones tienen cantidad impar de segmentos; los documentos, par.
 Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
 
 ## API (functions/api)
+- Login (`AUTH_MODE="cuentas"`, fuera de `authorize()`): `POST /api/auth/codigo`
+  ({email, turnstile}: manda por Resend un email con botón y código de 6 dígitos, 10 min,
+  un uso, 60 s entre pedidos y 5 por hora), `POST /api/auth/verificar` ({email, codigo}:
+  5 intentos; crea la cuenta si no existe), `GET /api/auth/verificar?t=` (botón del
+  email) y `POST /api/auth/salir`. Sesión en la cookie `lupa_sesion` (`HttpOnly`,
+  `Secure`, `SameSite=Lax`, `SESION_DIAS`, 30 por defecto). Tablas `codigos` y
+  `sesiones` (solo hashes). Sin sesión, la API responde 401 `{login:true, turnstile}` y
+  la app muestra `ui/entrar.js`. Turnstile con `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET`;
+  `AUTH_CODIGO_EN_RESPUESTA="1"` (solo desarrollo y tests) devuelve el código sin email.
 - `GET /api/health`, `GET|PUT|DELETE /api/doc?path=`, `GET /api/collection?path=`,
-  `GET /api/export`, `GET /api/me` (quién entró: email del JWT de Access verificado).
+  `GET /api/export` (solo lo de la cuenta y sus links públicos), `GET /api/me`
+  (`{id, email, local, modo, admin, limites}`: la cuenta de quien entró y su uso).
 - Tabla `docs(path PK, parent, data JSON, updated_at)`; las colecciones se resuelven
   con `WHERE parent = ?` (índice). Rutas validadas: segmentos `[A-Za-z0-9_.:-]`,
   par = doc, impar = colección. Documentos de hasta ~1,9 MB (límite de fila de D1).
@@ -141,10 +174,12 @@ Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
   En modo `idb`, un dispositivo / un navegador; se migra con Exportar/Importar datos.
 
 ## Herramientas
-- `npm run dev`: wrangler (API + D1 local, :8788) + Vite (:5173, proxy `/api`).
+- `npm run dev`: aplica las migraciones de D1 local, levanta wrangler (API + D1 local,
+  :8788) y Vite (:5173, proxy `/api`).
 - `npm run build` → `dist/`. `npm run preview`: build + wrangler sobre `dist/`.
-- `npm run check` (sintaxis), `npm run smoke` (API), `npm run test:e2e` (Playwright,
-  modo servidor con D1 limpia e IndexedDB con servidor estático). Requiere Node ≥ 20.19
+- `npm run check` (sintaxis), `npm run smoke` (API y aislamiento entre cuentas), `npm run test:e2e` (Playwright,
+  modo servidor con D1 limpia, IndexedDB con servidor estático y `cuentas`: login con
+  `AUTH_MODE="cuentas"` en :8792, `login.spec`). Requiere Node ≥ 20.19
   (`.nvmrc`; si la shell trae otra versión, `nvm use`). Las pruebas habilitan Flujos y
   Protopersonas con `localStorage["lupa:habilitar"]`; `migracion.spec` siembra un estudio
   v1 por la API (solo modo servidor).
