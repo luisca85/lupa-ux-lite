@@ -37,14 +37,25 @@ export function renderFlujosInto(c,est){
   if(state.flowMode==="node" && activeFlow() && activeNode()) return renderNodeDetail(c,activeFlow(),activeNode());
   return renderFlowList(c);
 }
+/* Lista con flujos: los dos tipos siempre a mano arriba y los flujos agrupados por tipo,
+   cada uno con una vista previa (pantallas del flow o curva emocional del journey). */
 function renderFlowList(c){
-  c.innerHTML=`<div class="tab-actions"><div class="t"><p style="margin:0;color:var(--muted);font-size:13.5px;max-width:70ch">Un User Flow es el recorrido pantalla a pantalla: interacciones (qué ve y qué hace la persona) conectadas por el happy path y sus desvíos.</p></div><div class="spacer"></div>${state.flujos.length?`<button class="btn primary" id="newFlow">${plus()} Nuevo flujo</button>`:""}</div>`;
   if(!state.flujos.length) return renderFlujosVacio(c);
-  {
-    c.innerHTML+=`<div class="grid studies">${state.flujos.map(flowCard).join("")}</div>`;
-  }
-  const n1=c.querySelector("#newFlow"), n2=c.querySelector("#newFlow2");
-  if(n1)n1.onclick=()=>flowModal(null); if(n2)n2.onclick=()=>flowModal(null);
+  const recientes=(a,b)=>(b.createdAt||0)-(a.createdAt||0);
+  const grupos=[
+    {tipo:"User Flow",titulo:"User Flows",ico:"flow",lista:state.flujos.filter(f=>f.tipo!=="User Journey").sort(recientes)},
+    {tipo:"User Journey",titulo:"User Journeys",ico:"chart",lista:state.flujos.filter(f=>f.tipo==="User Journey").sort(recientes)}
+  ];
+  c.innerHTML=`<div class="flx-head">
+      <div><h2 class="flx-h">Flujos</h2><p class="flx-sub">${state.flujos.length} ${state.flujos.length===1?"flujo":"flujos"} · recorridos pantalla a pantalla y mapas de experiencia por etapas.</p></div>
+      <div class="flx-nuevos" role="group" aria-label="Crear un flujo">${OPCIONES_FLUJO.map(o=>`<button type="button" class="btn${o.tipo==="User Flow"?" primary":""}" data-nuevo="${o.tipo}">${plus()} ${o.titulo}</button>`).join("")}</div>
+    </div>
+    ${grupos.map(g=>`<section class="flx-grupo" aria-label="${g.titulo}">
+      <h3 class="flx-gh">${bigIco(g.ico)} ${g.titulo} <span class="cnt">${g.lista.length}</span></h3>
+      ${g.lista.length?`<div class="flx-grid">${g.lista.map(flowCard).join("")}</div>`
+        :`<button type="button" class="flx-falta" data-nuevo="${g.tipo}">${plus()} Todavía no hay ${g.titulo.toLowerCase()}. Crear el primero</button>`}
+    </section>`).join("")}`;
+  c.querySelectorAll("[data-nuevo]").forEach(b=>b.onclick=()=>flowModal(null,{tipo:b.dataset.nuevo}));
   c.querySelectorAll("[data-flow]").forEach(el=>{
     el.querySelector(".open-area").onclick=()=>openFlow(el.dataset.flow);
     el.querySelector(".edit").onclick=e=>{e.stopPropagation();flowModal(state.flujos.find(f=>f.id===el.dataset.flow));};
@@ -83,16 +94,31 @@ function renderFlujosVacio(c){
   </section>`;
   c.querySelectorAll(".flx-op").forEach(b=>b.onclick=()=>flowModal(null,{tipo:b.dataset.tipo}));
 }
+// Vista previa: hasta 4 pantallas del User Flow, o la curva emocional del journey.
+function flowPreview(f){
+  if(f.tipo==="User Journey"){
+    const ps=f.pasos||[];
+    if(ps.length<2) return `<div class="flx-prev vacia">${ps.length?"1 paso":"Sin pasos todavía"}</div>`;
+    const W=240,H=56, pts=ps.map((p,i)=>[8+i*(W-16)/(ps.length-1), 8+(4-(p.emocion!=null?p.emocion:2))/4*(H-16)]);
+    return `<div class="flx-prev"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.map(p=>p.join(",")).join(" ")}" class="flx-curva"/>${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" class="flx-punto"/>`).join("")}</svg></div>`;
+  }
+  const th=(f.nodes||[]).map(n=>n.imgThumb).filter(Boolean).slice(0,4);
+  return th.length?`<div class="flx-prev pants">${th.map(t=>`<img src="${t}" alt="">`).join("")}</div>`:`<div class="flx-prev vacia">${(f.nodes||[]).length?"Interacciones sin pantalla":"Sin interacciones todavía"}</div>`;
+}
 function flowCard(f){
+  const jr=f.tipo==="User Journey";
   const nodes=(f.nodes||[]).length, edges=(f.edges||[]).length;
-  const hz=(f.nodes||[]).reduce((s,n)=>s+((n.markers||[]).length),0);
-  return `<div class="card study-card" data-flow="${f.id}">
+  const hz=jr?(f.pasos||[]).reduce((s,p)=>s+((p.hallazgos||[]).length),0):(f.nodes||[]).reduce((s,n)=>s+((n.markers||[]).length),0);
+  const stats=jr?`<b>${(f.etapas||[]).length}</b> etapas · <b>${(f.pasos||[]).length}</b> pasos · <b>${hz}</b> hallazgos`
+    :`<b>${nodes}</b> interacciones · <b>${edges}</b> conexiones · <b>${hz}</b> hallazgos`;
+  return `<div class="card study-card flx-card" data-flow="${f.id}">
     <div class="open-area" role="button" tabindex="0">
+      ${flowPreview(f)}
       <div class="top-row"><div><h3>${esc(f.nombre)}</h3><div class="client">${esc(f.tipo||"User Flow")}</div></div>${chevR()}</div>
       ${f.descripcion?`<div class="url" style="font-family:var(--sans);color:var(--muted);font-size:12.5px">${esc(f.descripcion)}</div>`:""}
     </div>
     <div class="foot">
-      <span class="stat"><b>${nodes}</b> interacciones · <b>${edges}</b> conexiones · <b>${hz}</b> hallazgos</span>
+      <span class="stat">${stats}</span>
       <div class="actions">
         <button class="icon-btn sm edit" title="Editar" style="width:30px;height:30px">${pencil()}</button>
         <button class="icon-btn sm del" title="Eliminar" style="width:30px;height:30px">${trash()}</button>

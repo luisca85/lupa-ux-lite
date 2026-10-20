@@ -50,9 +50,9 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
     await page.getByRole("button", { name: "Agregar interacción" }).click();
 
     await page.getByRole("button", { name: "Flujos", exact: true }).first().click();
-    await page.getByRole("button", { name: /Crear flujo|Nuevo flujo/ }).first().click();
-    await page.getByPlaceholder("Ej: Alta de cuenta y primer depósito").fill("Journey de compra");
-    await page.getByRole("combobox").last().selectOption("User Journey");
+    // Con flujos, la lista tiene un botón por tipo arriba.
+    await page.locator('.flx-nuevos [data-nuevo="User Journey"]').click();
+    await page.getByPlaceholder("Ej: Primera compra desde el celular").fill("Journey de compra");
     await page.getByRole("button", { name: "Guardar" }).click();
     await page.getByRole("button", { name: "Agregar paso" }).click();
   });

@@ -1191,3 +1191,23 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 /* Con pantallas para elegir, el lienzo pasa a una columna con scroll: pantallas arriba y la captura abajo */
 .nd-stage.con-pants{overflow:auto;background-image:none;background:var(--surface);display:flex;flex-direction:column}
 .nd-stage.con-pants .ev-drop{position:static;inset:auto;margin:0 18px 18px;min-height:140px;flex:none}
+/* Flujos: lista con cabecera, dos botones para crear y grupos por tipo */
+.flx-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.flx-h{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.flx-sub{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
+.flx-nuevos{display:flex;gap:8px;flex-wrap:wrap}
+.flx-grupo{margin-bottom:24px}
+.flx-gh{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px;font-weight:600}
+.flx-gh svg{width:16px;height:16px}
+.flx-gh .cnt{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:1px 7px}
+.flx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.flx-card .open-area{display:flex;flex-direction:column;gap:10px}
+.flx-prev{height:72px;border-radius:6px;background:var(--surface-2);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.flx-prev.pants{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;align-items:stretch;justify-content:stretch}
+.flx-prev.pants img{width:100%;height:100%;object-fit:cover;object-position:top}
+.flx-prev.vacia{font-size:12px;color:var(--faint)}
+.flx-prev svg{width:100%;height:100%}
+.flx-curva{fill:none;stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke}
+.flx-punto{fill:var(--card);stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.flx-falta{width:100%;display:flex;align-items:center;gap:8px;padding:16px;border:1.5px dashed var(--line-strong);border-radius:var(--r-card);background:var(--surface);color:var(--muted);font:inherit;font-size:13.5px;cursor:pointer;text-align:left}
+.flx-falta:hover{border-color:var(--ink);color:var(--ink)}
