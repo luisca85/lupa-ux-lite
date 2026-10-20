@@ -79,124 +79,150 @@ export async function sincronizarPasos(h,antes,despues){
 }
 
 /* Formulario en un contenedor (panel de Hallazgos, de la interacción o del journey).
-   opts: nuevo, subtitulo, alCerrar(), alGuardar(guardado), alEliminar() (si se ofrece). */
+   opts: nuevo, subtitulo, pasosIniciales, alCerrar(), alGuardar(guardado), alEliminar().
+   Dos vistas en el mismo panel: el formulario y "Agregar pantalla" (subir o elegir la imagen,
+   ubicar el pin y guardar). Lo escrito se conserva al ir y volver: vive en el borrador "d". */
 export function formularioHallazgo(el,h,opts){
   opts=opts||{};
   const nuevo=!!opts.nuevo, ids=catalogoIdsDe(h), heur0=ids.find(id=>heurById(id))||"";
-  let pants=state.pantallas||[];
-  const p=pants.find(x=>x.id===h.pantallaId);
-  // Pantalla y pin: se elige una pantalla existente o se sube una nueva, y se hace clic en ella
-  // para ubicar el hallazgo (sin clic, va al centro).
-  let pantallaId=h.pantallaId||null, pin=h.pin?{...h.pin}:null;
-  const n=h.pantallaId&&!nuevo?pinNumero(h,state.hallazgos):null;
   const antes=pasosDe(h);
-  let pasos=sinRepetir([...antes,...(opts.pasosIniciales||[])]);
-  const grupos=opcionesPasos();
-  el.innerHTML=`<div class="hp-edit-h2"><button type="button" class="hp-back" id="hfBack" title="Volver" aria-label="Volver"><span class="fig-ico ico-volver" aria-hidden="true"></span></button>
-      <h3>${nuevo?"Nuevo hallazgo":`Editar hallazgo${n?" "+n:""}`}</h3><span>${esc(opts.subtitulo||(p?p.nombre:"Sin pantalla"))}</span></div>
+  const d={sev:h.severidad??null, descripcion:h.descripcion||"", recomendacion:h.recomendacion||"", heur:heur0,
+    pasos:sinRepetir([...antes,...(opts.pasosIniciales||[])]),
+    pantallaId:h.pantallaId||null, pin:h.pin?{...h.pin}:null,
+    pendiente:null}; // pantalla nueva todavía sin guardar: {img, nombre}; se crea al guardar el hallazgo
+  const $=id=>el.querySelector("#"+id);
+  const pants=()=>state.pantallas||[];
+  const n0=h.pantallaId&&!nuevo?pinNumero(h,state.hallazgos):null;
+  const cerrar=()=>{ if(opts.alCerrar) opts.alCerrar(); };
+  // Número del hallazgo en una pantalla (el mismo que en Hallazgos) y los pines de los demás.
+  const numeroEn=pid=>{ if(!nuevo&&pid===h.pantallaId) return pinNumero(h,state.hallazgos);
+    return state.hallazgos.filter(x=>x.pantallaId===pid&&x.id!==h.id).length+1; };
+  const otrosEn=pid=>pid?state.hallazgos.filter(x=>x.pantallaId===pid&&x.id!==h.id&&x.pin):[];
+  const marco=(src,pid,pin,id)=>`<div class="hf-pant-img" id="${id}"><img src="${src||""}" alt="Pantalla">
+    ${otrosEn(pid).map(x=>`<span class="hf-pin otro" style="left:${x.pin.x*100}%;top:${x.pin.y*100}%" title="${esc(x.titulo||"")}">${pinNumero(x,state.hallazgos)||""}</span>`).join("")}
+    ${pin?`<span class="hf-pin mio" style="left:${pin.x*100}%;top:${pin.y*100}%">${pid?numeroEn(pid)||"":"1"}</span>`:""}</div>`;
+  const imgDe=async pid=>{ try{ const x=await pantallaStore.getImg(state.activeId,pid); return x&&x.base; }catch(_){ return null; } };
+
+  /* ---- Vista 1: formulario ---- */
+  function vistaFormulario(){
+    const grupos=opcionesPasos();
+    const pa=pants().find(x=>x.id===d.pantallaId);
+    const conPant=!!(pa||d.pendiente);
+    el.innerHTML=`<div class="hp-edit-h2"><button type="button" class="hp-back" id="hfBack" title="Volver" aria-label="Volver"><span class="fig-ico ico-volver" aria-hidden="true"></span></button>
+      <h3>${nuevo?"Nuevo hallazgo":`Editar hallazgo${n0?" "+n0:""}`}</h3><span>${esc(opts.subtitulo||(pa?pa.nombre:"Sin pantalla"))}</span></div>
     <form class="hp-edit hp-full" id="hfForm">
-      <div class="pf"><label>Severidad · 0 a 4</label>${sevScale("hfSev",h.severidad)}</div>
-      <div class="pf"><label for="hfDesc">Descripción</label><textarea id="hfDesc">${esc(h.descripcion||"")}</textarea></div>
-      <div class="pf"><label for="hfReco">Recomendación</label><textarea id="hfReco">${esc(h.recomendacion||"")}</textarea></div>
-      <div class="pf"><label for="hfHeur">Heurística relacionada</label><select id="hfHeur"><option value="">Sin heurística</option>${allHeur().map(x=>`<option value="${x.id}" ${heur0===x.id?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
-      <div class="pf"><label for="hfPant">Pantalla</label>
-        <select id="hfPant"></select>
-        <div class="hf-pant-acts"><span class="hint">o agregá una nueva:</span><button type="button" class="btn-q" id="hfPantArchivo">Desde un archivo</button><button type="button" class="btn-q" id="hfPantPegar">Pegar del portapapeles</button><input type="file" id="hfPantFile" accept="image/*" hidden></div>
-        <div class="hf-pant-prev" id="hfPantPrev"></div></div>
+      <div class="pf"><label>Severidad · 0 a 4</label>${sevScale("hfSev",d.sev)}</div>
+      <div class="pf"><label for="hfDesc">Descripción</label><textarea id="hfDesc">${esc(d.descripcion)}</textarea></div>
+      <div class="pf"><label for="hfReco">Recomendación</label><textarea id="hfReco">${esc(d.recomendacion)}</textarea></div>
+      <div class="pf"><label for="hfHeur">Heurística relacionada</label><select id="hfHeur"><option value="">Sin heurística</option>${allHeur().map(x=>`<option value="${x.id}" ${d.heur===x.id?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
+      <div class="pf"><label>Pantalla</label>
+        ${conPant?`<div class="hf-pant-res"><div class="hf-pant-mini" id="hfMini"></div><div class="hf-pant-res-t"><b>${esc(pa?pa.nombre:(d.pendiente.nombre||"Pantalla nueva"))}</b><span>${d.pendiente?"Nueva: se guarda con el hallazgo":(d.pin?"Con su punto marcado":"Sin punto marcado")}</span>
+            <div class="hf-pant-res-a"><button type="button" class="btn-q" id="hfPantCambiar">Cambiar</button><button type="button" class="btn-q" id="hfPantQuitar">Quitar pantalla</button></div></div></div>`
+          :`<div class="hf-pant-res vacia"><span class="hint">Sin pantalla</span><button type="button" class="btn-q" id="hfPantAgregar">+ Agregar pantalla</button></div>`}
+      </div>
       <div class="pf"><label for="hfPasoAdd">Pasos de flujos y journeys</label><div class="hf-pasos" id="hfPasos"></div>
         ${grupos.length?`<select id="hfPasoAdd"><option value="">+ Agregar a un paso…</option>${grupos.map(g=>`<optgroup label="${esc(g.tipo+": "+g.nombre)}">${g.items.map(it=>`<option value="${it.flujoId}|${it.pasoId}">${esc(it.etiqueta)}</option>`).join("")}</optgroup>`).join("")}</select>`
           :`<span class="hint">Todavía no hay flujos ni journeys con pasos.</span>`}</div>
       <div class="hp-acts"><button type="submit" class="btn-q sel" id="hfSave">${nuevo?"Guardar hallazgo":"Guardar cambios"}</button><button type="button" class="btn-q" id="hfCancel">Cancelar</button><div class="spacer"></div>${!nuevo&&opts.alEliminar?`<button type="button" class="hp-trash" id="hfDel" title="Eliminar hallazgo" aria-label="Eliminar hallazgo"><span class="fig-ico ico-eliminar" aria-hidden="true"></span></button>`:""}</div>
     </form>`;
-  const $=id=>el.querySelector("#"+id);
-  const pintarOpciones=()=>{ $("hfPant").innerHTML=`<option value="">Sin pantalla</option>${pants.map(x=>`<option value="${x.id}" ${x.id===pantallaId?'selected':''}>${esc(x.nombre)}</option>`).join("")}`; };
-  let cargaPrev=0, imgFull=null;
-  // Número del hallazgo en su pantalla (el mismo que en Hallazgos) y los de los demás.
-  const numero=()=>{ if(!pantallaId) return null; if(!nuevo&&pantallaId===h.pantallaId) return pinNumero(h,state.hallazgos);
-    return state.hallazgos.filter(x=>x.pantallaId===pantallaId&&x.id!==h.id).length+1; };
-  const otros=()=>state.hallazgos.filter(x=>x.pantallaId===pantallaId&&x.id!==h.id&&x.pin);
-  const marco=(pa,id)=>`<div class="hf-pant-img" id="${id}"><img src="${imgFull||pa.thumb||""}" alt="${esc(pa.nombre||"Pantalla")}">
-    ${otros().map(x=>`<span class="hf-pin otro" style="left:${x.pin.x*100}%;top:${x.pin.y*100}%" title="${esc(x.titulo||"")}">${pinNumero(x,state.hallazgos)||""}</span>`).join("")}
-    <span class="hf-pin mio${pin?"":" centro"}" style="left:${(pin||{x:.5}).x*100}%;top:${(pin||{y:.5}).y*100}%">${numero()||""}</span></div>`;
-  const alClic=(caja,repintar)=>caja.onclick=e=>{ const im=caja.querySelector("img"), r=im.getBoundingClientRect();
-    pin={x:clamp01((e.clientX-r.left)/r.width),y:clamp01((e.clientY-r.top)/r.height)}; repintar(); };
-  const pintarPrev=async()=>{
-    const box=$("hfPantPrev"), pa=pants.find(x=>x.id===pantallaId);
-    if(!pa){ box.innerHTML=`<span class="hint">Sin pantalla: el hallazgo no va a tener un punto marcado.</span>`; return; }
-    box.innerHTML=`<div class="hf-pant-scroll">${marco(pa,"hfPantImg")}</div>
-      <div class="hf-pant-pie"><span class="hint">${pin?"Hallazgo ubicado. Clic en otro lugar para moverlo.":"Hacé clic en la pantalla para ubicar el hallazgo."}</span><button type="button" class="btn-q" id="hfPantZoom">Ampliar</button></div>`;
-    alClic($("hfPantImg"),pintarPrev);
-    $("hfPantZoom").onclick=()=>abrirAmpliado(pa);
-    if(!imgFull){ const n=++cargaPrev;
-      try{ const d=await pantallaStore.getImg(state.activeId,pa.id); if(n===cargaPrev&&d&&d.base){ imgFull=d.base; const im=el.querySelector("#hfPantImg img"); if(im) im.src=d.base; } }catch(_){} }
-  };
-  // Panel grande encima (sirve en el panel angosto del journey): ubicar el pin con precisión.
-  const abrirAmpliado=pa=>{
-    const ov=document.createElement("div"); ov.className="hf-zoom"; ov.setAttribute("role","dialog"); ov.setAttribute("aria-label","Ubicar el hallazgo");
-    const pintar=()=>{ ov.innerHTML=`<div class="hf-zoom-box"><div class="hf-zoom-h"><div><b>Ubicá el hallazgo</b><span>${esc(pa.nombre||"Pantalla")} · hacé clic donde está el problema</span></div><button type="button" class="btn-q sel" id="hfZoomOk">Listo</button></div>
-      <div class="hf-zoom-sc">${marco(pa,"hfZoomImg")}</div></div>`;
-      alClic(ov.querySelector("#hfZoomImg"),pintar);
-      ov.querySelector("#hfZoomOk").onclick=cerrarZ; };
-    const cerrarZ=()=>{ document.removeEventListener("keydown",tecla,true); ov.remove(); pintarPrev(); };
-    const tecla=e=>{ if(e.key==="Escape"){ e.stopPropagation(); cerrarZ(); } };
-    pintar(); document.body.appendChild(ov); document.addEventListener("keydown",tecla,true);
-    ov.onclick=e=>{ if(e.target===ov) cerrarZ(); };
-    ov.querySelector("#hfZoomOk").focus();
-  };
-  const ocupado=v=>{ ["hfPantArchivo","hfPantPegar"].forEach(id=>{ const b=$(id); if(b) b.disabled=v; }); };
-  const subir=async blob=>{
-    ocupado(true);
-    try{
-      const img=await processImage(blob);
-      const {pantalla,existente}=await pantallaDesdeImagen(state.activeId,pants,img,(blob.name||"").replace(/\.[a-z0-9]+$/i,""));
-      state.pantallas=await pantallaStore.list(state.activeId); pants=state.pantallas;
-      pantallaId=pantalla.id; pin=null; imgFull=null; pintarOpciones(); pintarPrev();
-      toast(existente?"Esa pantalla ya estaba: se usa la misma":"Pantalla agregada");
-    }catch(err){ toast((err&&err.message)||"No se pudo agregar la pantalla"); }
-    ocupado(false);
-  };
-  pintarOpciones(); pintarPrev();
-  $("hfPant").onchange=()=>{ pantallaId=$("hfPant").value||null; pin=pantallaId===h.pantallaId&&h.pin?{...h.pin}:null; imgFull=null; pintarPrev(); };
-  $("hfPantArchivo").onclick=()=>$("hfPantFile").click();
-  $("hfPantFile").onchange=e=>{ const f=e.target.files[0]; if(f&&f.type.indexOf("image")===0) subir(f); e.target.value=""; };
-  $("hfPantPegar").onclick=async()=>{
-    try{
-      const items=await navigator.clipboard.read();
-      for(const it of items){ const t=it.types.find(x=>x.indexOf("image/")===0); if(t){ const b=await it.getType(t); return subir(new File([b],"Captura",{type:t})); } }
-      toast("No hay una imagen en el portapapeles. Copiá una captura y probá de nuevo.");
-    }catch(e){ toast("No se pudo leer el portapapeles. Probá con Cmd/Ctrl + V dentro del formulario."); }
-  };
-  el.querySelector("#hfForm").addEventListener("paste",e=>{ const it=[...((e.clipboardData&&e.clipboardData.items)||[])].find(x=>x.type&&x.type.indexOf("image")===0); if(it){ e.preventDefault(); const b=it.getAsFile(); if(b) subir(b); } });
-  const pintarPasos=()=>{
-    $("hfPasos").innerHTML=pasos.length?pasos.map((q,i)=>{ const e=etiquetaPaso(q); return e?`<span class="hf-paso"><span class="hf-paso-t"><b>${esc(e.grupo)}</b> ${esc(e.etiqueta)}</span><button type="button" class="hf-paso-x" data-i="${i}" aria-label="Quitar de ${esc(e.etiqueta)}">×</button></span>`:""; }).join(""):`<span class="hint">En ningún paso.</span>`;
-    el.querySelectorAll(".hf-paso-x").forEach(b=>b.onclick=()=>{ pasos.splice(+b.dataset.i,1); pintarPasos(); });
-  };
-  pintarPasos();
-  const add=$("hfPasoAdd"); if(add) add.onchange=()=>{ if(!add.value) return; const [flujoId,pasoId]=add.value.split("|"); pasos=sinRepetir([...pasos,{flujoId,pasoId}]); add.value=""; pintarPasos(); };
-  let sev=h.severidad??null;
-  bindSev(el,"hfSev",()=>sev,v=>{sev=v;});
-  const cerrar=()=>{ if(opts.alCerrar) opts.alCerrar(); };
-  $("hfBack").onclick=cerrar; $("hfCancel").onclick=cerrar;
-  const del=$("hfDel"); if(del) del.onclick=()=>opts.alEliminar();
-  $("hfForm").onsubmit=async e=>{
-    e.preventDefault();
-    const desc=$("hfDesc").value.trim();
-    if(!desc&&!h.titulo){ $("hfDesc").focus(); return; }
-    const pid=pantallaId, heur=$("hfHeur").value;
-    const resto=ids.filter(id=>id!==heur&&id!==heur0);
-    const rec={...h,id:h.id||uid(),descripcion:desc,recomendacion:$("hfReco").value.trim(),severidad:sev,
-      catalogoIds:heur?[heur,...resto]:resto, pantallaId:pid,pin:pid?pin:null, pasos:pasos.map(q=>({flujoId:q.flujoId,pasoId:q.pasoId}))};
-    if(!h.titulo||h.titulo===autoTitulo(h.descripcion||"")) rec.titulo=autoTitulo(desc);
-    // Compatibilidad: el primer paso también en los campos de antes.
-    const primero=pasos[0], nd=primero&&etiquetaPaso(primero);
-    Object.assign(rec,primero?{flujoId:primero.flujoId,pasoId:primero.pasoId,interaccionId:primero.pasoId,interaccionTitulo:nd?nd.etiqueta.replace(/^\d+\.\s*/,"").replace(/ · .*$/,""):""}
-      :{flujoId:null,pasoId:null,interaccionId:null,interaccionTitulo:null});
-    const b=$("hfSave"); b.disabled=true;
-    try{
-      const saved=await guardarHallazgo(rec);
-      await sincronizarPasos(saved,antes,rec.pasos);
-      if(opts.alGuardar) await opts.alGuardar(saved);
-    }catch(err){ console.error("hfSave",err); b.disabled=false; throw err; }
-  };
-  setTimeout(()=>{ const d=$("hfDesc"); if(d&&nuevo) d.focus(); },30);
+    const leer=()=>{ d.descripcion=$("hfDesc").value; d.recomendacion=$("hfReco").value; d.heur=$("hfHeur").value; };
+    bindSev(el,"hfSev",()=>d.sev,v=>{d.sev=v;});
+    // miniatura con el pin
+    if(conPant){ const src=d.pendiente?d.pendiente.img.full.dataUrl:(pa.thumb||""); $("hfMini").innerHTML=marco(src,d.pendiente?null:d.pantallaId,d.pin,"hfMiniImg");
+      if(!d.pendiente) imgDe(pa.id).then(b=>{ const im=el.querySelector("#hfMiniImg img"); if(b&&im) im.src=b; }); }
+    const irPantalla=()=>{ leer(); vistaPantalla(); };
+    [$("hfPantAgregar"),$("hfPantCambiar")].forEach(b=>{ if(b) b.onclick=irPantalla; });
+    const q=$("hfPantQuitar"); if(q) q.onclick=()=>{ leer(); d.pantallaId=null; d.pin=null; d.pendiente=null; vistaFormulario(); };
+    const pintarPasos=()=>{
+      $("hfPasos").innerHTML=d.pasos.length?d.pasos.map((q,i)=>{ const e=etiquetaPaso(q); return e?`<span class="hf-paso"><span class="hf-paso-t"><b>${esc(e.grupo)}</b> ${esc(e.etiqueta)}</span><button type="button" class="hf-paso-x" data-i="${i}" aria-label="Quitar de ${esc(e.etiqueta)}">×</button></span>`:""; }).join(""):`<span class="hint">En ningún paso.</span>`;
+      el.querySelectorAll(".hf-paso-x").forEach(b=>b.onclick=()=>{ d.pasos.splice(+b.dataset.i,1); pintarPasos(); });
+    };
+    pintarPasos();
+    const add=$("hfPasoAdd"); if(add) add.onchange=()=>{ if(!add.value) return; const [flujoId,pasoId]=add.value.split("|"); d.pasos=sinRepetir([...d.pasos,{flujoId,pasoId}]); add.value=""; pintarPasos(); };
+    $("hfBack").onclick=cerrar; $("hfCancel").onclick=cerrar;
+    const del=$("hfDel"); if(del) del.onclick=()=>opts.alEliminar();
+    $("hfForm").onsubmit=async e=>{
+      e.preventDefault(); leer();
+      const desc=d.descripcion.trim();
+      if(!desc&&!h.titulo){ $("hfDesc").focus(); return; }
+      const b=$("hfSave"); b.disabled=true; b.textContent="Guardando…";
+      try{
+        // La pantalla nueva se crea recién ahora (si se cancela, no queda una pantalla suelta).
+        if(d.pendiente){
+          const {pantalla}=await pantallaDesdeImagen(state.activeId,pants(),d.pendiente.img,d.pendiente.nombre);
+          state.pantallas=await pantallaStore.list(state.activeId); d.pantallaId=pantalla.id; d.pendiente=null;
+        }
+        const heur=d.heur, resto=ids.filter(id=>id!==heur&&id!==heur0);
+        const rec={...h,id:h.id||uid(),descripcion:desc,recomendacion:d.recomendacion.trim(),severidad:d.sev,
+          catalogoIds:heur?[heur,...resto]:resto, pantallaId:d.pantallaId,pin:d.pantallaId?d.pin:null, pasos:d.pasos.map(q=>({flujoId:q.flujoId,pasoId:q.pasoId}))};
+        if(!h.titulo||h.titulo===autoTitulo(h.descripcion||"")) rec.titulo=autoTitulo(desc);
+        // Compatibilidad: el primer paso también en los campos de antes.
+        const primero=d.pasos[0], nd=primero&&etiquetaPaso(primero);
+        Object.assign(rec,primero?{flujoId:primero.flujoId,pasoId:primero.pasoId,interaccionId:primero.pasoId,interaccionTitulo:nd?nd.etiqueta.replace(/^\d+\.\s*/,"").replace(/ · .*$/,""):""}
+          :{flujoId:null,pasoId:null,interaccionId:null,interaccionTitulo:null});
+        const saved=await guardarHallazgo(rec);
+        await sincronizarPasos(saved,antes,rec.pasos);
+        if(opts.alGuardar) await opts.alGuardar(saved);
+      }catch(err){ console.error("hfSave",err); b.disabled=false; b.textContent=nuevo?"Guardar hallazgo":"Guardar cambios"; toast((err&&err.message)||"No se pudo guardar. Probá de nuevo."); }
+    };
+    if(nuevo) setTimeout(()=>{ const x=$("hfDesc"); if(x&&!x.value) x.focus(); },30);
+  }
+
+  /* ---- Vista 2: Agregar pantalla (subir o elegir, ubicar el pin y guardar) ---- */
+  function vistaPantalla(){
+    const sel={pantallaId:d.pantallaId, pendiente:d.pendiente, pin:d.pin?{...d.pin}:null};
+    let src=null;
+    const pintar=()=>{
+      const pa=pants().find(x=>x.id===sel.pantallaId), hay=!!(pa||sel.pendiente);
+      el.innerHTML=`<div class="hp-edit-h2"><button type="button" class="hp-back" id="hpsBack" title="Volver al hallazgo" aria-label="Volver al hallazgo"><span class="fig-ico ico-volver" aria-hidden="true"></span></button>
+        <h3>Agregar pantalla</h3><span>${nuevo?"Nuevo hallazgo":"Editar hallazgo"}</span></div>
+      <div class="hp-edit hp-full hps" id="hpsBox" tabindex="-1">
+        <button type="button" class="hps-volver" id="hpsVolver">← Volver al formulario del hallazgo</button>
+        ${hay?`<div class="pf"><label>${esc(pa?pa.nombre:(sel.pendiente.nombre||"Pantalla nueva"))}</label>
+            <div class="hf-pant-scroll">${marco(src||(sel.pendiente?sel.pendiente.img.full.dataUrl:(pa.thumb||"")),sel.pendiente?null:sel.pantallaId,sel.pin,"hpsImg")}</div>
+            <span class="hint">${sel.pin?"Listo. Hacé clic en otro lugar para mover el pin.":"Hacé clic en la pantalla para colocar el pin del hallazgo."}</span>
+            <button type="button" class="hps-otra" id="hpsOtra">Usar otra imagen</button></div>`
+          :`<div class="hps-drop" id="hpsDrop" tabindex="0" role="button" aria-label="Subir una imagen">
+              <b>Subí la captura de la pantalla</b>
+              <span>Pegala con <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>V</kbd>, arrastrala acá o elegí un archivo.</span>
+              <div class="hps-drop-a"><button type="button" class="btn-q" id="hpsArchivo">Elegir archivo</button><button type="button" class="btn-q" id="hpsPegar">Pegar del portapapeles</button></div>
+              <input type="file" id="hpsFile" accept="image/*" hidden></div>
+            ${pants().length?`<div class="pf"><label>O usá una pantalla que ya existe</label><div class="hps-grid">${pants().map(x=>`<button type="button" class="hps-pant" data-pid="${x.id}"><img src="${x.thumb||""}" alt=""><span>${esc(x.nombre||"Pantalla")}</span></button>`).join("")}</div></div>`:""}`}
+        <div class="hp-acts"><button type="button" class="btn-q sel" id="hpsGuardar" ${hay&&sel.pin?"":"disabled"}>Guardar pantalla y pin</button><button type="button" class="btn-q" id="hpsCancel">Cancelar</button></div>
+      </div>`;
+      const volver=()=>{ document.removeEventListener("paste",alPegar); vistaFormulario(); };
+      $("hpsBack").onclick=volver; $("hpsVolver").onclick=volver; $("hpsCancel").onclick=volver;
+      $("hpsGuardar").onclick=()=>{ d.pantallaId=sel.pantallaId; d.pendiente=sel.pendiente; d.pin=sel.pin; volver(); toast("Pantalla lista: guardá el hallazgo para terminar"); };
+      if(hay){
+        const caja=$("hpsImg"); caja.onclick=e=>{ const im=caja.querySelector("img"), r=im.getBoundingClientRect(); sel.pin={x:clamp01((e.clientX-r.left)/r.width),y:clamp01((e.clientY-r.top)/r.height)}; pintar(); };
+        $("hpsOtra").onclick=()=>{ sel.pantallaId=null; sel.pendiente=null; sel.pin=null; src=null; pintar(); };
+        if(pa&&!src) imgDe(pa.id).then(b=>{ if(b){ src=b; const im=el.querySelector("#hpsImg img"); if(im) im.src=b; } });
+      } else {
+        $("hpsArchivo").onclick=()=>$("hpsFile").click();
+        $("hpsFile").onchange=e=>{ const f=e.target.files[0]; if(f) cargar(f); e.target.value=""; };
+        $("hpsPegar").onclick=async()=>{ try{ const items=await navigator.clipboard.read();
+            for(const it of items){ const t=it.types.find(x=>x.indexOf("image/")===0); if(t){ return cargar(new File([await it.getType(t)],"Captura",{type:t})); } }
+            toast("No hay una imagen en el portapapeles. Copiá una captura y probá de nuevo."); }
+          catch(e){ toast("No se pudo leer el portapapeles: probá con Ctrl/Cmd + V."); } };
+        const drop=$("hpsDrop");
+        drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drag"); }; drop.ondragleave=()=>drop.classList.remove("drag");
+        drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drag"); const f=e.dataTransfer.files[0]; if(f) cargar(f); };
+        el.querySelectorAll(".hps-pant").forEach(b=>b.onclick=()=>{ sel.pantallaId=b.dataset.pid; sel.pendiente=null; sel.pin=null; src=null; pintar(); });
+      }
+    };
+    const cargar=async f=>{
+      if(!f||f.type.indexOf("image")!==0){ toast("Ese archivo no es una imagen"); return; }
+      try{ const img=await processImage(f); sel.pendiente={img,nombre:(f.name&&f.name!=="Captura"?f.name:"").replace(/\.[a-z0-9]+$/i,"")}; sel.pantallaId=null; sel.pin=null; src=null; pintar(); }
+      catch(e){ toast("No se pudo procesar la imagen"); }
+    };
+    // Ctrl/Cmd + V mientras esta sección está abierta.
+    const alPegar=e=>{ if(!el.isConnected||!el.querySelector("#hpsBox")){ document.removeEventListener("paste",alPegar); return; }
+      const it=[...((e.clipboardData&&e.clipboardData.items)||[])].find(x=>x.type&&x.type.indexOf("image")===0);
+      if(it){ e.preventDefault(); cargar(it.getAsFile()); } };
+    document.addEventListener("paste",alPegar);
+    pintar();
+    const box=$("hpsBox"); if(box) box.focus();
+  }
+
+  vistaFormulario();
 }

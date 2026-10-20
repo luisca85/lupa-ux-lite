@@ -42,5 +42,10 @@ test("Protopersonas muestra Próximamente y Flujos su estado vacío", async ({ p
   await page.locator("#hzPanel .hp-card", { hasText: "Sin paso de flujo" }).click();
   await expect(page.locator("#hfForm")).toBeVisible();
   await expect(page.locator("#hfPasos")).toHaveCount(1); // el campo de pasos está, aunque todavía no haya flujos
-  await expect(page.locator("#hfPant")).toBeVisible();
+  // Pantalla: resumen con la pantalla del hallazgo y "Cambiar" (abre la sección Agregar pantalla).
+  await expect(page.locator(".hf-pant-res")).toBeVisible();
+  await page.locator("#hfPantCambiar").click();
+  await expect(page.locator(".hp-edit-h2 h3")).toHaveText("Agregar pantalla");
+  await page.locator("#hpsVolver").click();
+  await expect(page.locator("#hfDesc")).toHaveValue(/Sin paso de flujo/); // lo escrito se conserva
 });
