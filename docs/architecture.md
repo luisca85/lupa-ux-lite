@@ -79,7 +79,8 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Protopersonas | "Próximamente"; ya no se cargan en Configuración (los datos guardados se conservan) | `specs/reportes.md` |
 | Métricas | No implementado; pestaña oculta | — |
 | Backend D1 + Access | Hecho | `specs/backend-d1.md` |
-| Sesión visible (menú de usuario, logout de Access) | Hecho | `specs/sesion.md` |
+| Sesión visible (menú de usuario, cerrar sesión con cuentas o con Access) | Hecho | `specs/sesion.md` |
+| Cuentas por email, datos por cuenta, límites de la beta y estudio de ejemplo | Hecho en `construir/cuentas-fase1` y probado en preview; falta lanzar en producción (`docs/lanzamiento.md`) | `specs/cuentas.md` |
 | Home (Recursos, Estudios con paginador, pie de página) y barra superior (Figma) | Hecho | `specs/home.md` |
 | Onboarding de bienvenida en 5 pasos | Hecho | `specs/onboarding.md` |
 | Páginas legales (términos, privacidad, almacenamiento) | Hecho; falta revisión legal | `specs/legal.md` |

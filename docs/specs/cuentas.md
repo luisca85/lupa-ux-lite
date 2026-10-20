@@ -209,6 +209,34 @@ casillas de código, y el email con botón y código. Se ajustan mirando la vist
   - Actualizar `architecture.md` (modelo de datos con `u/{id}/`, tablas y rutas nuevas),
     `decisions.md` y AGENTS.md (rutas fuera de `authorize()`).
 
+## Dónde vive
+- `functions/api/[[path]].js`:
+  - login: `auth()`, `usuarioDeSesion`, `entrar`, `verificarTurnstile`, `mandarCodigo`,
+    cupos y lista de espera en `auth/codigo`;
+  - cuentas: `cuentaDe`, `authorize()` con `AUTH_MODE="cuentas"`, `rutaReal` (prefijo
+    `u/{id}/`, `publicos/` con `dueño`, ejemplo de solo lectura), `esDuenioPublico`;
+  - límites: `chocaLimite`, `conLimites`, `LIMITE_ESTUDIOS`, `LIMITE_PANTALLAS`,
+    `maxCuentas`, `esAdmin`;
+  - `/api/me` con `admin` y `limites`; `export` por cuenta; reservas al dueño en
+    `avisarReserva`.
+- `migrations/0002_usuarios.sql`, `0003_login.sql` (`codigos`, `sesiones`) y
+  `0004_espera.sql`.
+- `src/ui/entrar.js`: pantallas de entrada, código, cupos completos y legales.
+- `src/data/backend.js`: 401 `{login}` → `mostrarEntrada`; freno de escrituras al ejemplo.
+- `src/main.js` (`state.cuenta`), `src/ui/sesion.js` (cerrar sesión con
+  `/api/auth/salir`), `src/core/state.js` (`cuenta`).
+- `src/views/home.js` (ejemplo primero, tarjeta "Nuevo estudio" sin cupo),
+  `src/views/estudio.js` (aviso y `body.solo-lectura`), `src/views/hallazgos-ws.js`
+  ("15 de 15 pantallas").
+- `src/reportes/comun.js` (`cuentaBeta()`: marca y propuestas vacías) y
+  `src/reportes/configuracion.js`.
+- `src/views/legal.js` (textos con cuentas y beta) y `src/styles/base.css` (bloques
+  "Entrar" y "Beta").
+- `scripts/migrar-cuentas.mjs`, `scripts/publicar-ejemplo.mjs`, `scripts/e2e-server.mjs`
+  (modo `cuentas` con ejemplo sembrado), `scripts/smoke.mjs` (aislamiento) y
+  `tests/e2e/login.spec.mjs`.
+- `wrangler.toml` (production y preview con `AUTH_MODE="cuentas"`) y `docs/lanzamiento.md`.
+
 ## Conocido
 - Decisiones del 2026-10-16:
   - el límite de 1 estudio es a la vez;
@@ -244,3 +272,12 @@ casillas de código, y el email con botón y código. Se ajustan mirando la vist
   `MAX_CUENTAS="20"`. Los pasos en Cloudflare, Resend y DNS, el orden del deploy y la
   migración, y las tandas están en `docs/lanzamiento.md`. Falta hacerlos, y después quitar
   Access del código.
+- Revisión del 2026-10-20. Criterios sin test automático:
+  - el bloqueo tras 5 intentos de código;
+  - el tope de 5 códigos por hora;
+  - el mensaje cuando Resend falla;
+  - que la reserva le avise al dueño del estudio;
+  - el paso a la pantalla de entrada cuando la sesión vence en medio del uso.
+
+  El código está, pero falta probarlos.
+- El email real y Turnstile se probaron a mano en la preview (2026-10-16) y funcionan.
