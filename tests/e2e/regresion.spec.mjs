@@ -1,6 +1,7 @@
 // Test de regresión de la constitución (docs/AGENTS.md), automatizado.
 // Corre en dos proyectos: "servidor" (API + D1) e "indexeddb" (hosting estático).
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { crearEstudio } from "./estudio.mjs";
 import { makePng } from "./png.mjs";
 
@@ -112,6 +113,18 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
     await page.locator('#rptSel input[data-sec="contacto"]').check();
     await expect(prev.getByRole("button", { name: "Contacto" })).toBeVisible();
 
+    // Exportar (solo para quien administra): texto plano y JSON para IA, sin imágenes.
+    const [txt] = await Promise.all([page.waitForEvent("download"), page.locator("#rpExpTxt").click()]);
+    expect(txt.suggestedFilename()).toMatch(/\.txt$/);
+    const texto = readFileSync(await txt.path(), "utf8");
+    expect(texto).toContain("HALLAZGOS");
+    expect(texto).toContain("USER JOURNEYS");
+    const [js] = await Promise.all([page.waitForEvent("download"), page.locator("#rpExpJson").click()]);
+    const datos = JSON.parse(readFileSync(await js.path(), "utf8"));
+    expect(datos.formato).toBe("lupa-ux/reporte");
+    expect(datos.hallazgos.length).toBeGreaterThan(0);
+    expect(datos.user_journeys[0].etapas[0].nombre).toBe("Descubrimiento");
+    expect(JSON.stringify(datos)).not.toContain("data:image");
     await page.getByRole("button", { name: "Pantalla completa" }).click();
     await expect(page.getByRole("button", { name: "Cerrar vista previa" })).toBeVisible();
     await page.getByRole("button", { name: "Cerrar vista previa" }).click();
