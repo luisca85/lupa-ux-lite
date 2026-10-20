@@ -1323,3 +1323,13 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .hf-paso-x{flex:none;width:20px;height:20px;border-radius:50%;border:none;background:none;color:var(--muted);font-size:15px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 .hf-paso-x:hover{background:var(--line);color:var(--ink)}
 .nd-form{padding:4px 2px}
+/* Formulario de hallazgo: elegir o subir pantalla y ubicar el pin */
+.hf-pant-row{display:flex;gap:6px;align-items:center}
+.hf-pant-row select{flex:1;min-width:0}
+.hf-pant-row .btn-q{flex:none;white-space:nowrap}
+.hf-pant-prev{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.hf-pant-scroll{max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface-2)}
+.hf-pant-img{position:relative;cursor:crosshair}
+.hf-pant-img img{display:block;width:100%;height:auto}
+.hf-pin{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--ink);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);pointer-events:none}
+.hf-pin.centro{opacity:.45}

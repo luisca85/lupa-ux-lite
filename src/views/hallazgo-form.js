@@ -1,7 +1,9 @@
 import { SEVERIDAD } from "../core/catalogo-base.js";
 import { allHeur, catalogoIdsDe, heurById, state } from "../core/state.js";
 import { esc, uid } from "../core/util.js";
-import { MODELO, normalizarPin, pinNumero } from "../data/pantallas.js";
+import { MODELO, clamp01, normalizarPin, pantallaDesdeImagen, pantallaStore, pinNumero } from "../data/pantallas.js";
+import { processImage } from "../ui/imagenes.js";
+import { toast } from "../ui/modales.js";
 import { store } from "../data/store.js";
 import { flowStore } from "../flujos/flujos.js";
 
@@ -81,8 +83,11 @@ export async function sincronizarPasos(h,antes,despues){
 export function formularioHallazgo(el,h,opts){
   opts=opts||{};
   const nuevo=!!opts.nuevo, ids=catalogoIdsDe(h), heur0=ids.find(id=>heurById(id))||"";
-  const pants=state.pantallas||[];
+  let pants=state.pantallas||[];
   const p=pants.find(x=>x.id===h.pantallaId);
+  // Pantalla y pin: se elige una pantalla existente o se sube una nueva, y se hace clic en ella
+  // para ubicar el hallazgo (sin clic, va al centro).
+  let pantallaId=h.pantallaId||null, pin=h.pin?{...h.pin}:null;
   const n=h.pantallaId&&!nuevo?pinNumero(h,state.hallazgos):null;
   const antes=pasosDe(h);
   let pasos=sinRepetir([...antes,...(opts.pasosIniciales||[])]);
@@ -94,13 +99,44 @@ export function formularioHallazgo(el,h,opts){
       <div class="pf"><label for="hfDesc">Descripción</label><textarea id="hfDesc">${esc(h.descripcion||"")}</textarea></div>
       <div class="pf"><label for="hfReco">Recomendación</label><textarea id="hfReco">${esc(h.recomendacion||"")}</textarea></div>
       <div class="pf"><label for="hfHeur">Heurística relacionada</label><select id="hfHeur"><option value="">Sin heurística</option>${allHeur().map(x=>`<option value="${x.id}" ${heur0===x.id?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
-      <div class="pf"><label for="hfPant">Pantalla</label><select id="hfPant"><option value="">Sin pantalla</option>${pants.map(x=>`<option value="${x.id}" ${x.id===h.pantallaId?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
+      <div class="pf"><label for="hfPant">Pantalla</label>
+        <div class="hf-pant-row"><select id="hfPant"></select><button type="button" class="btn-q" id="hfPantNueva">Subir pantalla nueva</button><input type="file" id="hfPantFile" accept="image/*" hidden></div>
+        <div class="hf-pant-prev" id="hfPantPrev"></div></div>
       <div class="pf"><label for="hfPasoAdd">Pasos de flujos y journeys</label><div class="hf-pasos" id="hfPasos"></div>
         ${grupos.length?`<select id="hfPasoAdd"><option value="">+ Agregar a un paso…</option>${grupos.map(g=>`<optgroup label="${esc(g.tipo+": "+g.nombre)}">${g.items.map(it=>`<option value="${it.flujoId}|${it.pasoId}">${esc(it.etiqueta)}</option>`).join("")}</optgroup>`).join("")}</select>`
           :`<span class="hint">Todavía no hay flujos ni journeys con pasos.</span>`}</div>
       <div class="hp-acts"><button type="submit" class="btn-q sel" id="hfSave">${nuevo?"Guardar hallazgo":"Guardar cambios"}</button><button type="button" class="btn-q" id="hfCancel">Cancelar</button><div class="spacer"></div>${!nuevo&&opts.alEliminar?`<button type="button" class="hp-trash" id="hfDel" title="Eliminar hallazgo" aria-label="Eliminar hallazgo"><span class="fig-ico ico-eliminar" aria-hidden="true"></span></button>`:""}</div>
     </form>`;
   const $=id=>el.querySelector("#"+id);
+  const pintarOpciones=()=>{ $("hfPant").innerHTML=`<option value="">Sin pantalla</option>${pants.map(x=>`<option value="${x.id}" ${x.id===pantallaId?'selected':''}>${esc(x.nombre)}</option>`).join("")}`; };
+  let cargaPrev=0;
+  const pintarPrev=async()=>{
+    const box=$("hfPantPrev"), pa=pants.find(x=>x.id===pantallaId);
+    if(!pa){ box.innerHTML=`<span class="hint">Sin pantalla: el hallazgo no va a tener un punto marcado.</span>`; return; }
+    const n=++cargaPrev;
+    box.innerHTML=`<div class="hf-pant-scroll"><div class="hf-pant-img" id="hfPantImg"><img src="${pa.thumb||""}" alt="${esc(pa.nombre||"Pantalla")}"><span class="hf-pin" id="hfPin"></span></div></div><span class="hint">Hacé clic en la pantalla para ubicar el hallazgo.</span>`;
+    const ubicar=()=>{ const d=$("hfPin"); if(!d) return; const q=pin||{x:0.5,y:0.5}; d.style.left=q.x*100+"%"; d.style.top=q.y*100+"%"; d.classList.toggle("centro",!pin); };
+    ubicar();
+    $("hfPantImg").onclick=e=>{ const r=e.currentTarget.getBoundingClientRect(); pin={x:clamp01((e.clientX-r.left)/r.width),y:clamp01((e.clientY-r.top)/r.height)}; ubicar(); };
+    // la imagen completa, más nítida que la miniatura
+    try{ const d=await pantallaStore.getImg(state.activeId,pa.id); if(n===cargaPrev&&d&&d.base){ const im=el.querySelector("#hfPantImg img"); if(im) im.src=d.base; } }catch(_){}
+  };
+  const subir=async blob=>{
+    const b=$("hfPantNueva"); b.disabled=true; b.textContent="Subiendo…";
+    try{
+      const img=await processImage(blob);
+      const {pantalla,existente}=await pantallaDesdeImagen(state.activeId,pants,img,(blob.name||"").replace(/\.[a-z0-9]+$/i,""));
+      state.pantallas=await pantallaStore.list(state.activeId); pants=state.pantallas;
+      pantallaId=pantalla.id; pin=null; pintarOpciones(); pintarPrev();
+      toast(existente?"Esa pantalla ya estaba: se usa la misma":"Pantalla agregada");
+    }catch(err){ toast((err&&err.message)||"No se pudo subir la pantalla"); }
+    b.disabled=false; b.textContent="Subir pantalla nueva";
+  };
+  pintarOpciones(); pintarPrev();
+  $("hfPant").onchange=()=>{ pantallaId=$("hfPant").value||null; pin=pantallaId===h.pantallaId&&h.pin?{...h.pin}:null; pintarPrev(); };
+  $("hfPantNueva").onclick=()=>$("hfPantFile").click();
+  $("hfPantFile").onchange=e=>{ const f=e.target.files[0]; if(f&&f.type.indexOf("image")===0) subir(f); e.target.value=""; };
+  el.querySelector("#hfForm").addEventListener("paste",e=>{ const it=[...((e.clipboardData&&e.clipboardData.items)||[])].find(x=>x.type&&x.type.indexOf("image")===0); if(it){ e.preventDefault(); const b=it.getAsFile(); if(b) subir(b); } });
   const pintarPasos=()=>{
     $("hfPasos").innerHTML=pasos.length?pasos.map((q,i)=>{ const e=etiquetaPaso(q); return e?`<span class="hf-paso"><span class="hf-paso-t"><b>${esc(e.grupo)}</b> ${esc(e.etiqueta)}</span><button type="button" class="hf-paso-x" data-i="${i}" aria-label="Quitar de ${esc(e.etiqueta)}">×</button></span>`:""; }).join(""):`<span class="hint">En ningún paso.</span>`;
     el.querySelectorAll(".hf-paso-x").forEach(b=>b.onclick=()=>{ pasos.splice(+b.dataset.i,1); pintarPasos(); });
@@ -116,10 +152,10 @@ export function formularioHallazgo(el,h,opts){
     e.preventDefault();
     const desc=$("hfDesc").value.trim();
     if(!desc&&!h.titulo){ $("hfDesc").focus(); return; }
-    const pid=$("hfPant").value||null, heur=$("hfHeur").value;
+    const pid=pantallaId, heur=$("hfHeur").value;
     const resto=ids.filter(id=>id!==heur&&id!==heur0);
     const rec={...h,id:h.id||uid(),descripcion:desc,recomendacion:$("hfReco").value.trim(),severidad:sev,
-      catalogoIds:heur?[heur,...resto]:resto, pantallaId:pid,pin:pid===h.pantallaId?h.pin:null, pasos:pasos.map(q=>({flujoId:q.flujoId,pasoId:q.pasoId}))};
+      catalogoIds:heur?[heur,...resto]:resto, pantallaId:pid,pin:pid?pin:null, pasos:pasos.map(q=>({flujoId:q.flujoId,pasoId:q.pasoId}))};
     if(!h.titulo||h.titulo===autoTitulo(h.descripcion||"")) rec.titulo=autoTitulo(desc);
     // Compatibilidad: el primer paso también en los campos de antes.
     const primero=pasos[0], nd=primero&&etiquetaPaso(primero);
