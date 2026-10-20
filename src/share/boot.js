@@ -49,7 +49,7 @@ function SR_boot(D){
   function pinColor(h){ if(!h)return"#8b95a5"; if(h.severidad!=null&&h.severidad!=="")return RSEV[h.severidad]||"#8b95a5"; return h.tipo==="Oportunidad"?"#12a594":(h.tipo==="Observación"?"#64748b":"#e5484d"); }
   function emoTop(e){ return 8+(4-(e!=null?e:2))/4*50; }
   const m=D.brand, on=D.report.online||{};
-  const V={section:"presentacion",liVisto:false,sbCol:false,sbOpen:false,hzOpen:null,flowOpen:null,nodeOpen:null,flowHzOpen:null,jrOpen:null};
+  const V={section:"presentacion",liVisto:false,sbCol:false,sbOpen:false,hzOpen:null,flowOpen:null,nodeOpen:null,flowHzOpen:null,jrOpen:null,jrHzOpen:null};
   // Vista previa en vivo de la app: arranca donde estaba y deja leer la sección actual.
   if(D.preview){ if(D.estado) Object.assign(V,D.estado); window.__SRV=V; }
   function brandMark(){ return m.headerImg?'<img src="'+m.headerImg+'" alt="" style="max-height:30px;max-width:150px;object-fit:contain">':'<span class="cr-word">'+esc(m.wordmark)+'</span>'; }
@@ -57,9 +57,9 @@ function SR_boot(D){
   function sections(){
     const list=[{id:"presentacion",label:"Presentación",icon:crIco("home")}];
     if(on.hallazgos!==false)list.push({id:"hallazgos",label:"Hallazgos",icon:crIco("flag"),count:D.hallazgos.length});
-    // Flujos y User Journeys: provisionalmente desactivados, con la etiqueta "Pronto".
-    if(on.flujos!==false)list.push({id:"flujos",label:"Flujos",icon:crIco("flow"),pronto:true});
-    if(on.journeys!==false)list.push({id:"journeys",label:"User Journeys",icon:crIco("chart"),pronto:true});
+    // Flujos y User Journeys: se navegan como en la app (solo si hay alguno que el cliente vea).
+    if(on.flujos!==false&&D.flows.length)list.push({id:"flujos",label:"Flujos",icon:crIco("flow")});
+    if(on.journeys!==false&&D.journeys.length)list.push({id:"journeys",label:"User Journeys",icon:crIco("chart")});
     if(on.protopersonas!==false&&D.report.protopersonas.length)list.push({id:"protopersonas",label:"Protopersonas",icon:crIco("user"),count:D.report.protopersonas.length});
     if(on.diagnostico!==false&&(D.report.diagIntro||D.report.hallazgosClave.length||D.report.recomendaciones.length))list.push({id:"diagnostico",label:"Diagnóstico",icon:crIco("report")});
     if(on.contacto!==false)list.push({id:"contacto",label:"Contacto",icon:crIco("mail")});
@@ -161,10 +161,17 @@ function SR_boot(D){
       +(h.recomendacion?'<div class="cr-field"><b>Recomendación</b><p>'+esc(h.recomendacion)+'</p></div>':'')
       +(((h.heur||[]).length||(h.sesgos||[]).length)?'<div class="rels" style="margin:12px 0">'+(h.heur||[]).map(x=>'<span class="rel-chip h">'+esc(x)+'</span>').join("")+(h.sesgos||[]).map(x=>'<span class="rel-chip s">'+esc(x)+'</span>').join("")+'</div>':'')
       +((h.tags&&h.tags.length)?'<div class="rels" style="margin-bottom:12px">'+h.tags.map(t=>'<span class="tag-chip">'+esc(t)+'</span>').join("")+'</div>':'')
+      +((h.pasos||[]).length?'<div class="cr-field"><b>Dónde aparece</b><div class="cr-pasos">'+h.pasos.map((q,i)=>'<button class="cr-paso" data-paso="'+i+'"><span class="cr-paso-k">'+(q.tipo==="journey"?"User Journey":"User Flow")+'</span><span>'+esc(q.flujo)+' · '+esc(q.paso)+'</span>'+chevR+'</button>').join("")+'</div></div>':'')
       +'<div class="cr-figs">'+((h.imgs||[]).map((im,ix)=>'<figure class="cr-fig"><img data-img="'+ix+'" src="'+im.url+'" alt="" style="cursor:zoom-in">'+((im.pins&&im.pins.length)?'<ol class="cr-pins">'+im.pins.map(p=>'<li><span class="cr-pinn" style="background:'+(p.color||"#e2483d")+'">'+p.n+'</span><span>'+esc(p.comment||"")+'</span></li>').join("")+'</ol>':'')+'</figure>').join(""))+'</div>';
     main.querySelector("[data-back]").onclick=opts.back||(()=>{V.hzOpen=null;shell();});
     const urls=(h.imgs||[]).map(im=>im.url);
     main.querySelectorAll("[data-img]").forEach(im=>im.onclick=()=>lb(urls,+im.dataset.img));
+    // Ir al paso: la interacción del flow o el journey (con el paso resaltado).
+    main.querySelectorAll("[data-paso]").forEach(b=>b.onclick=()=>{ const q=h.pasos[+b.dataset.paso];
+      V.hzOpen=null; V.flowHzOpen=null; V.jrHzOpen=null;
+      if(q.tipo==="journey"){ V.section="journeys"; V.jrOpen=q.flujoId; V.jrPaso=q.pasoId; }
+      else { V.section="flujos"; V.flowOpen=q.flujoId; V.nodeOpen=q.pasoId; }
+      shell(); window.scrollTo(0,0); });
   }
   function secFlujos(main){
     if(V.flowHzOpen)return hzDetail(main,V.flowHzOpen,{backLabel:"Interacción",back:()=>{V.flowHzOpen=null;shell();}});
@@ -204,14 +211,17 @@ function SR_boot(D){
     const fu=main.querySelector("[data-full]"); if(fu&&node.full)fu.onclick=()=>lb([node.full],0);
     main.querySelectorAll("[data-hz]").forEach(b=>b.onclick=()=>{V.flowHzOpen=b.dataset.hz;shell();});
   }
-  function secJourneys(main){ if(V.jrOpen)return jrDetail(main);
+  function secJourneys(main){
+    if(V.jrHzOpen)return hzDetail(main,V.jrHzOpen,{backLabel:"User Journey",back:()=>{V.jrHzOpen=null;shell();}});
+    if(V.jrOpen)return jrDetail(main);
     main.innerHTML='<h2>User Journeys</h2><p class="cr-lead">Elegí un journey para ver el mapa completo.</p><div class="cr-cards">'+(D.journeys.length?D.journeys.map(j=>'<button class="cr-card2" data-jr="'+j.id+'"><div class="cr-card2-h"><h3>'+esc(j.nombre)+'</h3>'+chevR+'</div>'+(j.descripcion?'<p>'+esc(j.descripcion)+'</p>':'')+'<div class="cr-card2-meta">'+(j.etapas||[]).length+' etapas · '+(j.pasos||[]).length+' pasos</div></button>').join(""):'<div class="cr-empty">Sin journeys.</div>')+'</div>';
     main.querySelectorAll("[data-jr]").forEach(b=>b.onclick=()=>{V.jrOpen=b.dataset.jr;shell();});
   }
   function jrDetail(main){ const j=D.journeys.find(x=>x.id===V.jrOpen); if(!j){V.jrOpen=null;return secJourneys(main);}
     main.classList.add("sb-main-wide"); // el mapa usa todo el ancho del contenedor
     main.innerHTML='<button class="cr-back" data-back="1">'+chevL+' User Journeys</button>'+jrMatrix(j);
-    main.querySelector("[data-back]").onclick=()=>{V.jrOpen=null;shell();};
+    main.querySelector("[data-back]").onclick=()=>{V.jrOpen=null;V.jrPaso=null;shell();};
+    main.querySelectorAll("[data-jrhz]").forEach(b=>b.onclick=()=>{V.jrHzOpen=b.dataset.jrhz;shell();window.scrollTo(0,0);});
     // Mismo desplazamiento que en el editor: slider + flechas, arriba y abajo, sincronizados.
     const scroll=main.querySelector(".jr-scroll"); if(!scroll)return;
     const ranges=[...main.querySelectorAll(".jr-range")], sbars=[...main.querySelectorAll(".jr-sbar")];
@@ -222,12 +232,15 @@ function SR_boot(D){
     main.querySelectorAll(".jr-nav-btn").forEach(b=>b.onclick=()=>scroll.scrollBy({left:(+b.dataset.dir)*JW*1.5,behavior:"smooth"}));
     window.addEventListener("resize",syncSb);
     requestAnimationFrame(syncSb); setTimeout(syncSb,80);
+    // Llegando desde un hallazgo: llevar el mapa hasta ese paso y resaltarlo.
+    if(V.jrPaso){ const i=(j=>j?(j.pasos||[]).findIndex(p=>p.id===V.jrPaso):-1)(D.journeys.find(x=>x.id===V.jrOpen)); V.jrPaso=null;
+      if(i>=0) requestAnimationFrame(()=>{ scroll.scrollLeft=Math.max(0,i*JW-JW); main.querySelectorAll('[data-pcol="'+i+'"]').forEach(c=>c.classList.add("cr-paso-on")); syncSb(); }); }
   }
   function jrMatrix(j){ const car=j.carriles||{}, pasos=j.pasos||[], n=pasos.length;
     if(!n)return '<div class="cr-flow"><div class="cr-flow-h"><h3>'+esc(j.nombre)+'</h3></div><div class="cr-empty">Sin pasos.</div></div>';
     let bands=[],st=0; for(let i=1;i<=n;i++){if(i===n||pasos[i].etapaId!==pasos[st].etapaId){bands.push({etapaId:pasos[st].etapaId,len:i-st});st=i;}}
-    const bandRow=bands.map(b=>{const et=(j.etapas||[]).find(e=>e.id===b.etapaId);const w=b.len*JW-8;return et?'<div class="jr-band" style="width:'+w+'px;background:'+(et.color||"#555")+'">'+esc(et.nombre)+'</div>':'<div class="jr-band empty" style="width:'+w+'px">sin etapa</div>';}).join("");
-    const heads=pasos.map((p,i)=>'<div class="jr-cell"><div class="jr-pnum">'+(i+1)+'</div><div class="jr-pname">'+esc(p.nombre||"Paso")+'</div></div>').join("");
+    const bandRow=bands.map(b=>{const et=(j.etapas||[]).find(e=>e.id===b.etapaId);const w=b.len*JW-8;return et?'<div class="jr-band" style="width:'+w+'px;background:'+(et.color||"#555")+'"'+(et.descripcion?' title="'+esc(et.descripcion)+'"':'')+'>'+esc(et.nombre)+'</div>':'<div class="jr-band empty" style="width:'+w+'px">sin etapa</div>';}).join("");
+    const heads=pasos.map((p,i)=>'<div class="jr-cell" data-pcol="'+i+'"><div class="jr-pnum">'+(i+1)+'</div><div class="jr-pname">'+esc(p.nombre||"Paso")+'</div></div>').join("");
     const lbl=id=>{const k=CARR.find(x=>x.id===id);return k.label;};
     const pills=(arr,cloud)=>'<div class="jr-pills '+(cloud?"cloud":"")+'">'+((arr||[]).map(t=>'<span class="jr-pill '+(cloud?"cloud":"")+'">'+esc(t)+'</span>').join("")||'<span class="cr-dash">—</span>')+'</div>';
     let rows="";
@@ -237,6 +250,8 @@ function SR_boot(D){
     if(car.expectativas!==false)rows+='<div class="jr-row exp"><div class="jr-lbl">'+lbl("expectativas")+'</div><div class="jr-cells">'+pasos.map(p=>'<div class="jr-cell">'+pills(p.expectativas,true)+'</div>').join("")+'</div></div>';
     if(car.pain!==false)rows+='<div class="jr-row pain"><div class="jr-lbl">'+lbl("pain")+'</div><div class="jr-cells">'+pasos.map(p=>'<div class="jr-cell">'+pills(p.pain)+'</div>').join("")+'</div></div>';
     if(car.oportunidades!==false)rows+='<div class="jr-row"><div class="jr-lbl">'+lbl("oportunidades")+'</div><div class="jr-cells">'+pasos.map(p=>'<div class="jr-cell">'+pills(p.oportunidades)+'</div>').join("")+'</div></div>';
+    // Hallazgos de cada paso: se abren con el mismo detalle que en la sección Hallazgos.
+    if(pasos.some(p=>(p.hallazgos||[]).some(id=>hzById[id])))rows+='<div class="jr-row cr-jr-hz"><div class="jr-lbl">Hallazgos</div><div class="jr-cells">'+pasos.map((p,i)=>'<div class="jr-cell" data-pcol="'+i+'">'+((p.hallazgos||[]).map(id=>hzById[id]).filter(Boolean).map(hh=>'<button class="cr-jr-hzb" data-jrhz="'+hh.id+'"><span class="cr-row-sev" style="background:'+pinColor(hh)+'"></span><span>'+esc(hh.titulo)+'</span></button>').join("")||'<span class="cr-dash">—</span>')+'</div>').join("")+'</div></div>';
     return '<div class="cr-flow"><div class="cr-flow-h"><h3>'+esc(j.nombre)+'</h3>'+(j.descripcion?'<p>'+esc(j.descripcion)+'</p>':'')+'</div>'+jrSbar("top")+'<div class="jr-scroll"><div class="jr-matrix"><div class="jr-row jr-etapas"><div class="jr-lbl">Etapas</div><div class="jr-cells">'+bandRow+'</div></div><div class="jr-row jr-head"><div class="jr-lbl">Pasos</div><div class="jr-cells">'+heads+'</div></div>'+rows+'</div></div>'+jrSbar("bottom")+'</div>';
   }
   function jrSbar(pos){ return '<div class="jr-sbar" data-sb="'+pos+'"><button class="jr-nav-btn" data-dir="-1" title="Anterior">'+chevL+'</button><input type="range" class="jr-range" min="0" max="1000" value="0" aria-label="Desplazar el mapa"><button class="jr-nav-btn" data-dir="1" title="Siguiente">'+chevR+'</button></div>'; }

@@ -138,6 +138,10 @@ test("beta: 1 estudio a la vez y 15 pantallas por estudio", async ({ page }) => 
   await crearEstudio(page, nombre);
   await expect(page.getByRole("heading", { name: nombre })).toBeVisible();
   const estId = await page.evaluate(() => JSON.parse(localStorage.getItem("lupa:active")));
+  // Una cuenta de la beta entrega el reporte solo por el link: no ve Exportar.
+  await page.locator('#psNav [data-t="reportes"]').click();
+  await expect(page.locator("#rptShareCard")).toBeVisible();
+  await expect(page.locator("#rpExpTxt")).toHaveCount(0);
   // Una cuenta de la beta arranca sin la marca ni las propuestas de uxuaria.
   await page.locator('#psNav [data-t="proyecto"]').click();
   await page.locator(".cf-item", { hasText: "Marca" }).click();

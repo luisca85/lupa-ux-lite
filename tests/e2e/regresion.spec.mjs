@@ -1,6 +1,7 @@
 // Test de regresión de la constitución (docs/AGENTS.md), automatizado.
 // Corre en dos proyectos: "servidor" (API + D1) e "indexeddb" (hosting estático).
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { crearEstudio } from "./estudio.mjs";
 import { makePng } from "./png.mjs";
 
@@ -86,7 +87,7 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
     await expect(page.locator("#hzPanel").getByText(hallazgo)).toBeVisible();
   });
 
-  await test.step("2. vista previa en vivo del reporte: hallazgos en grilla; flujos y journeys en Pronto", async () => {
+  await test.step("2. vista previa en vivo del reporte: hallazgos en grilla; flujos y journeys navegables", async () => {
     await page.getByRole("button", { name: "Reportes", exact: true }).click();
     await expect(page.locator("#rpEstado")).toHaveText("Al día");
     const prev = page.frameLocator("#rpFrame");
@@ -94,8 +95,16 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
     await prev.locator(".hz-gcard", { hasText: hallazgo }).click();
     await expect(prev.locator('img[src^="data:image"]').first()).toBeVisible();
     await expect(prev.getByText(PIN_COMMENT)).toBeVisible();
-    await expect(prev.locator(".sb-btn.is-pronto", { hasText: "Flujos" })).toBeDisabled();
-    await expect(prev.locator(".sb-btn.is-pronto", { hasText: "User Journeys" })).toBeDisabled();
+    // Flujos y User Journeys ya se navegan en el reporte (no "Pronto").
+    await expect(prev.locator(".sb-btn.is-pronto")).toHaveCount(0);
+    await prev.getByRole("button", { name: "Flujos", exact: true }).click();
+    await prev.locator("[data-flow]", { hasText: "Checkout" }).click();
+    await expect(prev.locator(".cr-fnode")).toHaveCount(1);
+    await prev.getByRole("button", { name: "User Journeys" }).click();
+    await prev.locator("[data-jr]", { hasText: "Journey de compra" }).click();
+    await expect(prev.locator(".jr-band").first()).toHaveText("Descubrimiento");
+    await prev.getByRole("button", { name: "Hallazgos" }).click();
+    await prev.locator(".hz-gcard", { hasText: hallazgo }).click();
 
     // Lo que se oculta en el panel desaparece de la vista previa, que conserva la sección abierta.
     await page.locator('#rptSel input[data-sec="contacto"]').uncheck();
@@ -104,6 +113,18 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
     await page.locator('#rptSel input[data-sec="contacto"]').check();
     await expect(prev.getByRole("button", { name: "Contacto" })).toBeVisible();
 
+    // Exportar (solo para quien administra): texto plano y JSON para IA, sin imágenes.
+    const [txt] = await Promise.all([page.waitForEvent("download"), page.locator("#rpExpTxt").click()]);
+    expect(txt.suggestedFilename()).toMatch(/\.txt$/);
+    const texto = readFileSync(await txt.path(), "utf8");
+    expect(texto).toContain("HALLAZGOS");
+    expect(texto).toContain("USER JOURNEYS");
+    const [js] = await Promise.all([page.waitForEvent("download"), page.locator("#rpExpJson").click()]);
+    const datos = JSON.parse(readFileSync(await js.path(), "utf8"));
+    expect(datos.formato).toBe("lupa-ux/reporte");
+    expect(datos.hallazgos.length).toBeGreaterThan(0);
+    expect(datos.user_journeys[0].etapas[0].nombre).toBe("Descubrimiento");
+    expect(JSON.stringify(datos)).not.toContain("data:image");
     await page.getByRole("button", { name: "Pantalla completa" }).click();
     await expect(page.getByRole("button", { name: "Cerrar vista previa" })).toBeVisible();
     await page.getByRole("button", { name: "Cerrar vista previa" }).click();
