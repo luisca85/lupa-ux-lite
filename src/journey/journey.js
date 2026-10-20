@@ -88,7 +88,7 @@ export function renderJourneyEditor(c,jr){
   if(!n){
     html+=`<div class="empty">${bigIco('chart')}<h3>Journey vacío</h3><p>Agregá el primer paso para empezar a mapear la experiencia por etapas.</p>
       ${jr.etapas.length?`<ol class="jr-etapas-prev" aria-label="Etapas del journey">${jr.etapas.map(e=>`<li><span class="jr-et-dot" style="background:${e.color||'#555'}"></span><b>${esc(e.nombre)}</b><span>${esc(e.descripcion||"")}</span><button type="button" class="jr-sp-add jr-li-add" data-addpaso="${e.id}" aria-label="Agregar un paso en ${esc(e.nombre)}">${plus()} Paso</button></li>`).join("")}</ol>
-      <p class="jr-etapas-nota">Podés cambiarlas, reordenarlas o sumar otras desde <b>Etapas</b> o <b>+ Etapa</b>.</p>`:""}
+      <p class="jr-etapas-nota">Sumá o quitá etapas desde <b>Etapas</b>. Cuando tengan pasos, las reordenás en el mapa con las flechas de cada etapa.</p>`:""}
       <button class="btn primary" id="jrAddPaso2">${plus()} Agregar paso</button></div>`;
     c.innerHTML=html; jrBarHandlers(c,jr); const a2=c.querySelector("#jrAddPaso2"); if(a2)a2.onclick=()=>jrAddPaso(jr);
     c.querySelectorAll("[data-addpaso]").forEach(b=>b.onclick=()=>jrAddPaso(jr,b.dataset.addpaso)); return;
@@ -96,8 +96,11 @@ export function renderJourneyEditor(c,jr){
   // bandas de etapa (grupos contiguos)
   let bands=[],start=0;
   for(let i=1;i<=n;i++){ if(i===n||pasos[i].etapaId!==pasos[start].etapaId){ bands.push({etapaId:pasos[start].etapaId,len:i-start}); start=i; } }
+  const conEtapa=bands.filter(b=>jr.etapas.some(e=>e.id===b.etapaId)).map(b=>b.etapaId);
+  const flecha=(d,et,nombre)=>{ const k=conEtapa.indexOf(et), off=d<0?k<=0:k>=conEtapa.length-1;
+    return `<button type="button" class="jr-band-mov" data-mover="${d}" data-et="${et}" title="Mover ${esc(nombre)} a la ${d<0?"izquierda":"derecha"}" aria-label="Mover ${esc(nombre)} a la ${d<0?"izquierda":"derecha"}" ${off?"disabled":""}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d<0?"m15 6-6 6 6 6":"m9 6 6 6-6 6"}"/></svg></button>`; };
   const bandRow=bands.map(b=>{ const et=jr.etapas.find(e=>e.id===b.etapaId); const w=b.len*JW-8;
-    return et?`<div class="jr-band" style="width:${w}px;background:${et.color||'#555'}"${et.descripcion?` title="${esc(et.descripcion)}"`:""}><span class="jr-band-t">${esc(et.nombre)}</span><button type="button" class="jr-band-add" data-addpaso="${et.id}" title="Agregar un paso en ${esc(et.nombre)}" aria-label="Agregar un paso en ${esc(et.nombre)}">${plus()}</button></div>`:`<div class="jr-band empty" style="width:${w}px">sin etapa</div>`; }).join("");
+    return et?`<div class="jr-band" style="width:${w}px;background:${et.color||'#555'}"${et.descripcion?` title="${esc(et.descripcion)}"`:""}>${flecha(-1,et.id,et.nombre)}<span class="jr-band-t">${esc(et.nombre)}</span>${flecha(1,et.id,et.nombre)}<button type="button" class="jr-band-add" data-addpaso="${et.id}" title="Agregar un paso en ${esc(et.nombre)}" aria-label="Agregar un paso en ${esc(et.nombre)}">${plus()}</button></div>`:`<div class="jr-band empty" style="width:${w}px">sin etapa</div>`; }).join("");
   const heads=pasos.map((p,i)=>{
     return `<div class="jr-cell jr-head-cell"><div class="jr-phead" data-phead="${i}"><div class="jr-pnum">${i+1}</div><div class="jr-pname">${esc(p.nombre||"Paso")}</div></div>
       <div class="jr-rels"><button class="jr-rel" data-rel="hallazgos" data-p="${i}" title="Hallazgos relacionados">${flagIco()} ${(p.hallazgos||[]).length}</button><button class="jr-rel fl" data-rel="flujos" data-p="${i}" title="User Flows relacionados">${flowIco()} ${(p.flujos||[]).length}</button></div></div>`; }).join("");
@@ -120,6 +123,13 @@ export function renderJourneyEditor(c,jr){
   </div></div>${sbar("bottom")}${etapasSinPasos(jr)}`;
   c.innerHTML=html;
   c.querySelectorAll("[data-addpaso]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); jrAddPaso(jr,b.dataset.addpaso); });
+  // Reordenar etapas en el mapa: la banda (con sus pasos) pasa antes o después de la vecina.
+  c.querySelectorAll("[data-mover]").forEach(b=>b.onclick=e=>{ e.stopPropagation();
+    const d=+b.dataset.mover, id=b.dataset.et, k=conEtapa.indexOf(id), vecina=conEtapa[k+d]; if(!vecina) return;
+    const et=jr.etapas.find(x=>x.id===id); jr.etapas=jr.etapas.filter(x=>x.id!==id);
+    const v=jr.etapas.findIndex(x=>x.id===vecina); jr.etapas.splice(d<0?v:v+1,0,et);
+    ordenarPasosPorEtapa(jr); saveActiveFlow(); render();
+    const otra=document.querySelector(`[data-mover="${d}"][data-et="${id}"]`); if(otra&&!otra.disabled) otra.focus(); });
   jrBarHandlers(c,jr);
   c.querySelectorAll(".jr-phead").forEach(el=>el.onclick=()=>pasoModal(jr,+el.dataset.phead));
   c.querySelectorAll(".jr-rel").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openJrSide(jr,+b.dataset.p,b.dataset.rel); });
@@ -191,13 +201,25 @@ function pasoModal(jr,idx){
   document.getElementById("pa_del").onclick=()=>{ document.getElementById("modalRoot").innerHTML=""; openConfirm("Eliminar paso",`Se elimina "<b>${esc(p.nombre||'Paso')}</b>".`,async()=>{ jr.pasos.splice(idx,1); await saveActiveFlow(); render(); }); };
   setTimeout(()=>document.getElementById("pa_n").focus(),40);
 }
+/* Etapas del journey: las que tiene (nombre, descripción, color, quitar), las que ya
+   existen para sumar con un clic (las base y las de otros journeys del estudio) y crear una
+   nueva. El orden se cambia en el mapa, moviendo cada banda. Se edita una copia: "Cancelar"
+   no cambia nada. */
+function etapasDisponibles(jr,actuales){
+  const tiene=n=>actuales.some(e=>e.nombre.trim().toLowerCase()===n.trim().toLowerCase());
+  const vistas=new Map();
+  const sumar=e=>{ const k=(e.nombre||"").trim().toLowerCase(); if(k&&!vistas.has(k)&&!tiene(e.nombre)) vistas.set(k,{nombre:e.nombre.trim(),descripcion:e.descripcion||"",color:e.color}); };
+  ETAPAS_BASE.forEach(([nombre,descripcion])=>sumar({nombre,descripcion}));
+  (state.flujos||[]).filter(f=>f.tipo==="User Journey"&&f.id!==jr.id).forEach(f=>(f.etapas||[]).forEach(sumar));
+  return [...vistas.values()];
+}
 function etapasModal(jr,opts){
   jr.etapas=jr.etapas||[];
-  // Se edita una copia: "Cancelar" no cambia nada; "Guardar" aplica nombres, descripciones,
-  // colores, orden y borrados.
   const etapas=jr.etapas.map(e=>({...e}));
-  if(opts&&opts.nueva) etapas.push({id:uid(),nombre:"Etapa "+(etapas.length+1),descripcion:"",color:JR_COLORS[etapas.length%JR_COLORS.length]});
-  openModal("Etapas del journey",`<div class="et-top"><p class="et-ayuda">Ordená las etapas con las flechas. Los pasos siguen el orden de sus etapas.</p><button type="button" class="btn sm" id="etAdd">${plus()} Agregar etapa</button></div><div id="etList" class="et-list"></div>`,async()=>{
+  const colorLibre=()=>JR_COLORS.find(c=>!etapas.some(e=>e.color===c))||JR_COLORS[etapas.length%JR_COLORS.length];
+  openModal("Etapas del journey",`<section class="et-sec"><h4>En este journey <span class="cnt" id="etCnt"></span></h4><p class="et-ayuda">El orden se cambia en el mapa, con las flechas de cada etapa.</p><div id="etList" class="et-list"></div></section>
+    <section class="et-sec"><h4>Agregar etapas</h4><div id="etDisp" class="et-disp"></div></section>
+    <section class="et-sec"><h4>Crear una etapa nueva</h4><div class="et-nueva"><input id="etNomNueva" placeholder="Nombre de la etapa" aria-label="Nombre de la etapa nueva"><input id="etDescNueva" placeholder="Qué le pasa al cliente en esta etapa (opcional)" aria-label="Descripción de la etapa nueva"><button type="button" class="btn sm" id="etCrear">${plus()} Crear y agregar</button></div></section>`,async()=>{
     capture();
     const borradas=jr.etapas.filter(e=>!etapas.some(x=>x.id===e.id)).map(e=>e.id);
     jr.etapas=etapas.map(e=>({...e,nombre:(e.nombre||"").trim()||"Etapa",descripcion:(e.descripcion||"").trim()}));
@@ -205,22 +227,28 @@ function etapasModal(jr,opts){
     ordenarPasosPorEtapa(jr);
     await saveActiveFlow(); render(); return true;
   },"et-modal");
-  const list=document.getElementById("etList");
+  const list=document.getElementById("etList"), disp=document.getElementById("etDisp");
   function capture(){ etapas.forEach((e,i)=>{ const ni=document.getElementById("et_n_"+i), di=document.getElementById("et_d_"+i); if(ni)e.nombre=ni.value; if(di)e.descripcion=di.value; }); }
-  const flecha=d=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d<0?"m6 15 6-6 6 6":"m6 9 6 6 6-6"}"/></svg>`;
   function draw(){
+    document.getElementById("etCnt").textContent=etapas.length;
     list.innerHTML=etapas.length?etapas.map((e,i)=>`<div class="et-item">
-      <div class="et-orden"><button type="button" class="icon-btn sm et-mov" data-i="${i}" data-d="-1" title="Subir" aria-label="Subir ${esc(e.nombre)}" ${i===0?"disabled":""}>${flecha(-1)}</button><span class="et-n">${i+1}</span><button type="button" class="icon-btn sm et-mov" data-i="${i}" data-d="1" title="Bajar" aria-label="Bajar ${esc(e.nombre)}" ${i===etapas.length-1?"disabled":""}>${flecha(1)}</button></div>
+      <span class="et-n">${i+1}</span>
       <div class="et-campos"><input id="et_n_${i}" value="${esc(e.nombre)}" aria-label="Nombre de la etapa ${i+1}" placeholder="Nombre de la etapa"><input id="et_d_${i}" value="${esc(e.descripcion||"")}" aria-label="Descripción de la etapa ${i+1}" placeholder="Qué le pasa al cliente en esta etapa (opcional)" class="et-desc">
         <span class="et-cols">${JR_COLORS.map(col=>`<button type="button" class="et-col" data-i="${i}" data-c="${col}" title="Color" aria-label="Color" style="border-color:${e.color===col?'var(--ink)':'transparent'};background:${col}"></button>`).join("")}</span></div>
-      <button type="button" class="icon-btn sm et-del" data-i="${i}" title="Eliminar etapa" aria-label="Eliminar ${esc(e.nombre)}">${trash()}</button></div>`).join(""):`<span class="rhint">Sin etapas.</span>`;
+      <button type="button" class="icon-btn sm et-del" data-i="${i}" title="Quitar del journey" aria-label="Quitar ${esc(e.nombre)}">${trash()}</button></div>`).join(""):`<span class="rhint">Este journey no tiene etapas. Agregá alguna de abajo.</span>`;
+    const ds=etapasDisponibles(jr,etapas);
+    disp.innerHTML=ds.length?ds.map((e,k)=>`<button type="button" class="et-op" data-k="${k}"${e.descripcion?` title="${esc(e.descripcion)}"`:""}><span class="et-op-t">${plus()} ${esc(e.nombre)}</span>${e.descripcion?`<span class="et-op-d">${esc(e.descripcion)}</span>`:""}</button>`).join(""):`<span class="rhint">Ya agregaste todas las etapas disponibles. Podés crear una nueva.</span>`;
     list.querySelectorAll(".et-col").forEach(b=>b.onclick=()=>{ capture(); etapas[+b.dataset.i].color=b.dataset.c; draw(); });
     list.querySelectorAll(".et-del").forEach(b=>b.onclick=()=>{ capture(); etapas.splice(+b.dataset.i,1); draw(); });
-    list.querySelectorAll(".et-mov").forEach(b=>b.onclick=()=>{ capture(); const i=+b.dataset.i, j=i+(+b.dataset.d); if(j<0||j>=etapas.length) return; [etapas[i],etapas[j]]=[etapas[j],etapas[i]]; draw(); const otra=list.querySelector(`.et-mov[data-i="${j}"][data-d="${b.dataset.d}"]`)||list.querySelector(`.et-mov[data-i="${j}"]`); if(otra) otra.focus(); });
+    disp.querySelectorAll(".et-op").forEach(b=>b.onclick=()=>{ capture(); const e=ds[+b.dataset.k]; etapas.push({id:uid(),nombre:e.nombre,descripcion:e.descripcion,color:colorLibre()}); draw(); });
   }
-  document.getElementById("etAdd").onclick=()=>{ capture(); etapas.push({id:uid(),nombre:"Etapa "+(etapas.length+1),descripcion:"",color:JR_COLORS[etapas.length%JR_COLORS.length]}); draw(); const n=document.getElementById("et_n_"+(etapas.length-1)); if(n){ n.scrollIntoView({block:"center"}); n.focus(); n.select(); } };
+  const crear=()=>{ const n=document.getElementById("etNomNueva"), d=document.getElementById("etDescNueva");
+    if(!n.value.trim()){ n.focus(); return; }
+    capture(); etapas.push({id:uid(),nombre:n.value.trim(),descripcion:d.value.trim(),color:colorLibre()}); n.value=""; d.value=""; draw(); n.focus(); };
+  document.getElementById("etCrear").onclick=crear;
+  ["etNomNueva","etDescNueva"].forEach(id=>document.getElementById(id).onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); crear(); } });
   draw();
-  if(opts&&opts.nueva){ const n=document.getElementById("et_n_"+(etapas.length-1)); if(n){ n.scrollIntoView({block:"center"}); n.focus(); n.select(); } }
+  if(opts&&opts.nueva){ const n=document.getElementById("etNomNueva"); n.scrollIntoView({block:"center"}); n.focus(); }
 }
 function carrilesModal(jr){
   jr.carriles=jr.carriles||jrDefaultCarriles();
