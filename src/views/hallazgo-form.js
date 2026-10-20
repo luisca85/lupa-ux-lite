@@ -190,6 +190,8 @@ export function formularioHallazgo(el,h,opts){
     const sel={pantallaId:d.pantallaId, pendiente:d.pendiente, pin:d.pin?{...d.pin}:null,
       nombre:d.pendiente?d.pendiente.nombre:(d.renombre||((pants().find(x=>x.id===d.pantallaId)||{}).nombre)||"")};
     let src=null;
+    // Pestaña inicial: si el estudio ya tiene pantallas, elegir una (así no se duplican imágenes).
+    let modo=pants().length?"existentes":"subir";
     const sugerido=()=>`Pantalla ${pants().length+1}`;
     const pintar=()=>{
       const inp=$("hpsNombre"); if(inp) sel.nombre=inp.value; // conservar lo escrito al repintar
@@ -204,12 +206,19 @@ export function formularioHallazgo(el,h,opts){
             <div class="hf-pant-scroll">${marco(src||(sel.pendiente?sel.pendiente.img.full.dataUrl:(pa.thumb||"")),sel.pendiente?null:sel.pantallaId,sel.pin,"hpsImg")}</div>
             <span class="hint">${sel.pin?"Listo. Hacé clic en otro lugar para mover el pin.":"Hacé clic en la pantalla para colocar el pin del hallazgo."}</span>
             <button type="button" class="hps-otra" id="hpsOtra">Usar otra imagen</button></div>`
-          :`<div class="hps-drop" id="hpsDrop" tabindex="0" role="button" aria-label="Subir una imagen">
+          :`<div class="hps-tabs" role="tablist" aria-label="Origen de la pantalla">
+              <button type="button" role="tab" class="hps-tab${modo==="existentes"?" on":""}" data-modo="existentes" aria-selected="${modo==="existentes"}" ${pants().length?"":"disabled"}>Pantallas del estudio <span class="cnt">${pants().length}</span></button>
+              <button type="button" role="tab" class="hps-tab${modo==="subir"?" on":""}" data-modo="subir" aria-selected="${modo==="subir"}">Subir nueva</button></div>
+            ${modo==="existentes"?`<span class="hint">Elegí la pantalla del hallazgo. Después ubicás el pin.</span>
+              ${pants().length>8?`<input class="hps-buscar" id="hpsBuscar" placeholder="Buscar pantalla…" aria-label="Buscar pantalla">`:""}
+              <div class="hps-grid" id="hpsGrid">${pants().map(x=>{ const nh=state.hallazgos.filter(y=>y.pantallaId===x.id).length;
+                return `<button type="button" class="hps-pant" data-pid="${x.id}" data-nombre="${esc((x.nombre||"").toLowerCase())}"><img src="${x.thumb||""}" alt=""><span class="hps-pant-n">${esc(x.nombre||"Pantalla")}</span><span class="hps-pant-c">${nh?`${nh} ${nh===1?"hallazgo":"hallazgos"}`:"Sin hallazgos"}</span></button>`; }).join("")}</div>`
+            :`<div class="hps-drop" id="hpsDrop" tabindex="0" role="button" aria-label="Subir una imagen">
               <b>Subí la captura de la pantalla</b>
               <span>Pegala con <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>V</kbd>, arrastrala acá o elegí un archivo.</span>
               <div class="hps-drop-a"><button type="button" class="btn-q" id="hpsArchivo">Elegir archivo</button><button type="button" class="btn-q" id="hpsPegar">Pegar del portapapeles</button></div>
               <input type="file" id="hpsFile" accept="image/*" hidden></div>
-            ${pants().length?`<div class="pf"><label>O usá una pantalla que ya existe</label><div class="hps-grid">${pants().map(x=>`<button type="button" class="hps-pant" data-pid="${x.id}"><img src="${x.thumb||""}" alt=""><span>${esc(x.nombre||"Pantalla")}</span></button>`).join("")}</div></div>`:""}`}
+            <span class="hint">Si la imagen ya está cargada, se usa la misma pantalla (no se duplica).</span>`}`}
         <div class="hp-acts"><button type="button" class="btn-q sel" id="hpsGuardar" ${hay&&sel.pin?"":"disabled"}>Guardar pantalla y pin</button><button type="button" class="btn-q" id="hpsCancel">Cancelar</button></div>
       </div>`;
       const volver=()=>{ document.removeEventListener("paste",alPegar); vistaFormulario(); };
@@ -225,6 +234,11 @@ export function formularioHallazgo(el,h,opts){
         $("hpsOtra").onclick=()=>{ sel.pantallaId=null; sel.pendiente=null; sel.pin=null; src=null; sel.nombre=""; pintar(); };
         if(pa&&!src) imgDe(pa.id).then(b=>{ if(b){ src=b; const im=el.querySelector("#hpsImg img"); if(im) im.src=b; } });
       } else {
+        el.querySelectorAll(".hps-tab").forEach(b=>b.onclick=()=>{ if(b.disabled) return; modo=b.dataset.modo; pintar(); });
+        const bus=$("hpsBuscar"); if(bus) bus.oninput=()=>{ const q=bus.value.trim().toLowerCase(); el.querySelectorAll(".hps-pant").forEach(x=>x.hidden=!!q&&!x.dataset.nombre.includes(q)); };
+        el.querySelectorAll(".hps-pant").forEach(b=>b.onclick=()=>{ sel.pantallaId=b.dataset.pid; sel.pendiente=null; sel.pin=null; src=null; sel.nombre=((pants().find(x=>x.id===b.dataset.pid)||{}).nombre)||""; pintar(); });
+      }
+      if(!hay&&modo==="subir"){
         $("hpsArchivo").onclick=()=>$("hpsFile").click();
         $("hpsFile").onchange=e=>{ const f=e.target.files[0]; if(f) cargar(f); e.target.value=""; };
         $("hpsPegar").onclick=async()=>{ try{ const items=await navigator.clipboard.read();
@@ -234,7 +248,6 @@ export function formularioHallazgo(el,h,opts){
         const drop=$("hpsDrop");
         drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drag"); }; drop.ondragleave=()=>drop.classList.remove("drag");
         drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drag"); const f=e.dataTransfer.files[0]; if(f) cargar(f); };
-        el.querySelectorAll(".hps-pant").forEach(b=>b.onclick=()=>{ sel.pantallaId=b.dataset.pid; sel.pendiente=null; sel.pin=null; src=null; sel.nombre=((pants().find(x=>x.id===b.dataset.pid)||{}).nombre)||""; pintar(); });
       }
     };
     const cargar=async f=>{
