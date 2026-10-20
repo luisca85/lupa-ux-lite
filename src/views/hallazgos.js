@@ -174,6 +174,8 @@ async function cleanFlowMarkers(sid,hallazgoId){
     for(const f of flows){
       let changed=false;
       (f.nodes||[]).forEach(n=>{const before=(n.markers||[]).length;n.markers=(n.markers||[]).filter(m=>m.hallazgoId!==hallazgoId);if(n.markers.length!==before)changed=true;});
+      // Los pasos de journey también lo registran: se quita de ahí.
+      (f.pasos||[]).forEach(p=>{ if((p.hallazgos||[]).includes(hallazgoId)){ p.hallazgos=p.hallazgos.filter(x=>x!==hallazgoId); changed=true; } });
       if(changed)await flowStore.save(sid,f);
     }
     if(state._flujosFor===sid)state.flujos=flows;
