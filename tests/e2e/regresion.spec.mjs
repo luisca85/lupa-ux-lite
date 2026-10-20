@@ -58,11 +58,14 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
     await expect(page.locator(".jr-band-t")).toHaveText(["Descubrimiento", "Consideración", "Decisión", "Conversión", "Experiencia de usuario", "Fidelización"]);
     // "+ Etapa" en el mapa: lista de etapas prehechas y crear una nueva, que aparece con su paso.
     await page.locator("#jrBandNueva").click();
-    await expect(page.locator(".et-pop-op[disabled]")).toHaveCount(6);
+    await expect(page.locator(".et-pop-op[disabled]")).toHaveCount(0); // todas se pueden elegir
+    await page.locator(".et-pop-op", { hasText: "Consideración" }).click();
+    await expect(page.locator(".jr-band-t").last()).toHaveText("Consideración");
+    await page.locator("#jrBandNueva").click();
     await page.locator("#etPopNom").fill("Recomendación");
     await page.locator("#etPopCrear").click();
     await expect(page.locator(".jr-band-t").last()).toHaveText("Recomendación");
-    await expect(page.locator(".jr-phead")).toHaveCount(7);
+    await expect(page.locator(".jr-phead")).toHaveCount(8);
   });
 
   await test.step("1d. recargar: todo persiste", async () => {

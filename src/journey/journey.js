@@ -39,13 +39,13 @@ function jrNuevoPaso(etapaId,n){ return {id:uid(),etapaId,nombre:"Paso "+n,emoci
 // Journey nuevo: las 6 etapas base, cada una con un primer paso, así el flujo se ve entero en el mapa.
 export function jrJourneyBase(){ const etapas=jrEtapasBase(); return { etapas, pasos:etapas.map((e,i)=>jrNuevoPaso(e.id,i+1)) }; }
 // Etapas prehechas para sumar: las base y las de otros journeys del estudio, sin repetir nombre.
-// "enJourney" marca las que este journey ya tiene.
+// "usos" cuenta cuántas veces este journey ya la tiene (igual se puede volver a agregar).
 function jrLibreriaEtapas(jr){
   const vistas=new Map(), clave=n=>String(n||"").trim().toLowerCase();
   const sumar=e=>{ const k=clave(e.nombre); if(k&&!vistas.has(k)) vistas.set(k,{nombre:e.nombre.trim(),descripcion:e.descripcion||""}); };
   ETAPAS_BASE.forEach(([nombre,descripcion])=>sumar({nombre,descripcion}));
   (state.flujos||[]).filter(f=>f.tipo==="User Journey"&&f.id!==jr.id).forEach(f=>(f.etapas||[]).forEach(sumar));
-  return [...vistas.values()].map(e=>({...e,enJourney:(jr.etapas||[]).some(x=>clave(x.nombre)===clave(e.nombre))})).sort((a,b)=>a.enJourney-b.enJourney); // las que se pueden sumar, primero
+  return [...vistas.values()].map(e=>({...e,usos:(jr.etapas||[]).filter(x=>clave(x.nombre)===clave(e.nombre)).length}));
 }
 // Agrega una etapa al final del journey con su primer paso: aparece enseguida en el mapa.
 function jrAgregarEtapa(jr,{nombre,descripcion}){
@@ -61,18 +61,18 @@ function openEtapaPop(btn,jr){
   const lib=jrLibreriaEtapas(jr);
   const pop=document.createElement("div"); pop.className="et-pop"; pop.id="emoPop"; pop.setAttribute("role","dialog"); pop.setAttribute("aria-label","Agregar una etapa");
   pop.innerHTML=`<div class="et-pop-h">Agregar una etapa</div>
-    <div class="et-pop-list">${lib.map((e,k)=>`<button type="button" class="et-pop-op" data-k="${k}" ${e.enJourney?"disabled":""}><span class="et-pop-t">${e.enJourney?"":plus()} ${esc(e.nombre)}${e.enJourney?` <em>ya está</em>`:""}</span>${e.descripcion?`<span class="et-pop-d">${esc(e.descripcion)}</span>`:""}</button>`).join("")}</div>
+    <div class="et-pop-list">${lib.map((e,k)=>`<button type="button" class="et-pop-op" data-k="${k}"><span class="et-pop-t">${plus()} ${esc(e.nombre)}${e.usos?` <em>${e.usos===1?"ya la usás":`ya la usás ${e.usos} veces`}</em>`:""}</span>${e.descripcion?`<span class="et-pop-d">${esc(e.descripcion)}</span>`:""}</button>`).join("")}</div>
     <div class="et-pop-nueva"><input id="etPopNom" placeholder="O creá una etapa nueva" aria-label="Nombre de la etapa nueva"><button type="button" class="btn sm primary" id="etPopCrear">Agregar</button></div>`;
   document.body.appendChild(pop);
   const r=btn.getBoundingClientRect(), w=Math.min(340,window.innerWidth-16);
   pop.style.width=w+"px"; pop.style.left=Math.max(8,Math.min(r.left,window.innerWidth-w-8))+"px";
   const alto=pop.offsetHeight; pop.style.top=(r.bottom+6+alto>window.innerHeight&&r.top-6-alto>0?r.top-6-alto:Math.min(r.bottom+6,window.innerHeight-alto-8))+"px";
-  pop.querySelectorAll(".et-pop-op:not([disabled])").forEach(b=>b.onclick=()=>{ jrCleanupPop(); jrAgregarEtapa(jr,lib[+b.dataset.k]); });
+  pop.querySelectorAll(".et-pop-op").forEach(b=>b.onclick=()=>{ jrCleanupPop(); jrAgregarEtapa(jr,lib[+b.dataset.k]); });
   const nom=pop.querySelector("#etPopNom");
   const crear=()=>{ if(!nom.value.trim()){ nom.focus(); return; } const n=nom.value; jrCleanupPop(); jrAgregarEtapa(jr,{nombre:n,descripcion:""}); };
   pop.querySelector("#etPopCrear").onclick=crear;
   nom.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); crear(); } };
-  const primero=pop.querySelector(".et-pop-op:not([disabled])")||nom; primero.focus();
+  const primero=pop.querySelector(".et-pop-op")||nom; primero.focus();
   pop.onkeydown=e=>{ if(e.key==="Escape"){ e.preventDefault(); jrCleanupPop(); btn.focus(); } };
   setTimeout(()=>{ window._jrPopClose=e=>{ if(!pop.contains(e.target)&&!btn.contains(e.target)) jrCleanupPop(); }; document.addEventListener("pointerdown",window._jrPopClose,true); },0);
 }
