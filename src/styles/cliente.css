@@ -293,3 +293,16 @@
 .ty-back{display:inline-flex;align-items:center;gap:6px}
 @media (max-width:640px){.ty-pasos{grid-template-columns:1fr}.ty h1{font-size:26px}}
 .sb-wrap:has(.tj-fab) .sb-main{padding-bottom:110px}
+/* Reporte: dónde aparece un hallazgo (pasos de flows y journeys) y hallazgos por paso del journey */
+.cr-pasos{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.cr-paso{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px;text-align:left;cursor:pointer}
+.cr-paso:hover{border-color:var(--ink)}
+.cr-paso span:nth-child(2){flex:1;min-width:0}
+.cr-paso-k{flex:none;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:2px 7px}
+.cr-paso .chev{width:14px;height:14px;flex:none;color:var(--muted)}
+.cr-jr-hz .jr-cell{display:flex;flex-direction:column;gap:4px}
+.cr-jr-hzb{display:flex;align-items:center;gap:6px;width:100%;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;text-align:left;cursor:pointer}
+.cr-jr-hzb:hover{border-color:var(--ink)}
+.cr-jr-hzb .cr-row-sev{width:10px;height:10px;border-radius:50%}
+.cr-jr-hzb span:last-child{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.jr-cell.cr-paso-on{background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:inset 0 0 0 2px var(--accent)}

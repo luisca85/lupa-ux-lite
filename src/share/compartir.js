@@ -9,6 +9,7 @@ import { jrDefaultCarriles, jrNormalizePaso } from "../journey/journey.js";
 import { ensureReporte, marcaActual } from "../reportes/comun.js";
 import { vistaCliente } from "../reportes/seleccion.js";
 import { compositeDataUrl } from "../ui/anotaciones.js";
+import { pasosDe } from "../views/hallazgo-form.js";
 import { x } from "../ui/iconos.js";
 
 const PIN_COLOR={Problema:"#e5484d",Oportunidad:"#12a594","Observación":"#64748b"};
@@ -30,15 +31,28 @@ export async function collectShareData(est){
       let url=_compCache.get(k);
       if(!url){ url=await compositeDataUrl({base:d.base,w,h:hh,ann:[{t:"pin",x:pin.x*w,y:pin.y*hh,n,color}]},0.82); _compCache.set(k,url); if(_compCache.size>300) _compCache.delete(_compCache.keys().next().value); }
       imgs.push({url,pins:[]}); } }catch(e){} }
-    hzOut.push({ id:h.id, tipo:h.tipo, severidad:(h.severidad!=null&&h.severidad!=="")?h.severidad:null, titulo:h.titulo||"", pantalla:h.pantalla||(p?p.nombre:""), descripcion:h.descripcion||"", recomendacion:h.recomendacion||"", heur:heurDe(h).map(x=>x.nombre), sesgos:sesgosDe(h).map(x=>x.nombre), tags:h.tags||[], imgs });
+    // Dónde aparece: pasos de flows y journeys que el cliente ve (para navegar desde el hallazgo).
+    const visibles=new Map([...flows,...journeys].map(f=>[f.id,f]));
+    const pasosVis=pasosDe(h).filter(q=>visibles.has(q.flujoId)).map(q=>{ const f=visibles.get(q.flujoId), jr=f.tipo==="User Journey";
+      const lista=jr?(f.pasos||[]):(f.nodes||[]), i=lista.findIndex(x=>x.id===q.pasoId), it=lista[i];
+      return it?{tipo:jr?"journey":"flow",flujoId:f.id,pasoId:q.pasoId,flujo:f.nombre||"",paso:(i+1)+". "+((jr?it.nombre:it.titulo)||(jr?"Paso":"Interacción"))}:null; }).filter(Boolean);
+    hzOut.push({ id:h.id, pasos:pasosVis, tipo:h.tipo, severidad:(h.severidad!=null&&h.severidad!=="")?h.severidad:null, titulo:h.titulo||"", pantalla:h.pantalla||(p?p.nombre:""), descripcion:h.descripcion||"", recomendacion:h.recomendacion||"", heur:heurDe(h).map(x=>x.nombre), sesgos:sesgosDe(h).map(x=>x.nombre), tags:h.tags||[], imgs });
   }
   const flowsOut=[];
   for(const f of flows){ const nodes=[];
-    for(const n of (f.nodes||[])){ let full=null; if(n.imgId){ try{ const d=await flowStore.getImg(est.id,f.id,n.imgId); if(d)full=d.full; }catch(e){} }
-      nodes.push({ id:n.id, titulo:n.titulo||"", ve:n.ve||"", hace:n.hace||"", x:n.x||0, y:n.y||0, thumb:n.imgThumb||null, full, markers:(n.markers||[]).map(mk=>({x:mk.x,y:mk.y,hallazgoId:mk.hallazgoId})) }); }
+    for(const n of (f.nodes||[])){ let full=null;
+      // La imagen es la pantalla del estudio (pantallaId) o la captura propia del flujo (imgId).
+      if(n.pantallaId){ const d=await pantallaImg(n.pantallaId); if(d&&d.base) full=d.base; }
+      else if(n.imgId){ try{ const d=await flowStore.getImg(est.id,f.id,n.imgId); if(d)full=d.full; }catch(e){} }
+      const thumb=n.imgThumb||(n.pantallaId?((pantallas.find(p=>p.id===n.pantallaId)||{}).thumb||null):null);
+      // Con la misma pantalla que el hallazgo, la marca va donde está su pin (igual que en la app).
+      const markers=(n.markers||[]).map(mk=>{ const h=state.hallazgos.find(x=>x.id===mk.hallazgoId), enPin=n.pantallaId&&h&&h.pantallaId===n.pantallaId&&h.pin;
+        return {x:enPin?h.pin.x:mk.x,y:enPin?h.pin.y:mk.y,hallazgoId:mk.hallazgoId}; });
+      nodes.push({ id:n.id, titulo:n.titulo||"", ve:n.ve||"", hace:n.hace||"", x:n.x||0, y:n.y||0, thumb, full, markers }); }
     flowsOut.push({ id:f.id, nombre:f.nombre||"", descripcion:f.descripcion||"", nodes, edges:(f.edges||[]).map(e=>({from:e.from,to:e.to,tipo:e.tipo,label:e.label||""})) });
   }
-  const jOut=journeys.map(j=>{ (j.pasos||[]).forEach(jrNormalizePaso); return { id:j.id, nombre:j.nombre||"", descripcion:j.descripcion||"", etapas:j.etapas||[], carriles:j.carriles||jrDefaultCarriles(), pasos:(j.pasos||[]).map(p=>({nombre:p.nombre,etapaId:p.etapaId,emocion:(p.emocion!=null?p.emocion:2),touchpoint:p.touchpoint||"",tpPills:p.tpPills||[],acciones:p.acciones||[],expectativas:p.expectativas||[],pain:p.pain||[],oportunidades:p.oportunidades||[]})) }; });
+  const hzVis=new Set(v.hallazgos.map(h=>h.id));
+  const jOut=journeys.map(j=>{ (j.pasos||[]).forEach(jrNormalizePaso); return { id:j.id, nombre:j.nombre||"", descripcion:j.descripcion||"", etapas:(j.etapas||[]).map(e=>({id:e.id,nombre:e.nombre||"",descripcion:e.descripcion||"",color:e.color||""})), carriles:j.carriles||jrDefaultCarriles(), pasos:(j.pasos||[]).map(p=>({id:p.id,hallazgos:(p.hallazgos||[]).filter(id=>hzVis.has(id)),nombre:p.nombre,etapaId:p.etapaId,emocion:(p.emocion!=null?p.emocion:2),touchpoint:p.touchpoint||"",tpPills:p.tpPills||[],acciones:p.acciones||[],expectativas:p.expectativas||[],pain:p.pain||[],oportunidades:p.oportunidades||[]})) }; });
   const hz=v.hallazgos, byT=t=>hz.filter(x=>x.tipo===t).length, sevN=n=>hz.filter(x=>x.tipo==="Problema"&&x.severidad===n).length;
   return {
     brand:{wordmark:m.wordmark,headerImg:m.headerImg||null,nombre:m.nombre,rol:m.rol,sitio:m.sitio,email:m.email||"",tel:m.tel||"",servicioNombre:m.servicioNombre||"",servicioDesc:m.servicioDesc||"",servicioUrl:m.servicioUrl||"",linkedin:m.linkedin||"",bienvenida:m.bienvenida||"",notaIA:m.notaIA||"",notaInicial:m.notaInicial||""},
