@@ -54,7 +54,15 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
     await page.locator('.flx-nuevos [data-nuevo="User Journey"]').click();
     await page.getByPlaceholder("Ej: Primera compra desde el celular").fill("Journey de compra");
     await page.getByRole("button", { name: "Guardar" }).click();
-    await page.getByRole("button", { name: "Agregar paso" }).click();
+    // Un journey nuevo arranca con las 6 etapas base, cada una con un paso.
+    await expect(page.locator(".jr-band-t")).toHaveText(["Descubrimiento", "Consideración", "Decisión", "Conversión", "Experiencia de usuario", "Fidelización"]);
+    // "+ Etapa" en el mapa: lista de etapas prehechas y crear una nueva, que aparece con su paso.
+    await page.locator("#jrBandNueva").click();
+    await expect(page.locator(".et-pop-op[disabled]")).toHaveCount(6);
+    await page.locator("#etPopNom").fill("Recomendación");
+    await page.locator("#etPopCrear").click();
+    await expect(page.locator(".jr-band-t").last()).toHaveText("Recomendación");
+    await expect(page.locator(".jr-phead")).toHaveCount(7);
   });
 
   await test.step("1d. recargar: todo persiste", async () => {

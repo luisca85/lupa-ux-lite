@@ -1280,3 +1280,20 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .jr-band:hover .jr-band-mov:not(:disabled),.jr-band:focus-within .jr-band-mov:not(:disabled){opacity:.75}
 .jr-band .jr-band-mov:focus-visible{opacity:1}
 @media (hover:none){.jr-band-mov{display:none}}
+/* Journey: "+ Etapa" al final de la fila de etapas y lista de etapas prehechas */
+.jr-band-nueva{flex:none;height:30px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1.5px dashed var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;margin-left:8px}
+.jr-band-nueva:hover{border-color:var(--ink)}
+.jr-band-nueva svg{width:12px;height:12px}
+.et-pop{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow-lg);padding:10px;display:flex;flex-direction:column;gap:8px;max-height:min(460px,calc(100vh - 16px))}
+.et-pop-h{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:2px 4px}
+.et-pop-list{display:flex;flex-direction:column;gap:2px;overflow-y:auto;min-height:0}
+.et-pop-op{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px;border:none;border-radius:8px;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.et-pop-op:hover:not(:disabled),.et-pop-op:focus-visible{background:var(--surface-2);outline:none}
+.et-pop-op:disabled{cursor:default;color:var(--faint)}
+.et-pop-t{display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600}
+.et-pop-t svg{width:12px;height:12px}
+.et-pop-t em{font-style:normal;font-weight:400;font-size:11.5px;color:var(--faint)}
+.et-pop-d{font-size:12px;line-height:17px;color:var(--muted)}
+.et-pop-op:disabled .et-pop-d{color:var(--faint)}
+.et-pop-nueva{display:flex;gap:6px;border-top:1px solid var(--line);padding-top:8px}
+.et-pop-nueva input{flex:1;min-width:0;border:1px solid var(--line-input);border-radius:6px;padding:6px 8px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px}
