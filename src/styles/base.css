@@ -1176,3 +1176,18 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .flx-op-d{font-size:14px;line-height:21px;color:var(--muted);max-width:46ch}
 .flx-op-cta{margin-top:auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--ink)}
 @media (max-width:900px){.flx-vacio{grid-template-columns:1fr}.flx-ops{order:-1}}
+/* Flujos: elegir una pantalla del estudio para una interacción */
+.nd-pants{padding:18px;display:flex;flex-direction:column;gap:12px}
+.nd-pants-h{display:flex;flex-direction:column;gap:2px}
+.nd-pants-h b{font-size:14px}
+.nd-pants-h span{font-size:12.5px;color:var(--muted)}
+.nd-pants-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.nd-pant{display:flex;flex-direction:column;gap:6px;padding:6px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);color:var(--ink);font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.nd-pant:hover{border-color:var(--ink)}
+.nd-pant:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.nd-pant img,.nd-pant-sin{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:top;border-radius:4px;background:var(--surface-2);display:grid;place-items:center}
+.nd-pant>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nd-pants-o{font-size:12.5px;color:var(--muted);text-align:center;padding-top:4px}
+/* Con pantallas para elegir, el lienzo pasa a una columna con scroll: pantallas arriba y la captura abajo */
+.nd-stage.con-pants{overflow:auto;background-image:none;background:var(--surface);display:flex;flex-direction:column}
+.nd-stage.con-pants .ev-drop{position:static;inset:auto;margin:0 18px 18px;min-height:140px;flex:none}

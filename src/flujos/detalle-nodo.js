@@ -8,10 +8,13 @@ import { flowStore, resolveHz, saveActiveFlow, tipoColorVar } from "./flujos.js"
 import { camIco, chevL, pencil, trash, x } from "../ui/iconos.js";
 import { processImage } from "../ui/imagenes.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
-import { nuevoHallazgo } from "../data/pantallas.js";
+import { nuevoHallazgo, pantallaStore } from "../data/pantallas.js";
 import { hzModal } from "../views/hallazgos.js";
 
 /* ---- Detalle de interacción (imagen + hallazgos) ---- */
+// La imagen de una interacción es una pantalla del estudio (pantallaId, la misma que usa
+// Hallazgos) o una captura propia del flujo (imgId, como antes).
+const tieneImagen=n=>!!(n.pantallaId||n.imgId);
 export function renderNodeDetail(c,flow,node){
   const idx=(flow.nodes||[]).findIndex(n=>n.id===node.id);
   c.innerHTML=`
@@ -25,7 +28,7 @@ export function renderNodeDetail(c,flow,node){
         <div class="nd-work-bar">
           <div class="fl-zoom"><button id="ndZOut" title="Alejar">−</button><button id="ndZFit" title="Ajustar a pantalla">100%</button><button id="ndZIn" title="Acercar">+</button></div>
           <div class="spacer"></div>
-          <button class="btn primary sm" id="ndAddHz" ${node.imgId?"":"disabled"}>${targetIco()} Marcar hallazgo</button>
+          <button class="btn primary sm" id="ndAddHz" ${tieneImagen(node)?"":"disabled"}>${targetIco()} Marcar hallazgo</button>
         </div>
         <div class="nd-stage" id="ndStage" tabindex="0"><div class="ev-loading">Cargando...</div></div>
       </div>
@@ -48,7 +51,7 @@ export function renderNodeDetail(c,flow,node){
   function applyVP(){ if(!canvasEl)return; canvasEl.style.transform=`translate(${vp.x}px,${vp.y}px) scale(${vp.k})`; canvasEl.style.setProperty("--pk",1/vp.k); const zf=c.querySelector("#ndZFit"); if(zf)zf.textContent=Math.round(vp.k*100)+"%"; state.ndVP=vp; }
   function fitView(){ if(!natW)return; const sw=stage.clientWidth-24, sh=stage.clientHeight-24; let k=Math.min(sw/natW,sh/natH,1); if(!isFinite(k)||k<=0)k=1; vp={k, x:(stage.clientWidth-natW*k)/2, y:(stage.clientHeight-natH*k)/2}; applyVP(); }
   function zoomAt(clientX,clientY,f){ const r=stage.getBoundingClientRect(),mx=clientX-r.left,my=clientY-r.top,k2=Math.min(5,Math.max(.15,vp.k*f)); const cx=(mx-vp.x)/vp.k,cy=(my-vp.y)/vp.k; vp.x=mx-cx*k2; vp.y=my-cy*k2; vp.k=k2; applyVP(); }
-  function setAdd(v){ if(!node.imgId)return; addMode=v; stage.classList.toggle("adding",v); addBtn.classList.toggle("primary",!v); addBtn.classList.toggle("on-add",v); addBtn.innerHTML=v?"Hacé clic en la imagen · Esc cancela":`${targetIco()} Marcar hallazgo`; }
+  function setAdd(v){ if(!tieneImagen(node))return; addMode=v; stage.classList.toggle("adding",v); addBtn.classList.toggle("primary",!v); addBtn.classList.toggle("on-add",v); addBtn.innerHTML=v?"Hacé clic en la imagen · Esc cancela":`${targetIco()} Marcar hallazgo`; }
   function renderPins(){ if(!pinsEl)return; pinsEl.innerHTML=(node.markers||[]).map((m,i)=>{const hz=resolveHz(m.hallazgoId);return `<button class="nd-imgpin" data-hz="${m.hallazgoId}" style="left:${m.x*100}%;top:${m.y*100}%;background:${pinColor(hz)}" title="${hz?esc(hz.titulo):'Hallazgo'}">${i+1}</button>`;}).join(""); pinsEl.querySelectorAll(".nd-imgpin").forEach(p=>p.onclick=e=>{e.stopPropagation();if(addMode)return;const hz=resolveHz(p.dataset.hz);if(hz)hzModal(hz);}); }
   function renderHzList(){
     const ms=(node.markers||[]);
@@ -68,19 +71,34 @@ export function renderNodeDetail(c,flow,node){
     const fx=(clientX-r.left)/r.width, fy=(clientY-r.top)/r.height;
     if(fx<0||fx>1||fy<0||fy>1)return;
     setAdd(false);
-    hzModal(nuevoHallazgo({pantalla:node.titulo,flujoId:flow.id,pasoId:node.id,interaccionId:node.id,interaccionTitulo:node.titulo}),
+    // Con una pantalla del estudio, el hallazgo también queda en esa pantalla (y se ve en Hallazgos).
+    const enPantalla=node.pantallaId?{pantallaId:node.pantallaId,pin:{x:fx,y:fy}}:{};
+    hzModal(nuevoHallazgo({pantalla:node.titulo,flujoId:flow.id,pasoId:node.id,interaccionId:node.id,interaccionTitulo:node.titulo,...enPantalla}),
       {onSaved:async(hid)=>{ node.markers=node.markers||[]; node.markers.push({id:uid(),x:fx,y:fy,hallazgoId:hid}); await saveActiveFlow(); }});
+  }
+  // Vincular una pantalla del estudio: no se copia la imagen, se usa la misma de Hallazgos.
+  async function usarPantalla(p){
+    if(node.imgId) await flowStore.delImg(state.activeId,flow.id,node.imgId);
+    node.pantallaId=p.id; node.imgId=null; node.imgThumb=p.thumb||null; node.imgW=p.w||0; node.imgH=p.h||0; state.ndVP=null;
+    if(!node.titulo||/^Interacción \d+$/.test(node.titulo)) node.titulo=p.nombre||node.titulo;
+    await saveActiveFlow(); toast("Pantalla vinculada"); render();
   }
   async function setImage(blob){
     try{ const r=await processImage(blob); const imgId=node.imgId||uid();
       await flowStore.putImg(state.activeId,flow.id,imgId,{full:r.full.dataUrl,w:r.full.w,h:r.full.h});
-      node.imgId=imgId; node.imgThumb=r.thumb.dataUrl; node.imgW=r.full.w; node.imgH=r.full.h; state.ndVP=null;
+      node.pantallaId=null; node.imgId=imgId; node.imgThumb=r.thumb.dataUrl; node.imgW=r.full.w; node.imgH=r.full.h; state.ndVP=null;
       await saveActiveFlow(); toast("Imagen agregada"); render();
     }catch(e){toast("No se pudo procesar la imagen");}
   }
   function buildStage(){
-    if(!node.imgId){
-      stage.innerHTML=`<div class="ev-drop" id="ndDrop" tabindex="0">${camIco()}<div class="pz-main">Pegá una captura con <kbd>Ctrl/Cmd</kbd> + <kbd>V</kbd></div><div class="pz-sub">o arrastrala, o hacé clic para elegir un archivo</div><input type="file" id="ndFile" accept="image/*" hidden></div>`;
+    if(!tieneImagen(node)){
+      const ps=state.pantallas||[];
+      const elegir=ps.length?`<div class="nd-pants"><div class="nd-pants-h"><b>Usar una pantalla del estudio</b><span>La misma que usás en Hallazgos: no hace falta subirla de nuevo.</span></div>
+        <div class="nd-pants-grid">${ps.map(p=>`<button type="button" class="nd-pant" data-pid="${p.id}" title="${esc(p.nombre||"")}">${p.thumb?`<img src="${p.thumb}" alt="">`:`<span class="nd-pant-sin">${camIco()}</span>`}<span>${esc(p.nombre||"Pantalla")}</span></button>`).join("")}</div>
+        <div class="nd-pants-o">o subí una captura solo para este flujo</div></div>`:"";
+      stage.classList.toggle("con-pants",!!elegir);
+      stage.innerHTML=`${elegir}<div class="ev-drop" id="ndDrop" tabindex="0">${camIco()}<div class="pz-main">Pegá una captura con <kbd>Ctrl/Cmd</kbd> + <kbd>V</kbd></div><div class="pz-sub">o arrastrala, o hacé clic para elegir un archivo</div><input type="file" id="ndFile" accept="image/*" hidden></div>`;
+      stage.querySelectorAll(".nd-pant").forEach(b=>b.onclick=()=>{ const p=ps.find(x=>x.id===b.dataset.pid); if(p) usarPantalla(p); });
       const drop=stage.querySelector("#ndDrop"), file=stage.querySelector("#ndFile");
       drop.onclick=()=>file.click();
       file.onchange=async e=>{const f=e.target.files[0];if(f&&f.type.indexOf("image")===0)await setImage(f);};
@@ -88,12 +106,15 @@ export function renderNodeDetail(c,flow,node){
       drop.ondrop=async e=>{e.preventDefault();drop.classList.remove("drag");const f=e.dataTransfer.files[0];if(f&&f.type.indexOf("image")===0)await setImage(f);};
       return;
     }
-    stage.innerHTML=`<div class="nd-canvas" id="ndCanvas"><img id="ndImg" draggable="false" alt=""><div class="nd-pins" id="ndPins"></div><button class="nd-imgdel" id="ndImgDel" title="Quitar imagen">${trash()}</button></div>`;
+    stage.classList.remove("con-pants");
+    stage.innerHTML=`<div class="nd-canvas" id="ndCanvas"><img id="ndImg" draggable="false" alt=""><div class="nd-pins" id="ndPins"></div><button class="nd-imgdel" id="ndImgDel" title="${node.pantallaId?"Desvincular la pantalla":"Quitar imagen"}">${trash()}</button></div>`;
     canvasEl=stage.querySelector("#ndCanvas"); imgEl=stage.querySelector("#ndImg"); pinsEl=stage.querySelector("#ndPins");
-    stage.querySelector("#ndImgDel").onclick=e=>{ e.stopPropagation(); openConfirm("Quitar imagen","Se quita la imagen de esta interacción. Los hallazgos vinculados se conservan pero pierden su marca de posición.",async()=>{ await flowStore.delImg(state.activeId,flow.id,node.imgId); node.imgId=null;node.imgThumb=null;node.markers=[];state.ndVP=null; await saveActiveFlow(); render(); }); };
+    stage.querySelector("#ndImgDel").onclick=e=>{ e.stopPropagation(); openConfirm(node.pantallaId?"Desvincular la pantalla":"Quitar imagen",node.pantallaId?"La interacción deja de usar esta pantalla (la pantalla sigue en Hallazgos). Los hallazgos vinculados se conservan pero pierden su marca de posición en el flujo.":"Se quita la imagen de esta interacción. Los hallazgos vinculados se conservan pero pierden su marca de posición.",async()=>{ if(node.imgId) await flowStore.delImg(state.activeId,flow.id,node.imgId); node.imgId=null;node.pantallaId=null;node.imgThumb=null;node.markers=[];state.ndVP=null; await saveActiveFlow(); render(); }); };
     (async()=>{
-      const d=await flowStore.getImg(state.activeId,flow.id,node.imgId);
-      if(!d){stage.innerHTML=`<div class="ev-loading">No se pudo cargar la imagen.</div>`;return;}
+      const d=node.pantallaId
+        ? await pantallaStore.getImg(state.activeId,node.pantallaId).then(x=>x&&{full:x.base})
+        : await flowStore.getImg(state.activeId,flow.id,node.imgId);
+      if(!d||!d.full){stage.innerHTML=`<div class="ev-loading">${node.pantallaId?"La pantalla vinculada ya no existe. Desvinculala y elegí otra.":"No se pudo cargar la imagen."}</div>`;return;}
       imgEl.onload=()=>{ natW=imgEl.naturalWidth||node.imgW||800; natH=imgEl.naturalHeight||node.imgH||600; canvasEl.style.width=natW+"px"; canvasEl.style.height=natH+"px"; if(state.ndVP){vp=state.ndVP;applyVP();}else{requestAnimationFrame(fitView);} renderPins(); };
       imgEl.src=d.full;
     })();
