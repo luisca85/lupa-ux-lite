@@ -4,7 +4,7 @@ import { LS, esc, stripId, uid } from "../core/util.js";
 import { DB, USE_DB } from "../data/backend.js";
 import { renderNodeDetail } from "./detalle-nodo.js";
 import { renderFlowEditor } from "./diagrama.js";
-import { jrDefaultCarriles, jrJourneyBase, renderJourneyEditor } from "../journey/journey.js";
+import { jrDefaultCarriles, renderJourneyEditor } from "../journey/journey.js";
 import { bigIco, chevR, pencil, plus, trash, x } from "../ui/iconos.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
 import { ilustraFlujos } from "../views/estudio.js";
@@ -148,7 +148,7 @@ export function flowModal(f,opts){
     const rec={ id:f.id||uid(), nombre, tipo,
       descripcion:document.getElementById("fl_desc").value.trim(),
       createdAt:f.createdAt||Date.now() };
-    if(tipo==="User Journey"){ const base=f.etapas?null:jrJourneyBase(); rec.etapas=f.etapas||base.etapas; rec.pasos=f.pasos||(base?base.pasos:[]); rec.carriles=f.carriles||jrDefaultCarriles(); }
+    if(tipo==="User Journey"){ rec.etapas=f.etapas||[]; rec.pasos=f.pasos||[]; rec.carriles=f.carriles||jrDefaultCarriles(); }
     else { rec.nodes=f.nodes||[]; rec.edges=f.edges||[]; }
     await flowStore.save(state.activeId,rec);
     state.flujos=await flowStore.list(state.activeId);

@@ -1297,3 +1297,21 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .et-pop-op:disabled .et-pop-d{color:var(--faint)}
 .et-pop-nueva{display:flex;gap:6px;border-top:1px solid var(--line);padding-top:8px}
 .et-pop-nueva input{flex:1;min-width:0;border:1px solid var(--line-input);border-radius:6px;padding:6px 8px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px}
+/* Journey: menú de una etapa (clic en la banda) */
+.jr-band[data-band]:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.et-menu{gap:10px}
+.et-edit{display:flex;flex-direction:column;gap:6px}
+.et-edit input,.et-edit textarea{width:100%;border:1px solid var(--line-input);border-radius:6px;padding:7px 9px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px;resize:vertical}
+.et-edit input{font-weight:600}
+.et-edit-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.et-cambiar{border-top:1px solid var(--line);padding-top:8px;min-height:0;display:flex;flex-direction:column}
+.et-cambiar summary{cursor:pointer;font-size:13px;font-weight:600;padding:2px 4px}
+.et-cambiar .et-pop-list{max-height:220px;margin-top:6px}
+.et-eliminar{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;border:none;background:none;color:var(--prob);font:inherit;font-size:13px;font-weight:600;padding:6px 4px;cursor:pointer;border-top:1px solid var(--line);width:100%}
+.et-eliminar svg{width:14px;height:14px}
+/* Botón ⋯ de cada etapa (abre su menú) y menú con scroll propio */
+.jr-band-menu{flex:none;width:24px;height:22px;border-radius:5px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer}
+.jr-band-menu:hover{background:rgba(255,255,255,.34)}
+.jr-band-menu:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.et-pop.et-menu{overflow-y:auto}
+.et-menu .et-cambiar[open] .et-pop-list{max-height:none;overflow:visible}

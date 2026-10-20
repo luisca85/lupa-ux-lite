@@ -54,18 +54,26 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
     await page.locator('.flx-nuevos [data-nuevo="User Journey"]').click();
     await page.getByPlaceholder("Ej: Primera compra desde el celular").fill("Journey de compra");
     await page.getByRole("button", { name: "Guardar" }).click();
-    // Un journey nuevo arranca con las 6 etapas base, cada una con un paso.
-    await expect(page.locator(".jr-band-t")).toHaveText(["Descubrimiento", "Consideración", "Decisión", "Conversión", "Experiencia de usuario", "Fidelización"]);
-    // "+ Etapa" en el mapa: lista de etapas prehechas y crear una nueva, que aparece con su paso.
+    // Un journey nuevo arranca vacío: se agregan etapas desde la lista (por defecto o nuevas).
+    await page.locator("#jrPrimeraEtapa").click();
+    await page.locator(".et-pop-op", { hasText: "Descubrimiento" }).click();
     await page.locator("#jrBandNueva").click();
-    await expect(page.locator(".et-pop-op[disabled]")).toHaveCount(0); // todas se pueden elegir
     await page.locator(".et-pop-op", { hasText: "Consideración" }).click();
-    await expect(page.locator(".jr-band-t").last()).toHaveText("Consideración");
     await page.locator("#jrBandNueva").click();
     await page.locator("#etPopNom").fill("Recomendación");
     await page.locator("#etPopCrear").click();
-    await expect(page.locator(".jr-band-t").last()).toHaveText("Recomendación");
-    await expect(page.locator(".jr-phead")).toHaveCount(8);
+    await expect(page.locator(".jr-band-t")).toHaveText(["Descubrimiento", "Consideración", "Recomendación"]);
+    await expect(page.locator(".jr-phead")).toHaveCount(3); // cada etapa entra con su paso
+    // Clic en una etapa: menú para editar, cambiar o eliminar.
+    await page.locator('.jr-band[data-band]', { hasText: "Recomendación" }).locator(".jr-band-menu").click();
+    await page.locator(".et-cambiar summary").click();
+    await page.locator(".et-cambiar .et-pop-op", { hasText: "Fidelización" }).click();
+    await expect(page.locator(".jr-band-t").last()).toHaveText("Fidelización");
+    await page.locator('.jr-band[data-band]', { hasText: "Fidelización" }).locator(".jr-band-menu").click();
+    await page.locator("#etmDel").click();
+    await page.locator("#cYes").click();
+    await expect(page.locator(".jr-band-t")).toHaveText(["Descubrimiento", "Consideración"]);
+    await expect(page.locator(".jr-phead")).toHaveCount(2);
   });
 
   await test.step("1d. recargar: todo persiste", async () => {
