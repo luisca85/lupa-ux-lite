@@ -17,7 +17,9 @@ nada. Sale de la exploración `explorar/modelo-pantallas`.
 - **Hallazgo** `estudios/{id}/hallazgos/{hid}`: `titulo`, `descripcion`, `recomendacion`,
   `severidad` (0–4 o null), `catalogoIds` (heurísticas y sesgos, muchos a muchos con el
   catálogo global), `pantallaId` (opcional), `pin {x, y}` (relativo 0–1, solo con pantalla),
-  `flujoId` + `pasoId` (interacción de un User Flow, opcional), `createdAt`, `modelo: 2`.
+  `pasos: [{flujoId, pasoId}]` (cero, uno o varios pasos de User Flows y de User Journeys,
+  ver "Formulario único y pasos"), `createdAt`, `modelo: 2`. `flujoId` + `pasoId` (+
+  `interaccionId`, `interaccionTitulo`) quedan con el primer paso, por compatibilidad.
   Se conservan los campos v1 que existan (`tipo`, `categoria`, `tags`, `pantalla` como
   texto, `imgsV1`) aunque la interfaz no los edite.
 - **Catálogo**: global, no depende del estudio (sin cambios).
@@ -31,7 +33,11 @@ nada. Sale de la exploración `explorar/modelo-pantallas`.
   6. Al quitar la pantalla se borra el pin; al asignar una pantalla sin pin, el pin va al
      centro (0.5, 0.5).
   7. Un hallazgo creado desde Hallazgos, desde una interacción de flujo o desde un paso de
-     journey tiene los mismos campos (`nuevoHallazgo`); solo cambia el contexto.
+     journey tiene los mismos campos (`nuevoHallazgo`) y se carga con el **mismo
+     formulario**. Solo cambia el contexto, que deja precargados la pantalla, el pin o el paso.
+  8. La relación hallazgo ↔ paso se guarda en los dos lados: `hallazgo.pasos`,
+     `node.markers` (User Flow) y `paso.hallazgos` (User Journey). Toda alta, cambio o baja
+     actualiza los dos lados (`sincronizarPasos`).
 - Severidad inicial de un hallazgo nuevo: **1** (`SEV_DEFAULT`).
 
 ## Criterios de aceptación
@@ -87,15 +93,68 @@ nada. Sale de la exploración `explorar/modelo-pantallas`.
   Mayor, Catástrofe), cada uno con el borde de su color. Lista de la pantalla activa: número
   en el color de su severidad, título y "Sev. N · etiqueta · heurística". La tarjeta
   seleccionada toma el borde de su severidad.
-- Tocar una tarjeta abre en el panel "Editar hallazgo N": Severidad, Descripción,
-  Recomendación, Heurística relacionada, Pantalla y Paso de flujo, con "Guardar cambios",
-  "Cancelar" y la papelera. Al guardar se conservan los demás datos (tipo, categoría,
+- Tocar una tarjeta abre en el panel "Editar hallazgo N" (el formulario único, ver abajo):
+  Severidad, Descripción, Recomendación, Heurística relacionada, Pantalla y Pasos de flujos y
+  journeys, con "Guardar cambios", "Cancelar" y la papelera. Al guardar se conservan los demás datos (tipo, categoría,
   etiquetas, otras entradas del catálogo, respaldo v1).
 - Si el título no se escribió a mano, se arma con la primera línea de la descripción.
-- "Paso de flujo" lista las interacciones de los User Flows. Al asignarlo se guarda también
-  el marcador en la interacción (`node.markers`), para que el hallazgo siga apareciendo en
-  Flujos; al cambiarlo o quitarlo se actualizan los dos lados. **Mientras Flujos esté en
-  "Próximamente" (spec `proy`) el campo no se muestra** y el paso que ya tuviera se conserva.
+- Los pasos se eligen en "Pasos de flujos y journeys" (ver "Formulario único y pasos").
+
+### Formulario único y pasos (integración con flujos, 2026-10-20)
+- Dado un hallazgo nuevo o existente, cuando se abre desde Hallazgos (panel derecho), desde
+  una interacción de User Flow ("Marcar hallazgo" o un hallazgo de su lista) o desde un paso
+  de User Journey ("Crear nuevo" o "Editar hallazgo" en su panel), entonces se ve **el mismo
+  formulario** (`formularioHallazgo`), con los mismos campos.
+- Dado el campo "Pasos de flujos y journeys", cuando se usa, entonces:
+  - muestra los pasos del hallazgo como chips ("Nombre del flujo · N. paso · etapa"),
+    cada uno con ×;
+  - "+ Agregar a un paso…" lista las interacciones de los User Flows y los pasos de los
+    User Journeys, agrupados por flujo;
+  - un hallazgo puede estar en varios pasos.
+- Dado el formulario abierto desde una interacción o un paso, cuando aparece, entonces ese
+  paso ya está agregado. Desde una interacción que usa una pantalla del estudio, también
+  vienen la pantalla y el pin del clic.
+- Dado un hallazgo guardado, cuando se miran sus pasos, entonces:
+  - cada interacción tiene su marca (`node.markers`). Si usa la misma pantalla que el
+    hallazgo, la marca va donde está su pin; si no, al centro;
+  - cada paso de journey lo lista en `paso.hallazgos`.
+
+  Se ve igual en Hallazgos (la tarjeta muestra el primer paso y "+N"), en la interacción
+  y en el panel del paso.
+- Dado "Quitar del flujo" en una interacción, o la × en el panel del paso del journey,
+  cuando se usa, entonces el hallazgo también deja de tener ese paso. Si se relacionan
+  hallazgos existentes desde el journey, también se suman a sus pasos.
+- Dado un hallazgo borrado, cuando se borra, entonces sale de las marcas de los flows y de
+  los `paso.hallazgos` de los journeys.
+- Dado un hallazgo con datos de antes (solo `flujoId`, o solo listado en un journey o en
+  una marca), cuando se abre el formulario, entonces sus pasos se arman con todo lo que
+  registran los dos lados (`pasosDe`). Al guardar quedan emparejados.
+
+### Pantalla del hallazgo y "Agregar pantalla"
+- Dado el campo Pantalla, cuando se ve, entonces muestra:
+  - sin pantalla: "Sin pantalla" y **"+ Agregar pantalla"**;
+  - con pantalla: miniatura con el pin numerado, el nombre, "Cambiar" y "Quitar pantalla".
+
+  Así se decide si el hallazgo va con pantalla o sin ella.
+- Dado "+ Agregar pantalla" o "Cambiar", cuando se toca, entonces el mismo panel pasa a la
+  sección **Agregar pantalla**, con "← Volver al formulario del hallazgo". Lo ya escrito en
+  el formulario se conserva. La sección tiene dos pestañas:
+  - **Pantallas del estudio** (primera, si hay): grilla con miniatura, nombre y cantidad de
+    hallazgos, y un buscador con más de 8 pantallas. Usar una que ya existe no duplica la
+    imagen;
+  - **Subir nueva**: archivo, arrastrar, Ctrl/Cmd + V o "Pegar del portapapeles". Una
+    imagen idéntica a una ya cargada usa esa misma pantalla.
+- Dada una imagen elegida, cuando se ve, entonces:
+  - aparece "Nombre de la pantalla". Una imagen pegada no se llama "image": el campo queda
+    vacío, con el foco y la sugerencia "Pantalla N";
+  - aparece la imagen con los pines numerados de los otros hallazgos de esa pantalla. Un
+    clic coloca el pin del hallazgo con su número, y otro clic lo mueve;
+  - "Guardar pantalla y pin" se habilita con el pin puesto y vuelve al formulario. El
+    hallazgo completo se guarda con su botón.
+- Dada una pantalla nueva, cuando se guarda el hallazgo, entonces recién ahí se crea la
+  pantalla, así que si se cancela no queda una pantalla suelta. Cambiar el nombre de una
+  pantalla existente lo cambia también en las interacciones que la usan y seguían con el
+  nombre anterior (o con "Interacción N").
 - **Catálogo en el panel**: "Catálogo →" reemplaza el contenido del panel por heurísticas y
   sesgos (con su descripción y origen) y una flecha para volver a la lista.
 - Pegar una imagen (Ctrl/Cmd + V) en la sección crea una pantalla nueva, o completa la
@@ -166,21 +225,30 @@ entran; zoom en lienzo; tipografía Geist (el Figma usa IBM Plex Sans en el pane
 - `src/data/pantallas.js`: `pantallaStore`, `pantallaDesdeImagen`, `hashStr`, `normalizarPin`,
   `pinNumero`, `nuevoHallazgo`, `migrarEstudio`, `prepararEstudio`, `MODELO`, `SEV_DEFAULT`.
 - `src/views/hallazgos-ws.js`: `renderWorkspace`, `renderStage`, `bindTabsOverflow`,
-  `renderCanvas` (zoom), `quickBox`/`bindQuick`, `renderPanel`, `renderForm`, `syncPaso`,
+  `renderCanvas` (zoom), `quickBox`/`bindQuick`, `renderPanel`, `renderForm` (usa `formularioHallazgo`),
   `pantallaModal`, `eliminarPantalla`, `renderPanelCatalogo`.
 - `src/views/hallazgos.js`: `hzEditor`, `hzModal`, `openHzPage`/`renderHzPage`,
-  `confirmDelHz`, `cleanFlowMarkers`.
+  `confirmDelHz`, `cleanFlowMarkers` (también limpia `paso.hallazgos` de los journeys).
+- `src/views/hallazgo-form.js`: `formularioHallazgo` (formulario y sección Agregar pantalla),
+  `pasosDe`, `opcionesPasos`, `etiquetaPaso`, `sincronizarPasos`, `renombrarPantalla`,
+  `guardarHallazgo`, `autoTitulo`, `sevScale`, `bindSev`. Lo usan `hallazgos-ws.js`
+  (`renderForm`), `flujos/detalle-nodo.js` y `journey/relaciones.js`.
 - `src/core/state.js`: `pantallas`, `hzGroup`, `hzQuick`, `hzForm`, `hzSevF`, `hzVP`,
   `catalogoIdsDe`, `heurDe`, `sesgosDe`.
 - Pruebas: `tests/e2e/migracion.spec.mjs`, `tests/e2e/pantallas.spec.mjs`.
 
 ## Conocido
-- Borrar un hallazgo no lo quita de los pasos de journey (`paso.hallazgos:[ids]`):
-  el contador del paso lo sigue contando aunque no se muestre.
+- Resuelto el 2026-10-20: borrar un hallazgo lo quita también de los pasos de journey.
+- El Resumen todavía abre el editor viejo (`hzModal`) al tocar un hallazgo: falta
+  llevarlo al formulario único.
+- "Pegar del portapapeles" usa `navigator.clipboard.read()`, que pide permiso al navegador:
+  no se probó de forma automática. Ctrl/Cmd + V sí se prueba.
 - Las métricas de Sev 3 y Sev 4 cuentan solo problemas, no oportunidades ni observaciones.
 - Los hallazgos nuevos se guardan con tipo "Problema" (la interfaz ya no edita el tipo),
   así que el Resumen y el reporte que agrupan por tipo los cuentan como problemas.
 - Las copias que crea la migración aparecen en el reporte como hallazgos separados.
-- Una pantalla subida desde el editor queda en el estudio aunque se cancele el hallazgo.
+- Con el formulario único, una pantalla nueva se crea al guardar el hallazgo (si se
+  cancela, no queda). El editor viejo (`hzEditor`, que usa el Resumen) todavía la crea al
+  subirla.
 - El desplazamiento animado de las pestañas se reemplazó por uno instantáneo (el animado no
   se movía en el navegador integrado).

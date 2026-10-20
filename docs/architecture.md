@@ -33,7 +33,9 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   global), resumen (dashboard del proyecto: problemas, hallazgos, protopersonas, flujos),
   catálogo, hallazgos (`hallazgos-ws.js`: pestañas de pantallas, lienzo con zoom y pines,
   popover de carga rápida, panel con filtros por severidad, edición y catálogo;
-  `hallazgos.js`: editor completo `hzEditor` para la página de alta y el modal, borrado).
+  `hallazgos.js`: editor completo `hzEditor` para la página de alta y el modal, borrado;
+  `hallazgo-form.js`: formulario único de hallazgo para Hallazgos, flows y journeys, con la
+  sección "Agregar pantalla" y el emparejado de pasos).
   Protopersonas pasa por `proximamente()` (aviso "Próximamente"); Flujos ya está habilitada.
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
   (motor de pines y dibujo), tema, descargas, sesion (chip de usuario, "Ver introducción", cerrar sesión), entrar
@@ -116,7 +118,8 @@ pasos para lanzar (respaldo, migraciones, deploy, `migrar-cuentas`, quitar Acces
 - `estudios/{id}/pantallas/{pid}` — pantalla del estudio (nombre, origen imagen/url, url,
   orden, w, h, thumb, hash). `.../pantallas/{pid}/img/full` — imagen completa.
 - `estudios/{id}/hallazgos/{hid}` — hallazgo atómico (modelo v2): `pantallaId` + `pin {x,y}`
-  relativo, `severidad`, `catalogoIds`, `flujoId` + `pasoId`, `modelo: 2`.
+  relativo, `severidad`, `catalogoIds`, `pasos:[{flujoId,pasoId}]` (flows y journeys;
+  `flujoId` + `pasoId` = el primero), `modelo: 2`.
 - `estudios/{id}/hallazgos/{hid}/imgs/{imgId}` — imagen del modelo v1 (full + anotaciones).
   Ya no se escribe: queda como respaldo de la migración (`hallazgo.imgsV1`).
 - `estudios/{id}.modelo` — 2 cuando el estudio ya se migró (se migra al abrirlo).
@@ -130,9 +133,10 @@ pasos para lanzar (respaldo, migraciones, deploy, `migrar-cuentas`, quitar Acces
   (JSON partido en trozos). En el estudio, `reporte.publico` guarda id, PIN, sal y la
   huella `firma` de lo publicado (detrás de Access) y `reporte.ocultos` lo que el
   cliente no ve.
-- Relaciones: hallazgo ↔ interacción de flujo en dos lados (`node.markers[].hallazgoId`
-  y `hallazgo.flujoId/pasoId`, con `interaccionId` como alias v1); hallazgo → pantalla por
-  `pantallaId`; paso de journey → `hallazgos:[ids]` y `flujos:[ids]`.
+- Relaciones: hallazgo ↔ paso en dos lados: `hallazgo.pasos` y, del otro lado,
+  `node.markers[].hallazgoId` (User Flow) o `paso.hallazgos:[ids]` (User Journey).
+  `sincronizarPasos` los mantiene iguales. `interaccionId` queda como alias v1. Hallazgo →
+  pantalla por `pantallaId`; paso de journey → `flujos:[ids]`.
 - `cat_heur/{id}`, `cat_sesgo/{id}` — heurísticas y sesgos propios.
 
 Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.

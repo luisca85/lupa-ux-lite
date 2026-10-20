@@ -85,7 +85,8 @@ hallazgos nuevos vinculados.
 
 ## Dependencias
 - `flowStore` sobre la capa `DB` (API tipo Firestore); en modo sin DB, localStorage.
-- `store.saveHallazgo` / `listHallazgos` y el modal `hzModal` de Hallazgos.
+- `store.saveHallazgo` / `listHallazgos` y el formulario único `formularioHallazgo`
+  (`views/hallazgo-form.js`).
 - `processImage` (`ui/imagenes.js`) para imagen completa y miniatura.
 - Editor de journey (`journey/journey.js`) cuando el tipo es `User Journey`.
 
@@ -121,7 +122,7 @@ Sección y lista: `renderFlujosVacio`, `OPCIONES_FLUJO`, `renderFlowList`, `flow
 ## Conocido
 - Una interacción nueva aparece casi encima de la anterior en el diagrama.
 - Borrar un estudio no borra sus flujos ni sus imágenes (`store.delEstudio`).
-- Relación de un solo lado: "Quitar del flujo", "Quitar imagen" y borrar un flujo
-  limpian solo el lado del flujo. El hallazgo conserva `flujoId`/`interaccionId` y
-  sigue mostrando el chip del flujo. (El aviso de borrar flujo dice que "pierden el
-  vínculo", pero no es así.)
+- Desde el 2026-10-20 (spec `hz`, "Formulario único y pasos"), "Quitar del flujo" también
+  saca el paso del hallazgo, y "Marcar hallazgo" usa el formulario único. "Quitar imagen" y
+  borrar un flujo limpian solo el lado del flujo, pero `pasosDe` ya no cuenta pasos que no
+  existen.

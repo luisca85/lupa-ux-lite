@@ -182,3 +182,10 @@ reportes de uxuaria (`mencion`, que fija el servidor). `/legal/{id}` se lee sin 
 La beta se lanza **sin revisión legal**: el riesgo lo asume el responsable y la
 revisión queda pendiente. Motivo: abrir la beta gratis ya y revisar con un abogado
 antes de crecer más allá de los 100 cupos.
+
+2026-10-20 - Un solo formulario de hallazgo (el del panel de Hallazgos) en Hallazgos, en
+las interacciones de los User Flows y en los pasos de los User Journeys (spec `hz`). Un
+hallazgo puede estar en varios pasos (`hallazgo.pasos`), y cada flow o journey lo registra de
+su lado. La pantalla se agrega en una sección propia del mismo panel: elegir una existente
+para no duplicar imágenes, o subirla, pegarla y nombrarla. Se crea recién al guardar el
+hallazgo. Motivo: cargar igual desde las dos partes y que los datos queden emparejados.

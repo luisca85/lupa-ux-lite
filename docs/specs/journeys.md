@@ -78,7 +78,10 @@ relaciones por paso, y el tipo fijo al editar (`flowModal`).
 ## Dependencias
 - `flowStore` / `saveActiveFlow` / `flowModal` (`flujos/flujos.js`): el journey es un
   documento de la colección de flujos.
-- `hzModal`, `hzThumbs`, `openHzLightbox` y el catálogo, para el panel de hallazgos.
+- `formularioHallazgo` y `pasosDe` (`views/hallazgo-form.js`), `hzThumbs`, `openHzLightbox`
+  y el catálogo, para el panel de hallazgos. "Crear nuevo" y "Editar hallazgo" abren el
+  formulario único dentro del panel del paso, con el paso ya agregado. Relacionar o quitar
+  actualiza también `hallazgo.pasos` (spec `hz`).
 - Reporte online (`reportes/cliente.js`) y página compartida (`share/compartir.js`,
   `share/boot.js`), que usan `EMO`, `JR_CARRILES`, `emoTop` y `jrNormalizePaso`.
 
