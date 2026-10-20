@@ -97,7 +97,9 @@ test("hallazgos v2: una pantalla, varios pines, severidad y paso de flujo", asyn
     await page.locator("#psNav").getByRole("button", { name: /^Hallazgos/ }).click();
     await page.locator(".ws-gbtn", { hasText: "Landing" }).click();
     await page.locator("#hzPanel .hp-card", { hasText: "El CTA no se ve" }).click();
-    await page.locator("#hfPaso").selectOption({ label: "Interacción 1" });
+    // Un hallazgo puede estar en varios pasos: se suman desde "+ Agregar a un paso…".
+    await page.locator("#hfPasoAdd").selectOption({ label: "1. Interacción 1" });
+    await expect(page.locator("#hfPasos .hf-paso")).toContainText("Registro");
     await page.getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page.getByText("Hallazgo actualizado")).toBeVisible();
     await expect(page.locator("#hzPanel .hp-card", { hasText: "El CTA no se ve" })).toContainText("Interacción 1");

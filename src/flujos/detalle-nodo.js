@@ -9,7 +9,8 @@ import { camIco, chevL, pencil, trash, x } from "../ui/iconos.js";
 import { processImage } from "../ui/imagenes.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
 import { nuevoHallazgo, pantallaStore } from "../data/pantallas.js";
-import { hzModal } from "../views/hallazgos.js";
+import { confirmDelHz } from "../views/hallazgos.js";
+import { formularioHallazgo, guardarHallazgo, pasosDe } from "../views/hallazgo-form.js";
 
 /* ---- Detalle de interacción (imagen + hallazgos) ---- */
 // La imagen de una interacción es una pantalla del estudio (pantallaId, la misma que usa
@@ -33,6 +34,8 @@ export function renderNodeDetail(c,flow,node){
         <div class="nd-stage" id="ndStage" tabindex="0"><div class="ev-loading">Cargando...</div></div>
       </div>
       <div class="nd-right">
+        <div class="nd-form" id="ndForm" hidden></div>
+        <div class="nd-info" id="ndInfo">
         <div class="nd-fields">
           ${node.ve?`<div class="nd-f"><b>Ve</b><span>${esc(node.ve)}</span></div>`:""}
           ${node.hace?`<div class="nd-f"><b>Hace</b><span>${esc(node.hace)}</span></div>`:""}
@@ -40,6 +43,7 @@ export function renderNodeDetail(c,flow,node){
         </div>
         <div class="nd-hz-head"><h4>Hallazgos de esta interacción</h4></div>
         <div class="nd-hz-list" id="ndHzList"></div>
+        </div>
       </div>
     </div>`;
   c.querySelector("#ndBack").onclick=()=>{state.flowMode="editor";state.activeNodeId=null;state.ndVP=null;render();};
@@ -52,7 +56,9 @@ export function renderNodeDetail(c,flow,node){
   function fitView(){ if(!natW)return; const sw=stage.clientWidth-24, sh=stage.clientHeight-24; let k=Math.min(sw/natW,sh/natH,1); if(!isFinite(k)||k<=0)k=1; vp={k, x:(stage.clientWidth-natW*k)/2, y:(stage.clientHeight-natH*k)/2}; applyVP(); }
   function zoomAt(clientX,clientY,f){ const r=stage.getBoundingClientRect(),mx=clientX-r.left,my=clientY-r.top,k2=Math.min(5,Math.max(.15,vp.k*f)); const cx=(mx-vp.x)/vp.k,cy=(my-vp.y)/vp.k; vp.x=mx-cx*k2; vp.y=my-cy*k2; vp.k=k2; applyVP(); }
   function setAdd(v){ if(!tieneImagen(node))return; addMode=v; stage.classList.toggle("adding",v); addBtn.classList.toggle("primary",!v); addBtn.classList.toggle("on-add",v); addBtn.innerHTML=v?"Hacé clic en la imagen · Esc cancela":`${targetIco()} Marcar hallazgo`; }
-  function renderPins(){ if(!pinsEl)return; pinsEl.innerHTML=(node.markers||[]).map((m,i)=>{const hz=resolveHz(m.hallazgoId);return `<button class="nd-imgpin" data-hz="${m.hallazgoId}" style="left:${m.x*100}%;top:${m.y*100}%;background:${pinColor(hz)}" title="${hz?esc(hz.titulo):'Hallazgo'}">${i+1}</button>`;}).join(""); pinsEl.querySelectorAll(".nd-imgpin").forEach(p=>p.onclick=e=>{e.stopPropagation();if(addMode)return;const hz=resolveHz(p.dataset.hz);if(hz)hzModal(hz);}); }
+  // Con la misma pantalla que el hallazgo, la marca sigue a su pin (los dos lados coinciden).
+  const posDe=(m,hz)=>node.pantallaId&&hz&&hz.pantallaId===node.pantallaId&&hz.pin?hz.pin:m;
+  function renderPins(){ if(!pinsEl)return; pinsEl.innerHTML=(node.markers||[]).map((m,i)=>{const hz=resolveHz(m.hallazgoId),q=posDe(m,hz);return `<button class="nd-imgpin" data-hz="${m.hallazgoId}" style="left:${q.x*100}%;top:${q.y*100}%;background:${pinColor(hz)}" title="${hz?esc(hz.titulo):'Hallazgo'}">${i+1}</button>`;}).join(""); pinsEl.querySelectorAll(".nd-imgpin").forEach(p=>p.onclick=e=>{e.stopPropagation();if(addMode)return;const hz=resolveHz(p.dataset.hz);if(hz)abrirForm(hz,false);}); }
   function renderHzList(){
     const ms=(node.markers||[]);
     if(!ms.length){hzList.innerHTML=`<div class="ann-empty">Activá "Marcar hallazgo" y hacé clic sobre la imagen para registrar un hallazgo en ese punto.</div>`;return;}
@@ -62,8 +68,13 @@ export function renderNodeDetail(c,flow,node){
         <button class="icon-btn sm unlink" title="Quitar del flujo" style="width:28px;height:28px">${x()}</button></div>`;
     }).join("");
     hzList.querySelectorAll(".nd-hz").forEach(row=>{
-      row.querySelector(".nd-hz-b").onclick=()=>{const hz=resolveHz(row.dataset.hz);if(hz)hzModal(hz);};
-      row.querySelector(".unlink").onclick=async()=>{node.markers=(node.markers||[]).filter(m=>m.id!==row.dataset.mid);await saveActiveFlow();renderPins();renderHzList();toast("Hallazgo desvinculado del flujo");};
+      row.querySelector(".nd-hz-b").onclick=()=>{const hz=resolveHz(row.dataset.hz);if(hz)abrirForm(hz,false);};
+      row.querySelector(".unlink").onclick=async()=>{
+        node.markers=(node.markers||[]).filter(m=>m.id!==row.dataset.mid); await saveActiveFlow();
+        const hz=resolveHz(row.dataset.hz); // el hallazgo también deja de tener este paso
+        if(hz){ const ps=pasosDe(hz).filter(p=>!(p.flujoId===flow.id&&p.pasoId===node.id)); const pri=ps[0]||null;
+          await guardarHallazgo({...hz,pasos:ps,flujoId:pri&&pri.flujoId,pasoId:pri&&pri.pasoId,interaccionId:pri&&pri.pasoId}); }
+        renderPins();renderHzList();toast("Hallazgo desvinculado del flujo");};
     });
   }
   function placePin(clientX,clientY){
@@ -73,8 +84,21 @@ export function renderNodeDetail(c,flow,node){
     setAdd(false);
     // Con una pantalla del estudio, el hallazgo también queda en esa pantalla (y se ve en Hallazgos).
     const enPantalla=node.pantallaId?{pantallaId:node.pantallaId,pin:{x:fx,y:fy}}:{};
-    hzModal(nuevoHallazgo({pantalla:node.titulo,flujoId:flow.id,pasoId:node.id,interaccionId:node.id,interaccionTitulo:node.titulo,...enPantalla}),
-      {onSaved:async(hid)=>{ node.markers=node.markers||[]; node.markers.push({id:uid(),x:fx,y:fy,hallazgoId:hid}); await saveActiveFlow(); }});
+    abrirForm(nuevoHallazgo({id:uid(),pantalla:node.titulo,createdAt:Date.now(),...enPantalla}),true,{x:fx,y:fy});
+  }
+  // El mismo formulario que en Hallazgos, en el panel derecho de la interacción.
+  function abrirForm(h,nuevo,punto){
+    const form=c.querySelector("#ndForm"), info=c.querySelector("#ndInfo");
+    info.hidden=true; form.hidden=false;
+    formularioHallazgo(form,h,{nuevo,subtitulo:node.titulo||"Interacción",
+      pasosIniciales:[{flujoId:flow.id,pasoId:node.id}],
+      alCerrar:()=>{ form.hidden=true; info.hidden=false; form.innerHTML=""; },
+      alEliminar:()=>{ form.hidden=true; info.hidden=false; confirmDelHz(h.id); },
+      alGuardar:async saved=>{
+        if(punto){ const m=(node.markers||[]).find(x=>x.hallazgoId===saved.id); if(m&&!node.pantallaId){ m.x=punto.x; m.y=punto.y; await saveActiveFlow(); } }
+        state.hallazgos=await store.listHallazgos(state.activeId);
+        toast(nuevo?"Hallazgo registrado":"Hallazgo actualizado"); render();
+      }});
   }
   // Vincular una pantalla del estudio: no se copia la imagen, se usa la misma de Hallazgos.
   async function usarPantalla(p){

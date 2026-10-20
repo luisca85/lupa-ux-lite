@@ -8,7 +8,16 @@ import { camIco, chevL, chevR, pencil, plus, x } from "../ui/iconos.js";
 import { nuevoHallazgo } from "../data/pantallas.js";
 import { hzThumbs, openHzLightbox } from "../ui/imagenes.js";
 import { openModal } from "../ui/modales.js";
-import { hzModal } from "../views/hallazgos.js";
+import { confirmDelHz } from "../views/hallazgos.js";
+import { formularioHallazgo, guardarHallazgo, pasosDe } from "../views/hallazgo-form.js";
+import { uid } from "../core/util.js";
+
+// El hallazgo también guarda sus pasos (spec hz ↔ flujos): al relacionar o quitar desde el
+// journey se actualiza su lista, así se ve igual desde Hallazgos.
+async function guardarPasosHallazgo(h,ps){
+  const pri=ps[0]||null;
+  await guardarHallazgo({...h,pasos:ps,flujoId:pri?pri.flujoId:null,pasoId:pri?pri.pasoId:null,interaccionId:pri?pri.pasoId:null});
+}
 
 /* ---- Sidebar de relaciones (hallazgos / user flows por paso) ---- */
 export let JSIDE=null;
@@ -48,7 +57,8 @@ function jrSideBody(){
   body.querySelector("#jsRelate").onclick=jrRelateExisting;
   body.querySelector("#jsCreate").onclick=jrCreateRelated;
   body.querySelectorAll(".jr-side-rm").forEach(b=>b.onclick=()=>{ JSIDE.selId=b.dataset.sel; jrSideBody(); });
-  body.querySelectorAll(".jr-side-x").forEach(b=>b.onclick=async()=>{ const p=jsPaso(); const key=JSIDE.kind==="hallazgos"?"hallazgos":"flujos"; p[key]=(p[key]||[]).filter(id=>id!==b.dataset.un); await saveActiveFlow(); render(); jrSideBody(); });
+  body.querySelectorAll(".jr-side-x").forEach(b=>b.onclick=async()=>{ const p=jsPaso(); const key=JSIDE.kind==="hallazgos"?"hallazgos":"flujos"; p[key]=(p[key]||[]).filter(id=>id!==b.dataset.un); await saveActiveFlow();
+    if(key==="hallazgos"){ const h=state.hallazgos.find(x=>x.id===b.dataset.un); if(h) await guardarPasosHallazgo(h,pasosDe(h).filter(q=>!(q.flujoId===JSIDE.jr.id&&q.pasoId===p.id))); } render(); jrSideBody(); });
 }
 function jrSideDetail(body){
   const isHz=JSIDE.kind==="hallazgos";
@@ -67,7 +77,9 @@ function jrSideDetail(body){
       <button class="btn sm" id="jsEditHz" style="margin-top:12px">${pencil()} Editar hallazgo</button>`;
     body.querySelector("#jsBack").onclick=()=>{ JSIDE.selId=null; jrSideBody(); };
     body.querySelectorAll(".hz-thumbs .t").forEach(t=>t.onclick=()=>openHzLightbox(h.id));
-    body.querySelector("#jsEditHz").onclick=()=>hzModal(h,{onSaved:async()=>{ renderJrSide(); }});
+    body.querySelector("#jsEditHz").onclick=()=>formularioHallazgo(body,h,{subtitulo:(jsPaso()||{}).nombre||"Paso",
+      alCerrar:()=>jrSideBody(), alEliminar:()=>{ closeJrSide(); confirmDelHz(h.id); },
+      alGuardar:async()=>{ render(); renderJrSide(); }});
   } else {
     const f=state.flujos.find(x=>x.id===JSIDE.selId);
     if(!f){ JSIDE.selId=null; return jrSideBody(); }
@@ -89,13 +101,19 @@ function jrRelateExisting(){
   const sel=new Set();
   openModal(kind==="hallazgos"?"Relacionar hallazgos":"Relacionar user flows",
     cands.length?`<p class="hint" style="margin-bottom:8px">Elegí uno o varios para relacionar a este paso.</p><div class="multi" style="max-height:320px">${cands.map(c=>`<button type="button" class="mchip" data-id="${c.id}">${esc(kind==="hallazgos"?c.titulo:c.nombre)}</button>`).join("")}</div>`:`<p class="hint">No hay ${kind==="hallazgos"?"hallazgos":"user flows"} disponibles para relacionar. Creá uno nuevo con el botón "Crear nuevo".</p>`,
-    async()=>{ const key=kind==="hallazgos"?"hallazgos":"flujos"; p[key]=p[key]||[]; sel.forEach(id=>{ if(!p[key].includes(id))p[key].push(id); }); await saveActiveFlow(); render(); renderJrSide(); return true; });
+    async()=>{ const key=kind==="hallazgos"?"hallazgos":"flujos"; p[key]=p[key]||[]; sel.forEach(id=>{ if(!p[key].includes(id))p[key].push(id); }); await saveActiveFlow();
+      if(key==="hallazgos") for(const id of sel){ const h=state.hallazgos.find(x=>x.id===id); if(h) await guardarPasosHallazgo(h,pasosDe(h)); }
+      render(); renderJrSide(); return true; });
   document.querySelectorAll("#modalRoot .mchip").forEach(b=>b.onclick=()=>{ const id=b.dataset.id; if(sel.has(id)){sel.delete(id);b.classList.remove("on");}else{sel.add(id);b.classList.add("on");} });
 }
 function jrCreateRelated(){
   const p=jsPaso(), kind=JSIDE.kind;
   if(kind==="hallazgos"){
-    hzModal(nuevoHallazgo(),{onSaved:async(id)=>{ const jr=activeFlow(); const pp=jr&&jr.pasos[JSIDE.idx]; if(!pp)return; JSIDE.jr=jr; pp.hallazgos=pp.hallazgos||[]; if(!pp.hallazgos.includes(id))pp.hallazgos.push(id); await saveActiveFlow(); renderJrSide(); }});
+    const body=document.getElementById("jsBody"); if(!body) return;
+    formularioHallazgo(body,nuevoHallazgo({id:uid(),createdAt:Date.now()}),{nuevo:true,subtitulo:p.nombre||"Paso",
+      pasosIniciales:[{flujoId:JSIDE.jr.id,pasoId:p.id}],
+      alCerrar:()=>jrSideBody(),
+      alGuardar:async()=>{ JSIDE.jr=activeFlow()||JSIDE.jr; render(); renderJrSide(); }});
   } else {
     flowModal(null,{onCreated:async(id)=>{ const jr=activeFlow(); const pp=jr&&jr.pasos[JSIDE.idx]; if(!pp)return; JSIDE.jr=jr; pp.flujos=pp.flujos||[]; if(!pp.flujos.includes(id))pp.flujos.push(id); await saveActiveFlow(); renderJrSide(); }});
   }

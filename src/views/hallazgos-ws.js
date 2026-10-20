@@ -9,6 +9,7 @@ import { processImage } from "../ui/imagenes.js";
 import { openConfirm, openModal, toast } from "../ui/modales.js";
 import { proximamente } from "./estudio.js";
 import { confirmDelHz } from "./hallazgos.js";
+import { autoTitulo, bindSev, etiquetaPaso, formularioHallazgo, guardarHallazgo as guardar, pasosDe, sevScale, sincronizarPasos } from "./hallazgo-form.js";
 
 /* ============ Hallazgos: área de trabajo con pantallas y pines + panel derecho ============
    Estado (core/state.js): hzGroup (id de la pantalla activa), hzQuick (popover {h, nuevo}),
@@ -20,8 +21,7 @@ const $=id=>document.getElementById(id);
 const pantallas=()=>state.pantallas||[];
 const grupo=()=>state.hallazgos.filter(h=>h.pantallaId&&h.pantallaId===state.hzGroup);
 const byNum=(a,b)=>((a.createdAt||0)-(b.createdAt||0))||String(a.id).localeCompare(String(b.id));
-const autoTitulo=t=>{ const l=String(t||"").trim().split(/\n/)[0]; return l.length>90?l.slice(0,87)+"…":l; };
-const pasoLabel=h=>{ if(!h.flujoId) return ""; const f=(state.flujos||[]).find(x=>x.id===h.flujoId); const n=f&&(f.nodes||[]).find(n=>n.id===(h.pasoId||h.interaccionId)); return n?n.titulo:(h.interaccionTitulo||""); };
+const pasoLabel=h=>{ const ps=pasosDe(h); if(!ps.length) return ""; const e=etiquetaPaso(ps[0]); return e?(e.etiqueta.replace(/^\d+\.\s*/,"")+(ps.length>1?` +${ps.length-1}`:"")):""; };
 const hzMeta=h=>{ const x=catalogoIdsDe(h).map(heurById).find(Boolean); return [h.severidad!=null&&h.severidad!==""?`Sev. ${h.severidad} · ${SEVERIDAD[h.severidad].label}`:"Sin severidad",x?x.nombre:"",proximamente("flujos")?"":pasoLabel(h)].filter(Boolean).join("  ·  "); };
 const numDe=h=>h.pantallaId?(pinNumero(h,state.hallazgos)||"·"):"·";
 
@@ -172,8 +172,6 @@ function quickBox(h,nuevo){
     <div class="q-acts"><button class="btn-q sel" id="qSave">Guardar</button><button class="btn-q" id="qDel">Eliminar <span class="fig-ico ico-eliminar" aria-hidden="true"></span></button></div>
   </div>`;
 }
-const sevScale=(id,val)=>`<div class="sev-scale" id="${id}">${[0,1,2,3,4].map(v=>`<button type="button" class="${val===v?'on':''}" data-s="${v}" title="Sev ${v} · ${SEVERIDAD[v].label}">${v}</button>`).join("")}</div>`;
-const bindSev=(root,id,get,set)=>root.querySelectorAll(`#${id} button`).forEach(b=>b.onclick=()=>{ const v=(String(get())===b.dataset.s)?null:Number(b.dataset.s); set(v); root.querySelectorAll(`#${id} button`).forEach(x=>x.classList.toggle("on",String(v)===x.dataset.s)); });
 function bindQuick(p,h,nuevo){
   let sev=h.severidad??null;
   const box=$("wsQuick"); box.onclick=e=>e.stopPropagation();
@@ -190,14 +188,6 @@ function bindQuick(p,h,nuevo){
     try{ await guardar(rec); state.hzQuick=null; state.hzSel=rec.id; toast(nuevo?"Hallazgo registrado":"Hallazgo actualizado"); renderStage(); renderPanel(); }
     catch(e){ console.error("qSave",e); toast("No se pudo guardar. Probá de nuevo."); b.disabled=false; }
   };
-}
-async function guardar(rec){
-  rec={...rec,modelo:MODELO}; delete rec.heuristicas; delete rec.sesgos; delete rec.imgs;
-  if(!rec.titulo) rec.titulo=autoTitulo(rec.descripcion)||"(sin título)";
-  normalizarPin(rec);
-  await store.saveHallazgo(state.activeId,rec);
-  state.hallazgos=await store.listHallazgos(state.activeId);
-  return rec;
 }
 function abrirForm(h,nuevo){ if(!h) return; state.hzForm={...h}; state.hzFormNuevo=!!nuevo; state.hzPanel="lista"; state.hzSel=nuevo?null:h.id; state.hzQuick=null; renderPanel(); const p=pantallas().find(x=>x.id===state.hzGroup); if(p) renderCanvas(p); }
 function eliminarPantalla(p){
@@ -305,65 +295,18 @@ export function renderPanel(){
   el.querySelectorAll(".hp-card[data-hz]").forEach(b=>b.onclick=()=>abrirForm(state.hallazgos.find(h=>h.id===b.dataset.hz)));
 }
 const infoIco=()=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`;
+// Formulario del panel: el mismo que usan las interacciones de los flows y los pasos de los journeys.
 function renderForm(el){
-  const h=state.hzForm, nuevo=state.hzFormNuevo, ids=catalogoIdsDe(h), heur0=ids.find(id=>heurById(id))||"";
-  const flows=(state.flujos||[]).filter(f=>f.tipo!=="User Journey");
-  const conPaso=!proximamente("flujos"); // mientras Flujos esté en "Próximamente" no se ofrece el paso
-  const pasoVal=h.flujoId?`${h.flujoId}|${h.pasoId||h.interaccionId||""}`:"";
-  const p=pantallas().find(x=>x.id===h.pantallaId);
-  const n=h.pantallaId&&!nuevo?pinNumero(h,state.hallazgos):null;
-  el.innerHTML=`<div class="hp-edit-h2"><button class="hp-back" id="hfBack" title="Volver a la lista" aria-label="Volver a la lista"><span class="fig-ico ico-volver" aria-hidden="true"></span></button>
-      <h3>${nuevo?"Nuevo hallazgo":`Editar hallazgo${n?" "+n:""}`}</h3><span>${esc(p?p.nombre:"Sin pantalla")}</span></div>
-    <form class="hp-edit hp-full" id="hfForm">
-      <div class="pf"><label>Severidad · 0 a 4</label>${sevScale("hfSev",h.severidad)}</div>
-      <div class="pf"><label for="hfDesc">Descripción</label><textarea id="hfDesc">${esc(h.descripcion||"")}</textarea></div>
-      <div class="pf"><label for="hfReco">Recomendación</label><textarea id="hfReco">${esc(h.recomendacion||"")}</textarea></div>
-      <div class="pf"><label for="hfHeur">Heurística relacionada</label><select id="hfHeur"><option value="">Sin heurística</option>${allHeur().map(x=>`<option value="${x.id}" ${heur0===x.id?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
-      <div class="${conPaso?"pf-row":""}">
-        <div class="pf"><label for="hfPant">Pantalla</label><select id="hfPant"><option value="">Sin pantalla</option>${pantallas().map(x=>`<option value="${x.id}" ${x.id===h.pantallaId?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
-        ${conPaso?`<div class="pf"><label for="hfPaso">Paso de flujo</label><select id="hfPaso"><option value="">Ninguno</option>${flows.map(f=>`<optgroup label="${esc(f.nombre||"Flujo")}">${(f.nodes||[]).map(nd=>`<option value="${f.id}|${nd.id}" ${pasoVal===f.id+"|"+nd.id?'selected':''}>${esc(nd.titulo||"Interacción")}</option>`).join("")}</optgroup>`).join("")}</select></div>`:""}
-      </div>
-      <div class="hp-acts"><button type="submit" class="btn-q sel" id="hfSave">${nuevo?"Guardar hallazgo":"Guardar cambios"}</button><button type="button" class="btn-q" id="hfCancel">Cancelar</button><div class="spacer"></div>${nuevo?"":`<button type="button" class="hp-trash" id="hfDel" title="Eliminar hallazgo" aria-label="Eliminar hallazgo"><span class="fig-ico ico-eliminar" aria-hidden="true"></span></button>`}</div>
-    </form>`;
-  let sev=h.severidad??null;
-  bindSev(el,"hfSev",()=>sev,v=>{sev=v;});
+  const h=state.hzForm, nuevo=state.hzFormNuevo;
   const cerrar=()=>{ state.hzForm=null; state.hzFormNuevo=false; renderPanel(); };
-  $("hfBack").onclick=cerrar; $("hfCancel").onclick=cerrar;
-  const del=$("hfDel"); if(del) del.onclick=()=>{ const id=h.id; state.hzForm=null; confirmDelHz(id); };
-  $("hfForm").onsubmit=async e=>{
-    e.preventDefault();
-    const desc=$("hfDesc").value.trim();
-    if(!desc&&!h.titulo){ $("hfDesc").focus(); return; }
-    const pid=$("hfPant").value||null, paso=conPaso?$("hfPaso").value:null, heur=$("hfHeur").value;
-    const resto=ids.filter(id=>id!==heur&&id!==heur0);
-    const rec={...h,descripcion:desc,recomendacion:$("hfReco").value.trim(),severidad:sev,
-      catalogoIds:heur?[heur,...resto]:resto, pantallaId:pid,pin:pid===h.pantallaId?h.pin:null};
-    if(!h.titulo||h.titulo===autoTitulo(h.descripcion||"")) rec.titulo=autoTitulo(desc);
-    const prev={flujoId:h.flujoId||null,pasoId:h.pasoId||h.interaccionId||null};
-    if(!conPaso){ /* se conserva el paso que ya tuviera */ }
-    else if(paso){ const [fid,nid]=paso.split("|"); const f=flows.find(x=>x.id===fid), nd=f&&(f.nodes||[]).find(x=>x.id===nid);
-      Object.assign(rec,{flujoId:fid,pasoId:nid,interaccionId:nid,interaccionTitulo:nd?nd.titulo:""}); }
-    else Object.assign(rec,{flujoId:null,pasoId:null,interaccionId:null,interaccionTitulo:null});
-    const b=$("hfSave"); b.disabled=true;
-    try{
-      const saved=await guardar(rec);
-      await syncPaso(saved.id,prev,{flujoId:saved.flujoId,pasoId:saved.pasoId});
+  formularioHallazgo(el,h,{nuevo,
+    alCerrar:cerrar,
+    alEliminar:()=>{ const id=h.id; state.hzForm=null; confirmDelHz(id); },
+    alGuardar:saved=>{
       state.hzForm=null; state.hzFormNuevo=false; state.hzSel=saved.id;
       if(saved.pantallaId&&saved.pantallaId!==state.hzGroup) state.hzGroup=saved.pantallaId;
       toast(nuevo?"Hallazgo registrado":"Hallazgo actualizado"); renderStage(); renderPanel();
-    }catch(err){ console.error("hfSave",err); toast("No se pudo guardar. Probá de nuevo."); b.disabled=false; }
-  };
-}
-/* La relación hallazgo ↔ interacción se guarda en los dos lados: también en node.markers,
-   para que el hallazgo siga apareciendo en el módulo Flujos. */
-async function syncPaso(hid,prev,next){
-  if(prev.flujoId===next.flujoId&&prev.pasoId===next.pasoId) return;
-  const flows=state.flujos||[]; const tocados=new Set();
-  if(prev.flujoId){ const f=flows.find(x=>x.id===prev.flujoId), nd=f&&(f.nodes||[]).find(x=>x.id===prev.pasoId);
-    if(nd){ nd.markers=(nd.markers||[]).filter(m=>m.hallazgoId!==hid); tocados.add(f); } }
-  if(next.flujoId){ const f=flows.find(x=>x.id===next.flujoId), nd=f&&(f.nodes||[]).find(x=>x.id===next.pasoId);
-    if(nd){ nd.markers=nd.markers||[]; if(!nd.markers.some(m=>m.hallazgoId===hid)) nd.markers.push({id:uid(),x:0.5,y:0.5,hallazgoId:hid}); tocados.add(f); } }
-  for(const f of tocados) await flowStore.save(state.activeId,f);
+    }});
 }
 function renderPanelCatalogo(el){
   const tab=state.hzCatTab||"heur";
