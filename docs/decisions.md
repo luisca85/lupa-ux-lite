@@ -174,3 +174,11 @@ proteger con 10 ms de CPU y sin reescribir la capa de datos.
 de las cuentas. `lupaux.uxuaria.com` queda con una redirección 301 que conserva la ruta,
 para no romper los links públicos `/r/{id}` ya enviados a clientes. Motivo: nombre más
 corto y claro para la beta.
+
+2026-10-20 - Legales: rigen las leyes de Argentina (Ley 25.326) y el responsable es Luis
+Carlos Romero León (marca uxuaria). Las condiciones del link público son genéricas para
+todas las cuentas. La cláusula de mención en redes y portfolio solo se pide en los
+reportes de uxuaria (`mencion`, que fija el servidor). `/legal/{id}` se lee sin cuenta.
+La beta se lanza **sin revisión legal**: el riesgo lo asume el responsable y la
+revisión queda pendiente. Motivo: abrir la beta gratis ya y revisar con un abogado
+antes de crecer más allá de los 100 cupos.

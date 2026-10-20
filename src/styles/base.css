@@ -1158,3 +1158,6 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .cargando-giro{width:28px;height:28px;border-radius:50%;border:3px solid var(--line-strong);border-top-color:var(--ink);animation:cargandoGiro .8s linear infinite}
 @keyframes cargandoGiro{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.cargando-giro{animation-duration:2.4s}}
+/* Legales públicos (/legal/{id}), sin barra ni pie */
+.legal-pub{padding-top:24px}
+.legal-pub .legal-nav a{text-decoration:none;color:inherit}

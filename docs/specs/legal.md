@@ -69,8 +69,9 @@ su ruta en `src/app/render.js`, los enlaces del pie (`src/ui/pie.js`) y los esti
 `.legal*` en `src/styles/base.css`.
 
 ## Fuera de alcance / No tocar
-- El consentimiento del link público (`src/share/publico.js`, `POST /api/publico`) y
-  el reporte del cliente (`SR_boot`): no cambian con esta spec (ver A CONFIRMAR).
+- El reporte del cliente (`SR_boot`) no cambia. El consentimiento del link público
+  (`src/share/publico.js`, `POST /api/publico`) solo suma la cláusula de mención para
+  los reportes de uxuaria (ver Conocido).
 - La API y `authorize()`: las páginas legales son texto fijo dentro de la app y no
   agregan rutas.
 - Banner de cookies: no hace falta mientras no haya cookies que no sean necesarias.
@@ -107,7 +108,7 @@ botón de volver (`.cf-back`).
     a estudios".
   - Cada afirmación de los textos se puede verificar en el código (ver Dependencias).
   - La política nombra a Luis Carlos Romero como responsable.
-  - Revisión legal hecha antes de publicar (ver A CONFIRMAR).
+  - Revisión legal: queda para después del lanzamiento de la beta (ver Conocido).
   - Revisado en 375 px y en tema oscuro.
 
 ## Dónde vive
@@ -119,13 +120,24 @@ botón de volver (`.cf-back`).
 - `src/styles/base.css`: `.legal`, `.legal-in`, `.legal-nav`, `.legal-doc`, `.legal-fecha`.
 
 ## Conocido
-- **A CONFIRMAR: revisión legal.** Nadie con formación legal revisó los textos.
-- **A CONFIRMAR: país, jurisdicción y ley aplicable.** Los textos no los mencionan.
-- **A CONFIRMAR: nombre completo del responsable.** El pie dice "Luis Carlos Romero
-  León"; definir cuál va en la política.
-- **A CONFIRMAR: condiciones en el link público.** El cliente marca "Acepto las
-  condiciones de uso" (`src/share/publico.js`) sin un enlace para leerlas, y estas
-  páginas quedan detrás de Cloudflare Access, así que el cliente no puede abrirlas.
+- Resuelto el 2026-10-20:
+  - **Ley y jurisdicción:** Argentina, Ley 25.326. Los términos suman "Ley aplicable y
+    jurisdicción" (tribunales competentes de la República Argentina, sin ciudad). La
+    privacidad suma la ley, las transferencias a servidores fuera de la Argentina, el
+    acceso gratuito cada seis meses y el aviso de la Agencia de Acceso a la Información
+    Pública.
+  - **Responsable:** "Luis Carlos Romero León", igual que en el pie.
+  - **Condiciones en el link público:** son genéricas para todos (confidencial, solo
+    lectura, se registra nombre, aceptación y fecha) y enlazan a `/legal/reportes` y a
+    `/legal/privacidad`, que se leen sin cuenta. La cláusula de mención en redes y
+    portfolio de uxuaria se pide solo en los reportes de uxuaria: `mencion` en
+    `publicos/{id}`, que con cuentas fija el servidor (`true` solo para el
+    administrador). Los links anteriores no tienen el campo y se tratan como de uxuaria.
+  - Nueva sección "Reportes compartidos" (`id: reportes`).
+- **Pendiente (decisión del 2026-10-16/20): revisión legal.** La beta se lanza sin
+  revisión de un abogado y los textos se revisan después. Ver decisions.md.
+- **Pendiente: ciudad de la jurisdicción.** Hoy dice "tribunales competentes de la
+  República Argentina"; precisarla en la revisión legal.
 - La API guarda solo los últimos 10 consentimientos (`PUB_MAX_CONSENT`) y las últimas
   20 reservas (`PUB_MAX_RESERVAS`) por reporte; los textos no lo dicen.
 - Si no está configurado `RESEND_API_KEY`, no se envía ningún correo, aunque el texto

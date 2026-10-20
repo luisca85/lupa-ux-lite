@@ -15,12 +15,16 @@ import { abrirReportePublico, idPublicoDeLaURL } from "./share/publico.js";
 import { brandStore } from "./reportes/comun.js";
 import { toast, vistaCargando } from "./ui/modales.js";
 import { initTheme } from "./ui/tema.js";
+import { abrirLegalPublica, idLegalDeLaURL } from "./views/legal.js";
 
 /* ============ Init ============ */
 async function init(){
   // Link público /r/{id}: solo pide el PIN y muestra la foto publicada; no inicia la app.
   const pubId=idPublicoDeLaURL();
   if(pubId){ abrirReportePublico(pubId); return; }
+  // Términos y privacidad públicos (/legal/{id}): sin login ni API.
+  const legalId=idLegalDeLaURL();
+  if(legalId){ initTheme(); abrirLegalPublica(legalId); return; }
   // Un guardado que falla (sin conexión, sesión vencida, documento muy grande) no
   // debe pasar en silencio: lo mostramos como aviso.
   window.addEventListener("unhandledrejection",e=>{ const m=e.reason&&e.reason.message; if(m&&DB_MODE==="server")toast(m); });

@@ -202,7 +202,14 @@ async function publico(request, env) {
     await guardar(meta);
     return json({ error: "Para ver el reporte, escribí tu nombre y aceptá las condiciones de uso.", consentimiento: true }, 400);
   }
-  meta.consentimientos = [...(Array.isArray(meta.consentimientos) ? meta.consentimientos : []), { nombre, fecha: now }].slice(-PUB_MAX_CONSENT);
+  // Reportes de uxuaria (mencion): piden además aceptar que uxuaria lo mencione. Los links
+  // de antes de las cuentas no tienen el campo y son todos de uxuaria.
+  const pideMencion = meta.mencion !== false;
+  if (pideMencion && body.aceptoMencion !== true) {
+    await guardar(meta);
+    return json({ error: "Este reporte lo preparó uxuaria y pide una condición más.", mencion: true, consentimiento: true }, 400);
+  }
+  meta.consentimientos = [...(Array.isArray(meta.consentimientos) ? meta.consentimientos : []), { nombre, fecha: now, ...(pideMencion ? { mencion: true } : {}) }].slice(-PUB_MAX_CONSENT);
   await guardar(meta);
 
   const { results } = await env.DB.prepare("SELECT data FROM docs WHERE parent = ? ORDER BY path").bind(path + "/partes").all();
@@ -504,7 +511,11 @@ export async function onRequest({ request, env, params }) {
         try { data = JSON.parse(text || "{}"); } catch { return json({ error: "JSON inválido" }, 400); }
         if (data === null || typeof data !== "object" || Array.isArray(data))
           return json({ error: "El documento debe ser un objeto" }, 400);
-        if (esPublico(path) && path.split("/").length === 2) data["dueño"] = user.id;
+        if (esPublico(path) && path.split("/").length === 2) {
+          data["dueño"] = user.id;
+          // Con cuentas, solo los reportes del administrador (uxuaria) piden la condición de mención.
+          if (env.AUTH_MODE === "cuentas") data.mencion = !!user.admin;
+        }
         const limite = await chocaLimite(env, pedida, path, user);
         if (limite) return limite;
         await env.DB.prepare(

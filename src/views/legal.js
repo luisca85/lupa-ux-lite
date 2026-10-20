@@ -5,7 +5,7 @@ import { state } from "../core/state.js";
    Textos escritos a partir de lo que la app hace hoy (qué guarda, dónde y quién lo recibe).
    Si cambia el tratamiento de datos (nuevos servicios, analítica, pagos), actualizar acá
    y la fecha de ACTUALIZADO. */
-const ACTUALIZADO="16 de octubre de 2026";
+const ACTUALIZADO="20 de octubre de 2026";
 const CONTACTO='<a href="mailto:info@uxuaria.com">info@uxuaria.com</a>';
 export const SECCIONES_LEGALES=[
   { id:"terminos", titulo:"Términos de uso", html:`
@@ -25,9 +25,11 @@ export const SECCIONES_LEGALES=[
     <h3>Disponibilidad</h3>
     <p>Trabajamos para que Lupa UX funcione de forma continua, pero puede tener interrupciones o cambios. Te recomendamos exportar un respaldo de tus datos de forma periódica.</p>
     <h3>Cambios</h3>
-    <p>Podemos actualizar estos términos. La fecha de la última actualización figura al pie de esta página.</p>` },
+    <p>Podemos actualizar estos términos. La fecha de la última actualización figura al pie de esta página.</p>
+    <h3>Ley aplicable y jurisdicción</h3>
+    <p>Estos términos se rigen por las leyes de la República Argentina. Ante cualquier conflicto, intervienen los tribunales competentes de la República Argentina.</p>` },
   { id:"privacidad", titulo:"Política de privacidad", html:`
-    <p>Esta política explica qué datos trata Lupa UX, para qué y con quién se comparten. El responsable de los datos es Luis Carlos Romero, que ofrece Lupa UX con su marca uxuaria. Podés escribir a ${CONTACTO} por cualquier consulta.</p>
+    <p>Esta política explica qué datos trata Lupa UX, para qué y con quién se comparten. El responsable de los datos es Luis Carlos Romero León, que ofrece Lupa UX con su marca uxuaria. Los datos se tratan según la Ley 25.326 de Protección de Datos Personales de la República Argentina. Podés escribir a ${CONTACTO} por cualquier consulta.</p>
     <h3>Qué datos se guardan</h3>
     <ul>
       <li><b>Tu cuenta:</b> el email con el que ingresás y la fecha en que creaste la cuenta. Para entrar te mandamos un código de un solo uso; guardamos solo una versión cifrada (hash), nunca el código en claro.</li>
@@ -44,12 +46,24 @@ export const SECCIONES_LEGALES=[
       <li><b>Google Fonts</b> sirve las tipografías de la interfaz; tu navegador las descarga desde sus servidores.</li>
       <li>Si usás Lupa UX sin servidor, tu trabajo queda guardado solo en tu navegador.</li>
     </ul>
+    <p>Estos proveedores pueden guardar o procesar los datos en servidores fuera de la Argentina.</p>
     <h3>Seguridad</h3>
     <p>Los códigos para entrar valen 10 minutos y una sola vez, y se bloquean después de 5 intentos fallidos. Del lado público, el PIN de cada reporte no se guarda en claro sino como un hash, y el acceso se bloquea 15 minutos después de 5 intentos fallidos. Los reportes compartidos se muestran en modo lectura.</p>
     <h3>Cuánto tiempo</h3>
     <p>Tus datos se conservan mientras uses la herramienta o hasta que los borres. Al despublicar un reporte se eliminan su copia pública, los consentimientos y las reservas asociadas.</p>
     <h3>Tus derechos</h3>
-    <p>Podés pedir acceso, corrección o eliminación de tus datos y de tu cuenta escribiendo a ${CONTACTO}. También podés exportar tus datos desde la pantalla de estudios.</p>` },
+    <p>Podés pedir acceso, corrección o eliminación de tus datos y de tu cuenta escribiendo a ${CONTACTO}. También podés exportar tus datos desde la pantalla de estudios. El acceso a tus datos es gratuito y podés pedirlo cada seis meses, salvo que tengas un interés legítimo para hacerlo antes.</p>
+    <p>La Agencia de Acceso a la Información Pública, como órgano de control de la Ley 25.326, atiende las denuncias y los reclamos de quienes consideren afectados sus derechos sobre sus datos personales.</p>` },
+  { id:"reportes", titulo:"Reportes compartidos", html:`
+    <p>Estas condiciones valen para quien abre un reporte que le compartieron con un link y un PIN.</p>
+    <h3>Qué es un reporte compartido</h3>
+    <p>Es un diagnóstico de experiencia de usuario que preparó quien te lo compartió, usando Lupa UX. El contenido, el análisis y las recomendaciones son suyos. uxuaria solo ofrece la herramienta, salvo que el reporte lo haya preparado uxuaria.</p>
+    <h3>Confidencialidad</h3>
+    <p>El reporte es confidencial y de solo lectura. No lo reenvíes ni compartas el PIN con personas ajenas a tu equipo sin permiso de quien te lo envió.</p>
+    <h3>Qué registramos al abrirlo</h3>
+    <p>Para abrirlo pedimos tu nombre y que aceptes estas condiciones. Guardamos tu nombre, la aceptación y la fecha, y se los mostramos a quien te compartió el reporte. Si reservás una propuesta, también guardamos cuál elegiste y le avisamos por email. Más detalles en la política de privacidad.</p>
+    <h3>Reportes preparados por uxuaria</h3>
+    <p>Si el reporte lo preparó uxuaria, se te pide además aceptar que uxuaria pueda mencionar que realizó el diagnóstico y compartir aprendizajes generales en sus redes y portfolio, sin revelar información clave ni datos confidenciales de tu empresa o producto.</p>` },
   { id:"almacenamiento", titulo:"Cookies y almacenamiento", html:`
     <p>Lupa UX no usa cookies de publicidad ni de analítica.</p>
     <h3>Cookies necesarias</h3>
@@ -64,6 +78,26 @@ export const SECCIONES_LEGALES=[
     </ul>
     <p>Si usás Lupa UX sin servidor, tu trabajo completo también se guarda en el almacenamiento de tu navegador. Podés borrar todo esto desde la configuración de tu navegador; en ese caso perderías los datos guardados solo localmente.</p>` }
 ];
+
+// Página pública /legal/{id}: se lee sin cuenta (desde la pantalla de entrada o el link
+// de un reporte). No inicia la app ni consulta la API.
+export function idLegalDeLaURL(){
+  const m = location.pathname.match(/^\/legal\/([a-z]+)\/?$/);
+  return m && SECCIONES_LEGALES.some(s => s.id === m[1]) ? m[1] : null;
+}
+export function abrirLegalPublica(id){
+  const actual = SECCIONES_LEGALES.find(s => s.id === id) || SECCIONES_LEGALES[0];
+  document.title = actual.titulo + " · Lupa UX";
+  const hd = document.querySelector("header.top"); if(hd) hd.remove();
+  const pie = document.getElementById("sitePie"); if(pie) pie.remove();
+  view.innerHTML = `<div class="legal legal-pub">
+    <div class="ent-marca"><span class="brand-logo" aria-hidden="true"></span><span class="brand-txt"><b>uxuaria</b><small>Lupa Ux</small></span></div>
+    <div class="legal-in">
+      <nav class="legal-nav" aria-label="Información legal">${SECCIONES_LEGALES.map(s => `<a class="cf-item${s.id === actual.id ? " on" : ""}" href="/legal/${s.id}"${s.id === actual.id ? ' aria-current="page"' : ""}><span class="cf-txt"><b>${s.titulo}</b></span></a>`).join("")}</nav>
+      <article class="legal-doc"><h1>${actual.titulo}</h1>${actual.html}<p class="legal-fecha">Última actualización: ${ACTUALIZADO}</p></article>
+    </div>
+  </div>`;
+}
 
 export function abrirLegal(id){ state.view="legal"; state.legalTab=id||"terminos"; render(); window.scrollTo(0,0); }
 
