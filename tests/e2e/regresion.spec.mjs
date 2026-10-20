@@ -42,7 +42,8 @@ test("regresión: hallazgo con imagen, flujos y vista previa del reporte", async
 
   await test.step("1c. crear un flujo y un journey", async () => {
     await page.getByRole("button", { name: "Flujos", exact: true }).click();
-    await page.getByRole("button", { name: /Crear flujo|Nuevo flujo/ }).first().click();
+    // Sin flujos, Flujos muestra dos cards: el primero se crea desde "Crear user flow".
+    await page.getByRole("button", { name: /Crear user flow/ }).click();
     await page.getByPlaceholder("Ej: Alta de cuenta y primer depósito").fill("Checkout");
     await page.getByRole("button", { name: "Guardar" }).click();
     await expect(page.getByText("Flujo creado")).toBeVisible();

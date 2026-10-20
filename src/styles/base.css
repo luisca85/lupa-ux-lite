@@ -1161,3 +1161,18 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 /* Legales públicos (/legal/{id}), sin barra ni pie */
 .legal-pub{padding-top:24px}
 .legal-pub .legal-nav a{text-decoration:none;color:inherit}
+/* Flujos: estado vacío con explicación y dos cards para empezar */
+.flx-vacio{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;align-items:stretch;margin:8px 0}
+.flx-info{padding:32px 28px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-empty);display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.flx-info h2{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.flx-info .soon-ilu{max-width:320px}
+.flx-info .soon-list{text-align:left}
+.flx-ops{display:flex;flex-direction:column;gap:16px}
+.flx-op{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:28px 26px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:border-color .15s,box-shadow .15s,transform .15s}
+.flx-op:hover{border-color:var(--ink);box-shadow:0 14px 30px -18px rgba(0,0,0,.45);transform:translateY(-1px)}
+.flx-op:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.flx-op-ico{width:44px;height:44px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center}
+.flx-op-t{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.flx-op-d{font-size:14px;line-height:21px;color:var(--muted);max-width:46ch}
+.flx-op-cta{margin-top:auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--ink)}
+@media (max-width:900px){.flx-vacio{grid-template-columns:1fr}.flx-ops{order:-1}}

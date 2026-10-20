@@ -88,7 +88,8 @@ test("hallazgos v2: una pantalla, varios pines, severidad y paso de flujo", asyn
 
   await test.step("anclado a un paso de flujo, sigue apareciendo en Flujos", async () => {
     await page.locator("#psNav").getByRole("button", { name: "Flujos", exact: true }).click();
-    await page.getByRole("button", { name: /Crear flujo|Nuevo flujo/ }).first().click();
+    // Sin flujos, Flujos muestra dos cards: el primero se crea desde "Crear user flow".
+    await page.getByRole("button", { name: /Crear user flow/ }).click();
     await page.getByPlaceholder("Ej: Alta de cuenta y primer depósito").fill("Registro");
     await page.getByRole("button", { name: "Guardar" }).click();
     await expect(page.getByText("Flujo creado")).toBeVisible();

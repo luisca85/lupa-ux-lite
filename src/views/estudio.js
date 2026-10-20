@@ -72,9 +72,9 @@ export function renderStudyShell(){
 export function goStudyTab(t){ if(state.hzPage&&t==="hallazgos") closeHzPage(); state.studyTab=t; if(t==="flujos")state.flowMode="list"; render(); window.scrollTo(0,0); }
 /* Secciones deshabilitadas provisionalmente: el código sigue, solo se muestra un aviso.
    Para habilitarlas en desarrollo o en las pruebas: localStorage "lupa:habilitar" = ["flujos", …]. */
-const PROXIMAMENTE=["flujos","protopersonas"];
+const PROXIMAMENTE=["protopersonas"];
 export const proximamente=id=>PROXIMAMENTE.includes(id)&&!(LS.get("lupa:habilitar",[])||[]).includes(id);
-const ilustraFlujos=`<svg viewBox="0 0 320 180" fill="none" aria-hidden="true">
+export const ilustraFlujos=`<svg viewBox="0 0 320 180" fill="none" aria-hidden="true">
   <rect x="8" y="58" width="74" height="54" rx="8" class="il-card"/><rect x="18" y="68" width="54" height="22" rx="4" class="il-soft"/><rect x="18" y="96" width="34" height="6" rx="3" class="il-line"/>
   <rect x="124" y="20" width="74" height="54" rx="8" class="il-card"/><rect x="134" y="30" width="54" height="22" rx="4" class="il-soft"/><rect x="134" y="58" width="40" height="6" rx="3" class="il-line"/>
   <rect x="124" y="108" width="74" height="54" rx="8" class="il-card il-dash"/><rect x="134" y="118" width="54" height="22" rx="4" class="il-soft"/><rect x="134" y="146" width="28" height="6" rx="3" class="il-line"/>
