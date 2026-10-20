@@ -210,7 +210,10 @@ async function ponerCaptura(p,blob){
 }
 async function crearDesdeImagen(blob,nombre){
   const r=await processImage(blob);
-  const {pantalla,existente}=await pantallaDesdeImagen(state.activeId,pantallas(),r,nombre||(blob.name||"").replace(/\.[a-z0-9]+$/i,""));
+  // Sin nombre, el del archivo; los genéricos del portapapeles ("image", "Captura"…) no: queda "Pantalla N".
+  const base=String(blob.name||"").replace(/\.[a-z0-9]+$/i,"").trim();
+  const generico=/^(image|imagen|captura|screenshot|captura de pantalla|pasted|clipboard)\b/i.test(base)||/^\d+$/.test(base);
+  const {pantalla,existente}=await pantallaDesdeImagen(state.activeId,pantallas(),r,nombre||(generico?"":base));
   if(!existente) state.pantallas=[...pantallas(),pantalla];
   toast(existente?"Esa imagen ya estaba cargada: se abre su pantalla":"Pantalla agregada");
   return pantalla;

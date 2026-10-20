@@ -78,6 +78,20 @@ export async function sincronizarPasos(h,antes,despues){
   for(const f of tocados) await flowStore.save(state.activeId,f);
 }
 
+// Cambiar el nombre de una pantalla también lo cambia en las interacciones de los flows que la
+// usan y que todavía llevaban el nombre anterior (o "Interacción N").
+export async function renombrarPantalla(pid,nombre){
+  const p=(state.pantallas||[]).find(x=>x.id===pid); if(!p||!nombre||p.nombre===nombre) return;
+  const viejo=p.nombre;
+  await pantallaStore.save(state.activeId,{...p,nombre});
+  state.pantallas=await pantallaStore.list(state.activeId);
+  for(const f of (state.flujos||[]).filter(x=>x.tipo!=="User Journey")){
+    let cambio=false;
+    (f.nodes||[]).forEach(n=>{ if(n.pantallaId===pid&&(!n.titulo||n.titulo===viejo||/^Interacción \d+$/.test(n.titulo))){ n.titulo=nombre; cambio=true; } });
+    if(cambio) await flowStore.save(state.activeId,f);
+  }
+}
+
 /* Formulario en un contenedor (panel de Hallazgos, de la interacción o del journey).
    opts: nuevo, subtitulo, pasosIniciales, alCerrar(), alGuardar(guardado), alEliminar().
    Dos vistas en el mismo panel: el formulario y "Agregar pantalla" (subir o elegir la imagen,
@@ -89,7 +103,8 @@ export function formularioHallazgo(el,h,opts){
   const d={sev:h.severidad??null, descripcion:h.descripcion||"", recomendacion:h.recomendacion||"", heur:heur0,
     pasos:sinRepetir([...antes,...(opts.pasosIniciales||[])]),
     pantallaId:h.pantallaId||null, pin:h.pin?{...h.pin}:null,
-    pendiente:null}; // pantalla nueva todavía sin guardar: {img, nombre}; se crea al guardar el hallazgo
+    pendiente:null, // pantalla nueva todavía sin guardar: {img, nombre}; se crea al guardar el hallazgo
+    renombre:null}; // nombre nuevo para una pantalla existente: se aplica al guardar el hallazgo
   const $=id=>el.querySelector("#"+id);
   const pants=()=>state.pantallas||[];
   const n0=h.pantallaId&&!nuevo?pinNumero(h,state.hallazgos):null;
@@ -116,7 +131,7 @@ export function formularioHallazgo(el,h,opts){
       <div class="pf"><label for="hfReco">Recomendación</label><textarea id="hfReco">${esc(d.recomendacion)}</textarea></div>
       <div class="pf"><label for="hfHeur">Heurística relacionada</label><select id="hfHeur"><option value="">Sin heurística</option>${allHeur().map(x=>`<option value="${x.id}" ${d.heur===x.id?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
       <div class="pf"><label>Pantalla</label>
-        ${conPant?`<div class="hf-pant-res"><div class="hf-pant-mini" id="hfMini"></div><div class="hf-pant-res-t"><b>${esc(pa?pa.nombre:(d.pendiente.nombre||"Pantalla nueva"))}</b><span>${d.pendiente?"Nueva: se guarda con el hallazgo":(d.pin?"Con su punto marcado":"Sin punto marcado")}</span>
+        ${conPant?`<div class="hf-pant-res"><div class="hf-pant-mini" id="hfMini"></div><div class="hf-pant-res-t"><b>${esc(d.pendiente?(d.pendiente.nombre||"Pantalla nueva"):(d.renombre||pa.nombre))}</b><span>${d.pendiente?"Nueva: se guarda con el hallazgo":(d.pin?"Con su punto marcado":"Sin punto marcado")}</span>
             <div class="hf-pant-res-a"><button type="button" class="btn-q" id="hfPantCambiar">Cambiar</button><button type="button" class="btn-q" id="hfPantQuitar">Quitar pantalla</button></div></div></div>`
           :`<div class="hf-pant-res vacia"><span class="hint">Sin pantalla</span><button type="button" class="btn-q" id="hfPantAgregar">+ Agregar pantalla</button></div>`}
       </div>
@@ -132,7 +147,7 @@ export function formularioHallazgo(el,h,opts){
       if(!d.pendiente) imgDe(pa.id).then(b=>{ const im=el.querySelector("#hfMiniImg img"); if(b&&im) im.src=b; }); }
     const irPantalla=()=>{ leer(); vistaPantalla(); };
     [$("hfPantAgregar"),$("hfPantCambiar")].forEach(b=>{ if(b) b.onclick=irPantalla; });
-    const q=$("hfPantQuitar"); if(q) q.onclick=()=>{ leer(); d.pantallaId=null; d.pin=null; d.pendiente=null; vistaFormulario(); };
+    const q=$("hfPantQuitar"); if(q) q.onclick=()=>{ leer(); d.pantallaId=null; d.pin=null; d.pendiente=null; d.renombre=null; vistaFormulario(); };
     const pintarPasos=()=>{
       $("hfPasos").innerHTML=d.pasos.length?d.pasos.map((q,i)=>{ const e=etiquetaPaso(q); return e?`<span class="hf-paso"><span class="hf-paso-t"><b>${esc(e.grupo)}</b> ${esc(e.etiqueta)}</span><button type="button" class="hf-paso-x" data-i="${i}" aria-label="Quitar de ${esc(e.etiqueta)}">×</button></span>`:""; }).join(""):`<span class="hint">En ningún paso.</span>`;
       el.querySelectorAll(".hf-paso-x").forEach(b=>b.onclick=()=>{ d.pasos.splice(+b.dataset.i,1); pintarPasos(); });
@@ -149,9 +164,11 @@ export function formularioHallazgo(el,h,opts){
       try{
         // La pantalla nueva se crea recién ahora (si se cancela, no queda una pantalla suelta).
         if(d.pendiente){
-          const {pantalla}=await pantallaDesdeImagen(state.activeId,pants(),d.pendiente.img,d.pendiente.nombre);
+          const {pantalla,existente}=await pantallaDesdeImagen(state.activeId,pants(),d.pendiente.img,d.pendiente.nombre);
+          if(existente&&d.pendiente.nombre&&pantalla.nombre!==d.pendiente.nombre) d.renombre=d.pendiente.nombre;
           state.pantallas=await pantallaStore.list(state.activeId); d.pantallaId=pantalla.id; d.pendiente=null;
         }
+        if(d.renombre&&d.pantallaId){ await renombrarPantalla(d.pantallaId,d.renombre); d.renombre=null; }
         const heur=d.heur, resto=ids.filter(id=>id!==heur&&id!==heur0);
         const rec={...h,id:h.id||uid(),descripcion:desc,recomendacion:d.recomendacion.trim(),severidad:d.sev,
           catalogoIds:heur?[heur,...resto]:resto, pantallaId:d.pantallaId,pin:d.pantallaId?d.pin:null, pasos:d.pasos.map(q=>({flujoId:q.flujoId,pasoId:q.pasoId}))};
@@ -170,15 +187,20 @@ export function formularioHallazgo(el,h,opts){
 
   /* ---- Vista 2: Agregar pantalla (subir o elegir, ubicar el pin y guardar) ---- */
   function vistaPantalla(){
-    const sel={pantallaId:d.pantallaId, pendiente:d.pendiente, pin:d.pin?{...d.pin}:null};
+    const sel={pantallaId:d.pantallaId, pendiente:d.pendiente, pin:d.pin?{...d.pin}:null,
+      nombre:d.pendiente?d.pendiente.nombre:(d.renombre||((pants().find(x=>x.id===d.pantallaId)||{}).nombre)||"")};
     let src=null;
+    const sugerido=()=>`Pantalla ${pants().length+1}`;
     const pintar=()=>{
+      const inp=$("hpsNombre"); if(inp) sel.nombre=inp.value; // conservar lo escrito al repintar
       const pa=pants().find(x=>x.id===sel.pantallaId), hay=!!(pa||sel.pendiente);
       el.innerHTML=`<div class="hp-edit-h2"><button type="button" class="hp-back" id="hpsBack" title="Volver al hallazgo" aria-label="Volver al hallazgo"><span class="fig-ico ico-volver" aria-hidden="true"></span></button>
         <h3>Agregar pantalla</h3><span>${nuevo?"Nuevo hallazgo":"Editar hallazgo"}</span></div>
       <div class="hp-edit hp-full hps" id="hpsBox" tabindex="-1">
         <button type="button" class="hps-volver" id="hpsVolver">← Volver al formulario del hallazgo</button>
-        ${hay?`<div class="pf"><label>${esc(pa?pa.nombre:(sel.pendiente.nombre||"Pantalla nueva"))}</label>
+        ${hay?`<div class="pf"><label for="hpsNombre">Nombre de la pantalla</label><input id="hpsNombre" value="${esc(sel.nombre||"")}" placeholder="${esc(pa?pa.nombre:sugerido())}" maxlength="80">
+            ${pa?`<span class="hint">Si lo cambiás, cambia en Hallazgos y en los flujos que usan esta pantalla.</span>`:""}</div>
+          <div class="pf"><label>Ubicá el hallazgo</label>
             <div class="hf-pant-scroll">${marco(src||(sel.pendiente?sel.pendiente.img.full.dataUrl:(pa.thumb||"")),sel.pendiente?null:sel.pantallaId,sel.pin,"hpsImg")}</div>
             <span class="hint">${sel.pin?"Listo. Hacé clic en otro lugar para mover el pin.":"Hacé clic en la pantalla para colocar el pin del hallazgo."}</span>
             <button type="button" class="hps-otra" id="hpsOtra">Usar otra imagen</button></div>`
@@ -192,10 +214,15 @@ export function formularioHallazgo(el,h,opts){
       </div>`;
       const volver=()=>{ document.removeEventListener("paste",alPegar); vistaFormulario(); };
       $("hpsBack").onclick=volver; $("hpsVolver").onclick=volver; $("hpsCancel").onclick=volver;
-      $("hpsGuardar").onclick=()=>{ d.pantallaId=sel.pantallaId; d.pendiente=sel.pendiente; d.pin=sel.pin; volver(); toast("Pantalla lista: guardá el hallazgo para terminar"); };
+      $("hpsGuardar").onclick=()=>{
+        const pa2=pants().find(x=>x.id===sel.pantallaId), nom=($("hpsNombre")?$("hpsNombre").value:sel.nombre||"").trim();
+        d.pantallaId=sel.pantallaId; d.pin=sel.pin;
+        d.pendiente=sel.pendiente?{...sel.pendiente,nombre:nom||sugerido()}:null;
+        d.renombre=pa2&&nom&&nom!==pa2.nombre?nom:null;
+        volver(); toast("Pantalla lista: guardá el hallazgo para terminar"); };
       if(hay){
         const caja=$("hpsImg"); caja.onclick=e=>{ const im=caja.querySelector("img"), r=im.getBoundingClientRect(); sel.pin={x:clamp01((e.clientX-r.left)/r.width),y:clamp01((e.clientY-r.top)/r.height)}; pintar(); };
-        $("hpsOtra").onclick=()=>{ sel.pantallaId=null; sel.pendiente=null; sel.pin=null; src=null; pintar(); };
+        $("hpsOtra").onclick=()=>{ sel.pantallaId=null; sel.pendiente=null; sel.pin=null; src=null; sel.nombre=""; pintar(); };
         if(pa&&!src) imgDe(pa.id).then(b=>{ if(b){ src=b; const im=el.querySelector("#hpsImg img"); if(im) im.src=b; } });
       } else {
         $("hpsArchivo").onclick=()=>$("hpsFile").click();
@@ -207,12 +234,15 @@ export function formularioHallazgo(el,h,opts){
         const drop=$("hpsDrop");
         drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drag"); }; drop.ondragleave=()=>drop.classList.remove("drag");
         drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drag"); const f=e.dataTransfer.files[0]; if(f) cargar(f); };
-        el.querySelectorAll(".hps-pant").forEach(b=>b.onclick=()=>{ sel.pantallaId=b.dataset.pid; sel.pendiente=null; sel.pin=null; src=null; pintar(); });
+        el.querySelectorAll(".hps-pant").forEach(b=>b.onclick=()=>{ sel.pantallaId=b.dataset.pid; sel.pendiente=null; sel.pin=null; src=null; sel.nombre=((pants().find(x=>x.id===b.dataset.pid)||{}).nombre)||""; pintar(); });
       }
     };
     const cargar=async f=>{
       if(!f||f.type.indexOf("image")!==0){ toast("Ese archivo no es una imagen"); return; }
-      try{ const img=await processImage(f); sel.pendiente={img,nombre:(f.name&&f.name!=="Captura"?f.name:"").replace(/\.[a-z0-9]+$/i,"")}; sel.pantallaId=null; sel.pin=null; src=null; pintar(); }
+      try{ const img=await processImage(f); const base=String(f.name||"").replace(/\.[a-z0-9]+$/i,"").trim();
+        const generico=/^(image|imagen|captura|screenshot|captura de pantalla|pasted|clipboard)\b/i.test(base)||/^\d+$/.test(base);
+        sel.pendiente={img,nombre:""}; sel.nombre=generico?"":base; sel.pantallaId=null; sel.pin=null; src=null; pintar();
+        const inp=$("hpsNombre"); if(inp&&!inp.value){ inp.focus(); } }
       catch(e){ toast("No se pudo procesar la imagen"); }
     };
     // Ctrl/Cmd + V mientras esta sección está abierta.
