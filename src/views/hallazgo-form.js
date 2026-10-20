@@ -100,7 +100,8 @@ export function formularioHallazgo(el,h,opts){
       <div class="pf"><label for="hfReco">Recomendación</label><textarea id="hfReco">${esc(h.recomendacion||"")}</textarea></div>
       <div class="pf"><label for="hfHeur">Heurística relacionada</label><select id="hfHeur"><option value="">Sin heurística</option>${allHeur().map(x=>`<option value="${x.id}" ${heur0===x.id?'selected':''}>${esc(x.nombre)}</option>`).join("")}</select></div>
       <div class="pf"><label for="hfPant">Pantalla</label>
-        <div class="hf-pant-row"><select id="hfPant"></select><button type="button" class="btn-q" id="hfPantNueva">Subir pantalla nueva</button><input type="file" id="hfPantFile" accept="image/*" hidden></div>
+        <select id="hfPant"></select>
+        <div class="hf-pant-acts"><span class="hint">o agregá una nueva:</span><button type="button" class="btn-q" id="hfPantArchivo">Desde un archivo</button><button type="button" class="btn-q" id="hfPantPegar">Pegar del portapapeles</button><input type="file" id="hfPantFile" accept="image/*" hidden></div>
         <div class="hf-pant-prev" id="hfPantPrev"></div></div>
       <div class="pf"><label for="hfPasoAdd">Pasos de flujos y journeys</label><div class="hf-pasos" id="hfPasos"></div>
         ${grupos.length?`<select id="hfPasoAdd"><option value="">+ Agregar a un paso…</option>${grupos.map(g=>`<optgroup label="${esc(g.tipo+": "+g.nombre)}">${g.items.map(it=>`<option value="${it.flujoId}|${it.pasoId}">${esc(it.etiqueta)}</option>`).join("")}</optgroup>`).join("")}</select>`
@@ -109,33 +110,62 @@ export function formularioHallazgo(el,h,opts){
     </form>`;
   const $=id=>el.querySelector("#"+id);
   const pintarOpciones=()=>{ $("hfPant").innerHTML=`<option value="">Sin pantalla</option>${pants.map(x=>`<option value="${x.id}" ${x.id===pantallaId?'selected':''}>${esc(x.nombre)}</option>`).join("")}`; };
-  let cargaPrev=0;
+  let cargaPrev=0, imgFull=null;
+  // Número del hallazgo en su pantalla (el mismo que en Hallazgos) y los de los demás.
+  const numero=()=>{ if(!pantallaId) return null; if(!nuevo&&pantallaId===h.pantallaId) return pinNumero(h,state.hallazgos);
+    return state.hallazgos.filter(x=>x.pantallaId===pantallaId&&x.id!==h.id).length+1; };
+  const otros=()=>state.hallazgos.filter(x=>x.pantallaId===pantallaId&&x.id!==h.id&&x.pin);
+  const marco=(pa,id)=>`<div class="hf-pant-img" id="${id}"><img src="${imgFull||pa.thumb||""}" alt="${esc(pa.nombre||"Pantalla")}">
+    ${otros().map(x=>`<span class="hf-pin otro" style="left:${x.pin.x*100}%;top:${x.pin.y*100}%" title="${esc(x.titulo||"")}">${pinNumero(x,state.hallazgos)||""}</span>`).join("")}
+    <span class="hf-pin mio${pin?"":" centro"}" style="left:${(pin||{x:.5}).x*100}%;top:${(pin||{y:.5}).y*100}%">${numero()||""}</span></div>`;
+  const alClic=(caja,repintar)=>caja.onclick=e=>{ const im=caja.querySelector("img"), r=im.getBoundingClientRect();
+    pin={x:clamp01((e.clientX-r.left)/r.width),y:clamp01((e.clientY-r.top)/r.height)}; repintar(); };
   const pintarPrev=async()=>{
     const box=$("hfPantPrev"), pa=pants.find(x=>x.id===pantallaId);
     if(!pa){ box.innerHTML=`<span class="hint">Sin pantalla: el hallazgo no va a tener un punto marcado.</span>`; return; }
-    const n=++cargaPrev;
-    box.innerHTML=`<div class="hf-pant-scroll"><div class="hf-pant-img" id="hfPantImg"><img src="${pa.thumb||""}" alt="${esc(pa.nombre||"Pantalla")}"><span class="hf-pin" id="hfPin"></span></div></div><span class="hint">Hacé clic en la pantalla para ubicar el hallazgo.</span>`;
-    const ubicar=()=>{ const d=$("hfPin"); if(!d) return; const q=pin||{x:0.5,y:0.5}; d.style.left=q.x*100+"%"; d.style.top=q.y*100+"%"; d.classList.toggle("centro",!pin); };
-    ubicar();
-    $("hfPantImg").onclick=e=>{ const r=e.currentTarget.getBoundingClientRect(); pin={x:clamp01((e.clientX-r.left)/r.width),y:clamp01((e.clientY-r.top)/r.height)}; ubicar(); };
-    // la imagen completa, más nítida que la miniatura
-    try{ const d=await pantallaStore.getImg(state.activeId,pa.id); if(n===cargaPrev&&d&&d.base){ const im=el.querySelector("#hfPantImg img"); if(im) im.src=d.base; } }catch(_){}
+    box.innerHTML=`<div class="hf-pant-scroll">${marco(pa,"hfPantImg")}</div>
+      <div class="hf-pant-pie"><span class="hint">${pin?"Hallazgo ubicado. Clic en otro lugar para moverlo.":"Hacé clic en la pantalla para ubicar el hallazgo."}</span><button type="button" class="btn-q" id="hfPantZoom">Ampliar</button></div>`;
+    alClic($("hfPantImg"),pintarPrev);
+    $("hfPantZoom").onclick=()=>abrirAmpliado(pa);
+    if(!imgFull){ const n=++cargaPrev;
+      try{ const d=await pantallaStore.getImg(state.activeId,pa.id); if(n===cargaPrev&&d&&d.base){ imgFull=d.base; const im=el.querySelector("#hfPantImg img"); if(im) im.src=d.base; } }catch(_){} }
   };
+  // Panel grande encima (sirve en el panel angosto del journey): ubicar el pin con precisión.
+  const abrirAmpliado=pa=>{
+    const ov=document.createElement("div"); ov.className="hf-zoom"; ov.setAttribute("role","dialog"); ov.setAttribute("aria-label","Ubicar el hallazgo");
+    const pintar=()=>{ ov.innerHTML=`<div class="hf-zoom-box"><div class="hf-zoom-h"><div><b>Ubicá el hallazgo</b><span>${esc(pa.nombre||"Pantalla")} · hacé clic donde está el problema</span></div><button type="button" class="btn-q sel" id="hfZoomOk">Listo</button></div>
+      <div class="hf-zoom-sc">${marco(pa,"hfZoomImg")}</div></div>`;
+      alClic(ov.querySelector("#hfZoomImg"),pintar);
+      ov.querySelector("#hfZoomOk").onclick=cerrarZ; };
+    const cerrarZ=()=>{ document.removeEventListener("keydown",tecla,true); ov.remove(); pintarPrev(); };
+    const tecla=e=>{ if(e.key==="Escape"){ e.stopPropagation(); cerrarZ(); } };
+    pintar(); document.body.appendChild(ov); document.addEventListener("keydown",tecla,true);
+    ov.onclick=e=>{ if(e.target===ov) cerrarZ(); };
+    ov.querySelector("#hfZoomOk").focus();
+  };
+  const ocupado=v=>{ ["hfPantArchivo","hfPantPegar"].forEach(id=>{ const b=$(id); if(b) b.disabled=v; }); };
   const subir=async blob=>{
-    const b=$("hfPantNueva"); b.disabled=true; b.textContent="Subiendo…";
+    ocupado(true);
     try{
       const img=await processImage(blob);
       const {pantalla,existente}=await pantallaDesdeImagen(state.activeId,pants,img,(blob.name||"").replace(/\.[a-z0-9]+$/i,""));
       state.pantallas=await pantallaStore.list(state.activeId); pants=state.pantallas;
-      pantallaId=pantalla.id; pin=null; pintarOpciones(); pintarPrev();
+      pantallaId=pantalla.id; pin=null; imgFull=null; pintarOpciones(); pintarPrev();
       toast(existente?"Esa pantalla ya estaba: se usa la misma":"Pantalla agregada");
-    }catch(err){ toast((err&&err.message)||"No se pudo subir la pantalla"); }
-    b.disabled=false; b.textContent="Subir pantalla nueva";
+    }catch(err){ toast((err&&err.message)||"No se pudo agregar la pantalla"); }
+    ocupado(false);
   };
   pintarOpciones(); pintarPrev();
-  $("hfPant").onchange=()=>{ pantallaId=$("hfPant").value||null; pin=pantallaId===h.pantallaId&&h.pin?{...h.pin}:null; pintarPrev(); };
-  $("hfPantNueva").onclick=()=>$("hfPantFile").click();
+  $("hfPant").onchange=()=>{ pantallaId=$("hfPant").value||null; pin=pantallaId===h.pantallaId&&h.pin?{...h.pin}:null; imgFull=null; pintarPrev(); };
+  $("hfPantArchivo").onclick=()=>$("hfPantFile").click();
   $("hfPantFile").onchange=e=>{ const f=e.target.files[0]; if(f&&f.type.indexOf("image")===0) subir(f); e.target.value=""; };
+  $("hfPantPegar").onclick=async()=>{
+    try{
+      const items=await navigator.clipboard.read();
+      for(const it of items){ const t=it.types.find(x=>x.indexOf("image/")===0); if(t){ const b=await it.getType(t); return subir(new File([b],"Captura",{type:t})); } }
+      toast("No hay una imagen en el portapapeles. Copiá una captura y probá de nuevo.");
+    }catch(e){ toast("No se pudo leer el portapapeles. Probá con Cmd/Ctrl + V dentro del formulario."); }
+  };
   el.querySelector("#hfForm").addEventListener("paste",e=>{ const it=[...((e.clipboardData&&e.clipboardData.items)||[])].find(x=>x.type&&x.type.indexOf("image")===0); if(it){ e.preventDefault(); const b=it.getAsFile(); if(b) subir(b); } });
   const pintarPasos=()=>{
     $("hfPasos").innerHTML=pasos.length?pasos.map((q,i)=>{ const e=etiquetaPaso(q); return e?`<span class="hf-paso"><span class="hf-paso-t"><b>${esc(e.grupo)}</b> ${esc(e.etiqueta)}</span><button type="button" class="hf-paso-x" data-i="${i}" aria-label="Quitar de ${esc(e.etiqueta)}">×</button></span>`:""; }).join(""):`<span class="hint">En ningún paso.</span>`;
