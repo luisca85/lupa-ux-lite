@@ -1213,7 +1213,7 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .flx-falta:hover{border-color:var(--ink);color:var(--ink)}
 /* Journey: etapas por defecto (vista previa en el journey vacío) y editor de etapas */
 .jr-etapas-prev{list-style:none;margin:8px auto 0;padding:0;display:flex;flex-direction:column;gap:6px;text-align:left;max-width:520px;width:100%}
-.jr-etapas-prev li{display:grid;grid-template-columns:10px minmax(110px,170px) 1fr;align-items:baseline;gap:4px 10px;font-size:13px}
+.jr-etapas-prev li{display:grid;grid-template-columns:10px minmax(110px,170px) 1fr auto;align-items:baseline;gap:4px 10px;font-size:13px}
 @media (max-width:560px){.jr-etapas-prev li{grid-template-columns:10px 1fr}.jr-etapas-prev li span:last-child{grid-column:2}}
 .jr-etapas-prev li span:last-child{color:var(--muted)}
 .jr-et-dot{width:10px;height:10px;border-radius:50%;align-self:center}
@@ -1231,3 +1231,22 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .et-cols{display:flex;gap:6px}
 .et-col{width:18px;height:18px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer}
 .et-del{width:28px;height:28px;flex:none}
+/* Journey: agregar etapas y pasos por etapa */
+.jr-band{display:flex;align-items:center;gap:6px}
+.jr-band-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jr-band-add{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.15);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer}
+.jr-band-add:hover{background:rgba(255,255,255,.3)}
+.jr-band-add svg{width:12px;height:12px}
+.jr-sin-pasos{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px}
+.jr-sin-pasos>b{color:var(--muted);font-weight:600}
+.jr-sp{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px dashed var(--line-strong);border-radius:999px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.jr-sp:hover{border-color:var(--ink)}
+.jr-sp-add{display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:12px}
+.jr-sp-add svg{width:11px;height:11px}
+.et-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.et-top .et-ayuda{margin:0;flex:1;min-width:200px}
+.modal.et-modal{display:flex;flex-direction:column;max-height:calc(100vh - 88px)}
+.modal.et-modal .modal-b{overflow-y:auto;min-height:0}
+.jr-li-add{border:1px dashed var(--line-strong);border-radius:999px;background:var(--surface);padding:3px 9px;cursor:pointer;font:inherit;font-size:12px;align-self:center}
+.jr-li-add:hover{border-color:var(--ink);color:var(--ink)}
+@media (max-width:560px){.jr-li-add{grid-column:2;justify-self:start}}
