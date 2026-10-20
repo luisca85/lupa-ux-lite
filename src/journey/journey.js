@@ -100,7 +100,7 @@ export function renderJourneyEditor(c,jr){
   const flecha=(d,et,nombre)=>{ const k=conEtapa.indexOf(et), off=d<0?k<=0:k>=conEtapa.length-1;
     return `<button type="button" class="jr-band-mov" data-mover="${d}" data-et="${et}" title="Mover ${esc(nombre)} a la ${d<0?"izquierda":"derecha"}" aria-label="Mover ${esc(nombre)} a la ${d<0?"izquierda":"derecha"}" ${off?"disabled":""}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d<0?"m15 6-6 6 6 6":"m9 6 6 6-6 6"}"/></svg></button>`; };
   const bandRow=bands.map(b=>{ const et=jr.etapas.find(e=>e.id===b.etapaId); const w=b.len*JW-8;
-    return et?`<div class="jr-band" style="width:${w}px;background:${et.color||'#555'}"${et.descripcion?` title="${esc(et.descripcion)}"`:""}>${flecha(-1,et.id,et.nombre)}<span class="jr-band-t">${esc(et.nombre)}</span>${flecha(1,et.id,et.nombre)}<button type="button" class="jr-band-add" data-addpaso="${et.id}" title="Agregar un paso en ${esc(et.nombre)}" aria-label="Agregar un paso en ${esc(et.nombre)}">${plus()}</button></div>`:`<div class="jr-band empty" style="width:${w}px">sin etapa</div>`; }).join("");
+    return et?`<div class="jr-band" data-band="${et.id}" style="width:${w}px;background:${et.color||'#555'}"${et.descripcion?` title="${esc(et.descripcion)}"`:""}>${flecha(-1,et.id,et.nombre)}<span class="jr-band-t">${esc(et.nombre)}</span>${flecha(1,et.id,et.nombre)}<button type="button" class="jr-band-add" data-addpaso="${et.id}" title="Agregar un paso en ${esc(et.nombre)}" aria-label="Agregar un paso en ${esc(et.nombre)}">${plus()}</button></div>`:`<div class="jr-band empty" style="width:${w}px">sin etapa</div>`; }).join("");
   const heads=pasos.map((p,i)=>{
     return `<div class="jr-cell jr-head-cell"><div class="jr-phead" data-phead="${i}"><div class="jr-pnum">${i+1}</div><div class="jr-pname">${esc(p.nombre||"Paso")}</div></div>
       <div class="jr-rels"><button class="jr-rel" data-rel="hallazgos" data-p="${i}" title="Hallazgos relacionados">${flagIco()} ${(p.hallazgos||[]).length}</button><button class="jr-rel fl" data-rel="flujos" data-p="${i}" title="User Flows relacionados">${flowIco()} ${(p.flujos||[]).length}</button></div></div>`; }).join("");
@@ -130,6 +130,7 @@ export function renderJourneyEditor(c,jr){
     const v=jr.etapas.findIndex(x=>x.id===vecina); jr.etapas.splice(d<0?v:v+1,0,et);
     ordenarPasosPorEtapa(jr); saveActiveFlow(); render();
     const otra=document.querySelector(`[data-mover="${d}"][data-et="${id}"]`); if(otra&&!otra.disabled) otra.focus(); });
+  jrArrastrarBandas(c,jr,conEtapa);
   jrBarHandlers(c,jr);
   c.querySelectorAll(".jr-phead").forEach(el=>el.onclick=()=>pasoModal(jr,+el.dataset.phead));
   c.querySelectorAll(".jr-rel").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openJrSide(jr,+b.dataset.p,b.dataset.rel); });
@@ -154,6 +155,44 @@ function etapasSinPasos(jr){
   const vacias=(jr.etapas||[]).filter(e=>!(jr.pasos||[]).some(p=>p.etapaId===e.id));
   if(!vacias.length) return "";
   return `<div class="jr-sin-pasos"><b>Etapas sin pasos</b>${vacias.map(e=>`<button type="button" class="jr-sp" data-addpaso="${e.id}" title="${esc(e.descripcion||"")}"><span class="jr-et-dot" style="background:${e.color||'#555'}"></span>${esc(e.nombre)}<span class="jr-sp-add">${plus()} Paso</span></button>`).join("")}</div>`;
+}
+/* Arrastrar una banda de etapa para reordenarla (mouse y touch). La banda sigue al puntero,
+   una línea marca dónde va a quedar y, al soltar, la etapa pasa ahí con todos sus pasos.
+   Cerca de los bordes del mapa, el mapa se desplaza solo. Las flechas quedan para teclado. */
+function jrArrastrarBandas(c,jr,conEtapa){
+  const scroll=c.querySelector("#jrScroll");
+  const bandas=[...c.querySelectorAll(".jr-band[data-band]")];
+  bandas.forEach(el=>el.addEventListener("pointerdown",e=>{
+    if(e.button!==0||e.target.closest("button")||bandas.length<2) return;
+    const id=el.dataset.band, fila=el.parentElement, x0=e.clientX, sc0=scroll?scroll.scrollLeft:0;
+    let activo=false, destino=conEtapa.indexOf(id), auto=null, ultimoX=x0;
+    const linea=document.createElement("div"); linea.className="jr-drop-line";
+    const otros=bandas.filter(b=>b!==el);
+    const ubicar=cx=>{
+      el.style.transform=`translateX(${cx-x0+((scroll?scroll.scrollLeft:0)-sc0)}px)`;
+      let i=otros.findIndex(b=>{ const r=b.getBoundingClientRect(); return cx<r.left+r.width/2; });
+      if(i<0) i=otros.length; destino=i;
+      const fr=fila.getBoundingClientRect(), ref=otros[i];
+      linea.style.left=(ref?ref.getBoundingClientRect().left-fr.left-5:otros[otros.length-1].getBoundingClientRect().right-fr.left+3)+"px";
+    };
+    const autoScroll=()=>{ if(!scroll||!activo) return; const r=scroll.getBoundingClientRect(), borde=60;
+      const v=ultimoX<r.left+borde?-14:ultimoX>r.right-borde?14:0;
+      if(v){ scroll.scrollLeft+=v; ubicar(ultimoX); } auto=requestAnimationFrame(autoScroll); };
+    const mover=ev=>{ ultimoX=ev.clientX;
+      if(!activo){ if(Math.abs(ev.clientX-x0)<6) return; activo=true; el.classList.add("arrastrando"); fila.classList.add("ordenando"); fila.appendChild(linea); auto=requestAnimationFrame(autoScroll); }
+      ev.preventDefault(); ubicar(ev.clientX); };
+    const soltar=()=>{
+      window.removeEventListener("pointermove",mover); window.removeEventListener("pointerup",soltar); window.removeEventListener("pointercancel",soltar);
+      cancelAnimationFrame(auto); linea.remove(); el.classList.remove("arrastrando"); fila.classList.remove("ordenando"); el.style.transform="";
+      if(!activo) return;
+      const orden=conEtapa.filter(x=>x!==id); orden.splice(destino,0,id);
+      if(orden.join()===conEtapa.join()) return;
+      const sinBanda=jr.etapas.filter(x=>!orden.includes(x.id));
+      jr.etapas=[...orden.map(x=>jr.etapas.find(y=>y.id===x)),...sinBanda];
+      ordenarPasosPorEtapa(jr); saveActiveFlow(); render();
+    };
+    window.addEventListener("pointermove",mover,{passive:false}); window.addEventListener("pointerup",soltar); window.addEventListener("pointercancel",soltar);
+  }));
 }
 function jrBarHandlers(c,jr){
   c.querySelector("#jrBack").onclick=()=>{closeJrSide();state.flowMode="list";state.activeFlowId=null;render();};

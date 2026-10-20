@@ -1269,3 +1269,14 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .et-nueva{display:flex;flex-direction:column;gap:6px}
 .et-nueva input{width:100%;border:1px solid var(--line-input);border-radius:6px;padding:7px 9px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px}
 .et-nueva .btn{align-self:flex-start}
+/* Journey: arrastrar bandas de etapa */
+.jr-band[data-band]{cursor:grab;touch-action:pan-y;user-select:none}
+.jr-band.arrastrando{cursor:grabbing;position:relative;z-index:5;box-shadow:0 10px 24px -8px rgba(0,0,0,.5);opacity:.92;transition:none}
+.jr-etapas .jr-cells{position:relative}
+.jr-drop-line{position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;background:var(--ink);pointer-events:none}
+.ordenando .jr-band:not(.arrastrando){transition:opacity .15s;opacity:.7}
+/* Las flechas quedan para teclado: aparecen con hover o foco */
+.jr-band-mov{opacity:0}
+.jr-band:hover .jr-band-mov:not(:disabled),.jr-band:focus-within .jr-band-mov:not(:disabled){opacity:.75}
+.jr-band .jr-band-mov:focus-visible{opacity:1}
+@media (hover:none){.jr-band-mov{display:none}}
