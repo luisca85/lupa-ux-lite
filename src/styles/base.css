@@ -1211,3 +1211,23 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .flx-punto{fill:var(--card);stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke}
 .flx-falta{width:100%;display:flex;align-items:center;gap:8px;padding:16px;border:1.5px dashed var(--line-strong);border-radius:var(--r-card);background:var(--surface);color:var(--muted);font:inherit;font-size:13.5px;cursor:pointer;text-align:left}
 .flx-falta:hover{border-color:var(--ink);color:var(--ink)}
+/* Journey: etapas por defecto (vista previa en el journey vacío) y editor de etapas */
+.jr-etapas-prev{list-style:none;margin:8px auto 0;padding:0;display:flex;flex-direction:column;gap:6px;text-align:left;max-width:520px;width:100%}
+.jr-etapas-prev li{display:grid;grid-template-columns:10px minmax(110px,170px) 1fr;align-items:baseline;gap:4px 10px;font-size:13px}
+@media (max-width:560px){.jr-etapas-prev li{grid-template-columns:10px 1fr}.jr-etapas-prev li span:last-child{grid-column:2}}
+.jr-etapas-prev li span:last-child{color:var(--muted)}
+.jr-et-dot{width:10px;height:10px;border-radius:50%;align-self:center}
+.jr-etapas-nota{font-size:12.5px!important;color:var(--muted)}
+.et-ayuda{margin:0 0 10px;font-size:12.5px;color:var(--muted)}
+.et-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.et-item{display:flex;align-items:flex-start;gap:8px;padding:8px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface)}
+.et-orden{display:flex;flex-direction:column;align-items:center;gap:2px}
+.et-orden .icon-btn{width:24px;height:22px}
+.et-orden .icon-btn:disabled{opacity:.3}
+.et-n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.et-campos{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.et-campos input{width:100%;border:1px solid var(--line-input);border-radius:6px;padding:6px 8px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px}
+.et-campos input:not(.et-desc){font-weight:600}
+.et-cols{display:flex;gap:6px}
+.et-col{width:18px;height:18px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer}
+.et-del{width:28px;height:28px;flex:none}

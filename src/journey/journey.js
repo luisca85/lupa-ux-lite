@@ -24,6 +24,23 @@ export const JR_CARRILES=[
   {id:"pain",label:"Pain points",sub:"obstáculos"},
   {id:"oportunidades",label:"Oportunidades",sub:"qué mejorar"}
 ];
+// Etapas con las que arranca un User Journey nuevo. Se pueden renombrar, describir,
+// reordenar, borrar o sumar otras desde "Etapas".
+const ETAPAS_BASE=[
+  ["Descubrimiento","El cliente identifica una necesidad y conoce la marca."],
+  ["Consideración","El cliente compara alternativas y busca información."],
+  ["Decisión","El cliente elige un producto o servicio concreto."],
+  ["Conversión","El cliente realiza la transacción, compra o suscripción del servicio."],
+  ["Experiencia de usuario","El cliente usa el producto y evalúa su satisfacción."],
+  ["Fidelización","El cliente repite la compra y se vuelve leal."]
+];
+export function jrEtapasBase(){ return ETAPAS_BASE.map(([nombre,descripcion],i)=>({id:uid(),nombre,descripcion,color:JR_COLORS[i%JR_COLORS.length]})); }
+// Los pasos se agrupan en bandas contiguas por etapa: al reordenar las etapas, los pasos
+// siguen ese orden (sin etapa, al final), manteniendo su orden dentro de cada etapa.
+function ordenarPasosPorEtapa(jr){
+  const pos=id=>{ const i=jr.etapas.findIndex(e=>e.id===id); return i<0?jr.etapas.length:i; };
+  jr.pasos=(jr.pasos||[]).map((p,i)=>[p,i]).sort((a,b)=>(pos(a[0].etapaId)-pos(b[0].etapaId))||(a[1]-b[1])).map(x=>x[0]);
+}
 export function jrDefaultCarriles(){ return {touchpoint:true,emocion:true,acciones:true,expectativas:true,pain:true,oportunidades:true}; }
 export const JW=224;
 let _jrSaveT;
@@ -68,14 +85,17 @@ export function renderJourneyEditor(c,jr){
     <button class="btn primary sm" id="jrAddPaso">${plus()} Paso</button>
   </div>`;
   if(!n){
-    html+=`<div class="empty">${bigIco('chart')}<h3>Journey vacío</h3><p>Agregá el primer paso para empezar a mapear la experiencia por etapas.</p><button class="btn primary" id="jrAddPaso2">${plus()} Agregar paso</button></div>`;
+    html+=`<div class="empty">${bigIco('chart')}<h3>Journey vacío</h3><p>Agregá el primer paso para empezar a mapear la experiencia por etapas.</p>
+      ${jr.etapas.length?`<ol class="jr-etapas-prev" aria-label="Etapas del journey">${jr.etapas.map(e=>`<li><span class="jr-et-dot" style="background:${e.color||'#555'}"></span><b>${esc(e.nombre)}</b>${e.descripcion?`<span>${esc(e.descripcion)}</span>`:""}</li>`).join("")}</ol>
+      <p class="jr-etapas-nota">Podés cambiarlas, reordenarlas o sumar otras desde <b>Etapas</b>.</p>`:""}
+      <button class="btn primary" id="jrAddPaso2">${plus()} Agregar paso</button></div>`;
     c.innerHTML=html; jrBarHandlers(c,jr); const a2=c.querySelector("#jrAddPaso2"); if(a2)a2.onclick=()=>jrAddPaso(jr); return;
   }
   // bandas de etapa (grupos contiguos)
   let bands=[],start=0;
   for(let i=1;i<=n;i++){ if(i===n||pasos[i].etapaId!==pasos[start].etapaId){ bands.push({etapaId:pasos[start].etapaId,len:i-start}); start=i; } }
   const bandRow=bands.map(b=>{ const et=jr.etapas.find(e=>e.id===b.etapaId); const w=b.len*JW-8;
-    return et?`<div class="jr-band" style="width:${w}px;background:${et.color||'#555'}">${esc(et.nombre)}</div>`:`<div class="jr-band empty" style="width:${w}px">sin etapa</div>`; }).join("");
+    return et?`<div class="jr-band" style="width:${w}px;background:${et.color||'#555'}"${et.descripcion?` title="${esc(et.descripcion)}"`:""}>${esc(et.nombre)}</div>`:`<div class="jr-band empty" style="width:${w}px">sin etapa</div>`; }).join("");
   const heads=pasos.map((p,i)=>{
     return `<div class="jr-cell jr-head-cell"><div class="jr-phead" data-phead="${i}"><div class="jr-pnum">${i+1}</div><div class="jr-pname">${esc(p.nombre||"Paso")}</div></div>
       <div class="jr-rels"><button class="jr-rel" data-rel="hallazgos" data-p="${i}" title="Hallazgos relacionados">${flagIco()} ${(p.hallazgos||[]).length}</button><button class="jr-rel fl" data-rel="flujos" data-p="${i}" title="User Flows relacionados">${flowIco()} ${(p.flujos||[]).length}</button></div></div>`; }).join("");
@@ -159,18 +179,31 @@ function pasoModal(jr,idx){
 }
 function etapasModal(jr){
   jr.etapas=jr.etapas||[];
-  openModal("Etapas del journey",`<div id="etList" class="rpt-list"></div><button type="button" class="btn ghost sm" id="etAdd">${plus()} Agregar etapa</button>`,async()=>{
-    jr.etapas.forEach((e,i)=>{ const ni=document.getElementById("et_n_"+i); if(ni)e.nombre=ni.value.trim()||e.nombre; });
+  // Se edita una copia: "Cancelar" no cambia nada; "Guardar" aplica nombres, descripciones,
+  // colores, orden y borrados.
+  const etapas=jr.etapas.map(e=>({...e}));
+  openModal("Etapas del journey",`<p class="et-ayuda">Ordená las etapas con las flechas. Los pasos siguen el orden de sus etapas.</p><div id="etList" class="et-list"></div><button type="button" class="btn ghost sm" id="etAdd">${plus()} Agregar etapa</button>`,async()=>{
+    capture();
+    const borradas=jr.etapas.filter(e=>!etapas.some(x=>x.id===e.id)).map(e=>e.id);
+    jr.etapas=etapas.map(e=>({...e,nombre:(e.nombre||"").trim()||"Etapa",descripcion:(e.descripcion||"").trim()}));
+    (jr.pasos||[]).forEach(p=>{ if(borradas.includes(p.etapaId)) p.etapaId=null; });
+    ordenarPasosPorEtapa(jr);
     await saveActiveFlow(); render(); return true;
   });
   const list=document.getElementById("etList");
-  function capture(){ jr.etapas.forEach((e,i)=>{ const ni=document.getElementById("et_n_"+i); if(ni)e.nombre=ni.value; }); }
+  function capture(){ etapas.forEach((e,i)=>{ const ni=document.getElementById("et_n_"+i), di=document.getElementById("et_d_"+i); if(ni)e.nombre=ni.value; if(di)e.descripcion=di.value; }); }
+  const flecha=d=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d<0?"m6 15 6-6 6 6":"m6 9 6 6 6-6"}"/></svg>`;
   function draw(){
-    list.innerHTML=jr.etapas.length?jr.etapas.map((e,i)=>`<div class="rpt-item" style="gap:6px"><input id="et_n_${i}" value="${esc(e.nombre)}" style="flex:1;border:1px solid var(--line-strong);border-radius:6px;padding:4px 7px;background:var(--surface-2)"><span class="ri-acts">${JR_COLORS.map(col=>`<button type="button" class="et-col" data-i="${i}" data-c="${col}" title="Color" style="width:18px;height:18px;border-radius:50%;border:2px solid ${e.color===col?'var(--ink)':'transparent'};background:${col};padding:0;cursor:pointer"></button>`).join("")}<button type="button" class="icon-btn sm et-del" data-i="${i}" style="width:26px;height:26px">${trash()}</button></span></div>`).join(""):`<span class="rhint">Sin etapas.</span>`;
-    list.querySelectorAll(".et-col").forEach(b=>b.onclick=()=>{ capture(); jr.etapas[+b.dataset.i].color=b.dataset.c; draw(); });
-    list.querySelectorAll(".et-del").forEach(b=>b.onclick=()=>{ capture(); const id=jr.etapas[+b.dataset.i].id; jr.etapas.splice(+b.dataset.i,1); (jr.pasos||[]).forEach(p=>{ if(p.etapaId===id)p.etapaId=null; }); draw(); });
+    list.innerHTML=etapas.length?etapas.map((e,i)=>`<div class="et-item">
+      <div class="et-orden"><button type="button" class="icon-btn sm et-mov" data-i="${i}" data-d="-1" title="Subir" aria-label="Subir ${esc(e.nombre)}" ${i===0?"disabled":""}>${flecha(-1)}</button><span class="et-n">${i+1}</span><button type="button" class="icon-btn sm et-mov" data-i="${i}" data-d="1" title="Bajar" aria-label="Bajar ${esc(e.nombre)}" ${i===etapas.length-1?"disabled":""}>${flecha(1)}</button></div>
+      <div class="et-campos"><input id="et_n_${i}" value="${esc(e.nombre)}" aria-label="Nombre de la etapa ${i+1}" placeholder="Nombre de la etapa"><input id="et_d_${i}" value="${esc(e.descripcion||"")}" aria-label="Descripción de la etapa ${i+1}" placeholder="Qué le pasa al cliente en esta etapa (opcional)" class="et-desc">
+        <span class="et-cols">${JR_COLORS.map(col=>`<button type="button" class="et-col" data-i="${i}" data-c="${col}" title="Color" aria-label="Color" style="border-color:${e.color===col?'var(--ink)':'transparent'};background:${col}"></button>`).join("")}</span></div>
+      <button type="button" class="icon-btn sm et-del" data-i="${i}" title="Eliminar etapa" aria-label="Eliminar ${esc(e.nombre)}">${trash()}</button></div>`).join(""):`<span class="rhint">Sin etapas.</span>`;
+    list.querySelectorAll(".et-col").forEach(b=>b.onclick=()=>{ capture(); etapas[+b.dataset.i].color=b.dataset.c; draw(); });
+    list.querySelectorAll(".et-del").forEach(b=>b.onclick=()=>{ capture(); etapas.splice(+b.dataset.i,1); draw(); });
+    list.querySelectorAll(".et-mov").forEach(b=>b.onclick=()=>{ capture(); const i=+b.dataset.i, j=i+(+b.dataset.d); if(j<0||j>=etapas.length) return; [etapas[i],etapas[j]]=[etapas[j],etapas[i]]; draw(); const otra=list.querySelector(`.et-mov[data-i="${j}"][data-d="${b.dataset.d}"]`)||list.querySelector(`.et-mov[data-i="${j}"]`); if(otra) otra.focus(); });
   }
-  document.getElementById("etAdd").onclick=()=>{ capture(); jr.etapas.push({id:uid(),nombre:"Etapa "+(jr.etapas.length+1),color:JR_COLORS[jr.etapas.length%JR_COLORS.length]}); draw(); };
+  document.getElementById("etAdd").onclick=()=>{ capture(); etapas.push({id:uid(),nombre:"Etapa "+(etapas.length+1),descripcion:"",color:JR_COLORS[etapas.length%JR_COLORS.length]}); draw(); const n=document.getElementById("et_n_"+(etapas.length-1)); if(n){ n.focus(); n.select(); } };
   draw();
 }
 function carrilesModal(jr){
