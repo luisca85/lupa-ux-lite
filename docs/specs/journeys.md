@@ -8,13 +8,37 @@ una curva emocional, vinculando cada paso con hallazgos y user flows.
 
 ## Criterios de aceptación
 - Dado el alta de un flujo, cuando se elige tipo "User Journey", entonces se guarda
-  en la misma colección que los flows (`tipo:"User Journey"`) con `etapas`, `pasos`
-  y `carriles` por defecto, y se abre el editor de journey.
+  en la misma colección que los flows (`tipo:"User Journey"`), **sin etapas ni pasos**
+  y con los carriles por defecto, y se abre el editor de journey.
 - Dado un journey existente, cuando se edita desde el lápiz, entonces el tipo se
   muestra fijo y no se puede cambiar (así no se pierden etapas, pasos ni carriles).
 - Dado un journey sin pasos, cuando se abre, entonces muestra "Journey vacío" con
-  "Agregar paso"; al agregar, el paso nuevo hereda la etapa del último (o la primera
-  etapa) y emoción Neutral.
+  **"+ Agregar etapa"**. La barra no muestra "+ Paso" hasta que haya una etapa.
+
+### Etapas (un solo camino, exploración del 2026-10-20)
+- Dado "+ Agregar etapa" (journey vacío) o **"+ Etapa"** (al final de la fila de etapas
+  del mapa, el único botón para esto), cuando se toca, entonces se abre la lista "Agregar
+  una etapa":
+  - las 6 etapas por defecto, con su descripción: Descubrimiento, Consideración,
+    Decisión, Conversión, Experiencia de usuario y Fidelización;
+  - las etapas de otros journeys del estudio, sin repetir nombre;
+  - abajo, un campo para crear una nueva.
+
+  Todas se pueden elegir, aunque el journey ya las tenga ("ya la usás").
+- Dada una etapa elegida o creada, cuando se agrega, entonces entra al final del journey
+  con su primer paso, con un color que todavía no se use, y el mapa se desplaza hasta ella.
+- Dada una etapa en el mapa, cuando se toca su botón **⋯** (o la banda, o Enter con el
+  foco), entonces se abre su menú:
+  - editar el nombre, la descripción y el color, y "Guardar";
+  - "Cambiar por otra etapa": elegir otra de la lista, que conserva sus pasos;
+  - "Eliminar etapa" (y su paso, o sus N pasos), con confirmación.
+- Dada una banda de etapa, cuando se arrastra (mouse o touch), entonces una línea marca
+  el destino y, al soltar, la etapa pasa ahí con todos sus pasos. Cerca de los bordes el
+  mapa se desplaza solo. Con hover o foco aparecen flechas ← → para hacerlo con teclado.
+- Dado el **+** de una banda, cuando se toca, entonces agrega un paso al final de esa
+  etapa. "+ Paso" (barra) lo agrega en la etapa del último paso.
+- Dado el único paso de una etapa, cuando se elimina, entonces la etapa también se quita
+  (el aviso lo dice). No quedan etapas invisibles sin pasos.
 - Dado un journey con pasos, cuando se abre, entonces se ve la matriz: fila de etapas
   (bandas por grupos contiguos de pasos de la misma etapa; "sin etapa" si no tiene),
   pasos en columnas y los carriles visibles en filas.
@@ -31,8 +55,6 @@ una curva emocional, vinculando cada paso con hallazgos y user flows.
   emoji), entonces se guarda y la curva emocional se redibuja con esos valores.
 - Dado el modal "Editar paso", cuando se cambia nombre o etapa, se mueve a izquierda
   o derecha, o se elimina (con confirmación), entonces el cambio persiste.
-- Dado el modal "Etapas", cuando se agrega, renombra, cambia de color o borra una
-  etapa y se guarda, entonces persiste; borrar una etapa deja sus pasos "sin etapa".
 - Dado el contador de hallazgos o de user flows de un paso, cuando se abre, entonces
   el panel lateral lista los relacionados y permite: ver el detalle, "Relacionar
   existente" (uno o varios), "Crear nuevo" ya vinculado al paso, y quitar la relación
@@ -82,6 +104,15 @@ N/A
 `etapas`, `carriles`, `pasos:[{..., emocion, touchpoint, tpPills, acciones,
 expectativas, pain, oportunidades, hallazgos:[ids], flujos:[ids]}]`.
 
+## Dónde vive (etapas)
+`src/journey/journey.js`:
+- `ETAPAS_BASE`, `jrLibreriaEtapas`, `jrAgregarEtapa`, `jrNuevoPaso`;
+- `openEtapaPop` (agregar), `openEtapaMenu` (editar, cambiar, eliminar),
+  `listaEtapasHtml`, `ubicarPop`, `cerrarAlSalir`;
+- `jrArrastrarBandas` (arrastrar), `ordenarPasosPorEtapa`.
+
+Estilos: `.jr-band-*`, `.et-pop*` y `.et-menu` en `base.css`.
+
 ## Conocido
 - En el modal "Etapas", agregar, borrar o cambiar color se aplica al journey al
   instante: "Cancelar" no lo deshace y queda guardado en el próximo guardado.
@@ -89,3 +120,7 @@ expectativas, pain, oportunidades, hallazgos:[ids], flujos:[ids]}]`.
   `paso.hallazgos` / `paso.flujos`; el contador del paso lo sigue contando.
 - "Crear nuevo" en user flows permite elegir tipo "User Journey": el id se agrega al
   paso, pero el panel filtra los journeys, así que cuenta pero no se muestra.
+- Los journeys anteriores con etapas sin pasos las conservan, pero no se ven en el mapa.
+  Se pueden volver a agregar desde la lista.
+- Etapas con un solo paso: la banda mide lo mismo que el paso, y los nombres largos se
+  cortan con "…". La descripción completa se ve al pasar el mouse.

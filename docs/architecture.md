@@ -34,7 +34,7 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   catálogo, hallazgos (`hallazgos-ws.js`: pestañas de pantallas, lienzo con zoom y pines,
   popover de carga rápida, panel con filtros por severidad, edición y catálogo;
   `hallazgos.js`: editor completo `hzEditor` para la página de alta y el modal, borrado).
-  Flujos y Protopersonas pasan por `proximamente()` (aviso "Próximamente").
+  Protopersonas pasa por `proximamente()` (aviso "Próximamente"); Flujos ya está habilitada.
 - `ui/`: modales y toast, íconos, imágenes (procesamiento, visor), anotaciones
   (motor de pines y dibujo), tema, descargas, sesion (chip de usuario, "Ver introducción", cerrar sesión), entrar
   (pantalla de login con código por email, spec `cta`), onboarding
@@ -72,8 +72,8 @@ en `vite` dev el CSS queda en `<style>`), y el JS de `boot.js` como texto.
 | Estudios (alta en dos pasos en la home, edición en modal, borrado) | Hecho | `specs/home.md` (alta) |
 | Hallazgos sobre pantallas (modelo v2, migración, pines, zoom) | Hecho | `specs/hallazgos.md` |
 | Catálogo de heurísticas y sesgos | Hecho | `specs/catalogo.md` |
-| User Flows | Hecho; sección en "Próximamente" (spec `proy`) | `specs/flujos.md` |
-| User Journeys | Hecho; sección en "Próximamente" (spec `proy`) | `specs/journeys.md` |
+| User Flows (sección Flujos habilitada: estado vacío, lista por tipo, pantallas del estudio) | Hecho | `specs/flujos.md` |
+| User Journeys (etapas por defecto, + Etapa, menú ⋯, arrastrar) | Hecho | `specs/journeys.md` |
 | Reportes (Compartir, vista previa en vivo, reserva de propuestas) y Configuración | Hecho | `specs/reportes.md` |
 | Propuestas de trabajo | Hecho | `specs/propuestas.md` |
 | Protopersonas | "Próximamente"; ya no se cargan en Configuración (los datos guardados se conservan) | `specs/reportes.md` |
