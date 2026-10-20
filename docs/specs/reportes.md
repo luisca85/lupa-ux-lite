@@ -108,8 +108,9 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   - en `publicos/` va `sha256(sal + ":" + PIN)`; el PIN en claro vive solo en el
     estudio y nunca viaja en la URL;
   - con Access activo, toda otra ruta sin JWT da 401.
-- Se eliminan "Descargar página HTML" (`generateSharePage`) y "Exportar en texto
-  plano" (`texto-plano.js`): el link es la única forma de entregar el reporte.
+- Se elimina "Descargar página HTML" (`generateSharePage`). El link es la única forma de
+  **entregar** el reporte al cliente. El texto plano vuelve, pero solo como exportación
+  para el administrador (ver "Exportar").
 
 ### Reporte del cliente (`SR_boot`)
 - Se mantiene:
@@ -129,8 +130,48 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   chips de filtro: **Todas N** y uno por severidad presente (Catástrofe, Mayor, Menor,
   Cosmético, No es problema), con su color y conteo. El activo va relleno con su color.
 - Dado el menú, cuando se mira, entonces **Flujos** y **User Journeys** aparecen
-  desactivados, con la etiqueta **Pronto**, y no se pueden abrir. Aparecen aunque
-  estén vacíos, salvo que se apaguen en "Qué ve el cliente".
+  habilitados (desde el 2026-10-20) si hay al menos uno que el cliente vea y no se
+  apagaron en "Qué ve el cliente". Ya no hay "Pronto".
+
+### Flujos y User Journeys en el reporte (2026-10-20, exploración `explorar/reporte-flujos`)
+- Dada la sección **Flujos**, cuando se abre, entonces:
+  - lista los User Flows visibles;
+  - cada uno abre su diagrama (interacciones, happy path y desvíos);
+  - cada interacción abre su detalle, con "Ve" y "Hace", la imagen y los hallazgos
+    numerados.
+- Dada una interacción que usa una pantalla del estudio (`pantallaId`), cuando se ve,
+  entonces muestra esa pantalla (miniatura en el diagrama, imagen completa en el
+  detalle). El pin de cada hallazgo va donde está en Hallazgos (`hallazgo.pin`), igual que
+  en la app.
+- Dada la sección **User Journeys**, cuando se abre un journey, entonces se ve el mapa:
+  - las etapas, con su descripción al pasar el mouse;
+  - pasos, carriles y curva emocional;
+  - una fila **Hallazgos**, con los hallazgos visibles de cada paso. Cada uno abre su
+    detalle y vuelve con "User Journey".
+- Dado el detalle de un hallazgo, cuando está en pasos visibles, entonces muestra **"Dónde
+  aparece"**, con un botón por paso ("User Flow" o "User Journey" · flujo · N. paso):
+  - el de un flow abre la interacción;
+  - el de un journey abre el mapa desplazado hasta el paso, que se resalta.
+- Lo oculto en "Qué ve el cliente" no aparece: ni los flows o journeys ocultos, ni los
+  hallazgos ocultos en marcas, pasos o "Dónde aparece".
+
+### Exportar (solo para el administrador, 2026-10-20)
+- Dada la pestaña Reportes, cuando entra el administrador (o sin cuentas, en local o
+  `idb`), entonces hay una sección **Exportar · Solo para vos** con dos botones:
+  - **Texto plano (.txt)**: estudio, autor, presentación, diagnóstico, todos los
+    hallazgos (código H1…, severidad, pantalla y pin, descripción, recomendación,
+    heurísticas, sesgos, "Aparece en"), los user journeys (etapas con descripción; cada
+    paso con etapa, emoción, touchpoint, acciones, expectativas, pain points,
+    oportunidades, hallazgos y user flows) y los user flows (interacciones y conexiones);
+  - **JSON para IA (.json)**: `formato: "lupa-ux/reporte"`, `version: 1`,
+    `instrucciones_para_ia`, `escala_severidad`, `estudio`, `autor`, `presentacion`,
+    `diagnostico`, `hallazgos`, `user_flows`, `user_journeys` y `totales`. Los pasos y las
+    interacciones referencian los hallazgos por su código.
+- Los dos tienen **lo mismo que ve el cliente** (`vistaCliente`): lo oculto no sale y
+  nunca hay notas internas, PIN ni datos del link. No llevan imágenes.
+- El archivo se llama `{estudio}-reporte-{AAAA-MM-DD}.txt` o `.json`.
+- Dada una cuenta de la beta, cuando abre Reportes, entonces no ve Exportar: entrega el
+  reporte solo por el link (`puedeExportar()`). El cliente nunca tiene exportación.
 - Dado el menú, cuando se mira, entonces no hay **Protopersonas** ni **Trabajemos
   juntos**.
 - Dadas propuestas visibles, cuando se ve cualquier sección, entonces abajo a la
@@ -253,7 +294,9 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
 - `ensureReporte` (migraciones y siembra de propuestas) no se toca.
 - No borrar `reporte.protopersonas` ni el código de la sección Protopersonas
   (Próximamente).
-- No reintroducir la página HTML descargable ni el texto plano sin una decisión nueva.
+- No reintroducir la página HTML descargable. El texto plano y el JSON existen solo como
+  exportación del administrador (decisión del 2026-10-20); no ofrecerlos a las cuentas de la
+  beta ni al cliente sin una decisión nueva.
 - Fuera de alcance:
   - configurar Resend (cuenta, dominio, secretos), que lo hace el dueño;
   - verificar la identidad de quien reserva;
@@ -311,7 +354,9 @@ construyeron en la exploración, sin frame propio en Figma.
     - la ayuda lista la reserva y el consentimiento;
     - Despublicar.
   - El test de regresión cubre la vista previa en vivo, la grilla de hallazgos,
-    Flujos y Journeys en Pronto, y que ocultar una sección la saca de la vista previa.
+    Flujos y Journeys navegables (flow con su diagrama, journey con sus etapas), la
+    exportación en texto y JSON (sin imágenes), y que ocultar una sección la saca de la
+    vista previa. `login.spec` prueba que una cuenta de la beta no ve Exportar.
   - A mano: con Resend configurado, una reserva manda el correo a `RESERVA_TO` con
     copia a `RESERVA_CC`.
 
@@ -323,14 +368,20 @@ construyeron en la exploración, sin frame propio en Figma.
 - `src/reportes/seleccion.js` (`vistaCliente`, `ocultos`).
 - `src/reportes/publicar.js` (publicar, despublicar, `actividadDe`, `firmaReporte`).
 - `src/reportes/cliente.js` (Pantalla completa).
+- `src/reportes/exportar.js` (`datosReporte`, `reporteTexto`, `reporteJSON`, `exportarTexto`,
+  `exportarJSON`, `puedeExportar`).
 - `src/reportes/comun.js` (`ensureReporte`, `saveReporte`, `marcaActual`).
 - `src/share/compartir.js` (`collectShareData`, `buildShareHtml`,
-  `montarReportePublico`, `montarVistaPrevia`).
+  `montarReportePublico`, `montarVistaPrevia`). Para flows y journeys: la imagen de la
+  pantalla del estudio en cada interacción, las marcas en el pin del hallazgo, los
+  `hallazgos` e `id` de cada paso del journey, la descripción de las etapas y los
+  `pasos` ("Dónde aparece") de cada hallazgo.
 - `src/share/publico.js` (página `/r/{id}`).
 - `src/share/boot.js` (`SR_boot`).
 - `functions/api/[[path]].js` (`publico()`, `reservar()`, `avisarReserva()`).
-- Estilos: `base.css` (bloques "Reportes: …" y "Configuración: …") y `cliente.css`
-  (hallazgos en grilla, Trabajemos juntos, gracias).
+- Estilos: `base.css` (bloques "Reportes: …" y "Configuración: …"), `reportes.css`
+  (`.rp-exp-a`) y `cliente.css` (hallazgos en grilla, Trabajemos juntos, gracias,
+  `.cr-paso*` y `.cr-jr-hz*`).
 - Datos:
   - en el estudio, `estudios/{id}.reporte` (`ocultos`; `publico` con id, PIN, sal y
     `firma`);
@@ -352,3 +403,6 @@ construyeron en la exploración, sin frame propio en Figma.
   - si la página de gracias promete un plazo de respuesta (hoy no lo promete);
   - si limitar las reservas repetidas;
   - las propuestas por defecto que se siembran en cada estudio nuevo.
+- El texto plano y el JSON no llevan propuestas de trabajo (precios) ni protopersonas.
+- Un User Flow sin interacciones visibles o un journey sin pasos se listan igual, con
+  "Sin pasos" en el mapa.

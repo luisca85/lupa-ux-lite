@@ -189,3 +189,9 @@ hallazgo puede estar en varios pasos (`hallazgo.pasos`), y cada flow o journey l
 su lado. La pantalla se agrega en una sección propia del mismo panel: elegir una existente
 para no duplicar imágenes, o subirla, pegarla y nombrarla. Se crea recién al guardar el
 hallazgo. Motivo: cargar igual desde las dos partes y que los datos queden emparejados.
+
+2026-10-20 - Cambia la decisión del 2026-10-15 sobre el texto plano. El link sigue siendo la
+única forma de entregar el reporte al cliente, pero el administrador puede exportarlo en
+texto plano y en JSON legible por IA, con lo mismo que ve el cliente y sin imágenes. Las
+cuentas de la beta y los clientes no tienen exportación. Motivo: trabajar el diagnóstico
+fuera de la app (por ejemplo, con una IA) sin abrir un segundo canal de entrega.

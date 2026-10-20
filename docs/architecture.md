@@ -48,7 +48,8 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   Compartir con estado, ayuda, qué ve el cliente y vista previa en vivo en un iframe),
   configuracion (pestaña Configuración: menú Datos del proyecto / Marca / Propuestas,
   edición en el panel), seleccion (`vistaCliente`: qué ve el cliente), publicar (foto en
-  `publicos/`, PIN, `firmaReporte`, `actividadDe`), cliente (pantalla completa).
+  `publicos/`, PIN, `firmaReporte`, `actividadDe`), cliente (pantalla completa), exportar
+  (texto plano y JSON para IA, solo administrador).
 - `share/`: compartir (`collectShareData`, `buildShareHtml`, `montarVistaPrevia`,
   `montarReportePublico`), publico (página `/r/{id}`: PIN + consentimiento) y
   `boot.js` (`SR_boot`, único render del reporte del cliente, con reserva de propuestas;
