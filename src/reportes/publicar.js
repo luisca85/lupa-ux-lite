@@ -2,7 +2,7 @@ import { uid } from "../core/util.js";
 import { DB } from "../data/backend.js";
 import { store } from "../data/store.js";
 import { collectShareData } from "../share/compartir.js";
-import { cuentaBeta, ensureReporte } from "./comun.js";
+import { ensureReporte } from "./comun.js";
 
 /* ============ Link público del reporte ============ */
 // Publicar guarda una FOTO del reporte filtrado (lo mismo que la página autónoma) en
@@ -44,9 +44,7 @@ export async function publicarReporte(est, { nuevoPIN=false }={}){
   const antes = prev.id ? await DB.doc("publicos/"+id).get() : null;
   const ad = (antes && antes.exists && antes.data()) || {};
   const consentimientos = ad.consentimientos || [], reservas = ad.reservas || [];
-  // mencion: el cliente acepta que uxuaria mencione el diagnóstico (solo reportes de uxuaria;
-  // con cuentas lo fija el servidor).
-  await DB.doc("publicos/"+id).set({ mencion:!cuentaBeta(), estId:est.id, estNombre:est.nombre||"", estCliente:est.cliente||"", pinHash:await sha256hex(salt+":"+pin), salt, partes:partes.length, publicadoAt, fallos:0, bloqueadoHasta:0, consentimientos, reservas });
+  await DB.doc("publicos/"+id).set({ estId:est.id, estNombre:est.nombre||"", estCliente:est.cliente||"", pinHash:await sha256hex(salt+":"+pin), salt, partes:partes.length, publicadoAt, fallos:0, bloqueadoHasta:0, consentimientos, reservas });
   r.publico = { id, pin, salt, publicadoAt, kb:Math.round(json.length/1024), firma:await firmaReporte(D) };
   await store.saveEstudio(est);
   return r.publico;
