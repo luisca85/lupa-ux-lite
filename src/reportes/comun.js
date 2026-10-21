@@ -2,7 +2,7 @@ import { state } from "../core/state.js";
 import { LS, esc, uid } from "../core/util.js";
 import { DB, USE_DB } from "../data/backend.js";
 import { store } from "../data/store.js";
-import { defaultPropuestas, esSeedViejo, normalizePropuesta } from "./propuestas.js";
+import { defaultPropuestas, esSeedViejo, normalizePropuesta, normalizeTj } from "./propuestas.js";
 import { ocultos } from "./seleccion.js";
 import { x } from "../ui/iconos.js";
 
@@ -44,6 +44,7 @@ export function ensureReporte(est){
   // Ids para poder elegir protopersonas y propuestas una por una (pestaña Reportes).
   r.protopersonas.forEach(p=>{ if(p&&!p.id) p.id=uid(); });
   r.propuestas.forEach(p=>{ if(p&&!p.id) p.id=uid(); });
+  normalizeTj(r);
   ocultos(r);
   return r;
 }

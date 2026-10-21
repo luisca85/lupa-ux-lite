@@ -23,7 +23,7 @@ function SR_boot(D){
   const priceLine=p=>(p.precioModo==="adefinir"||p.precio==null||p.precio==="")?"A definir":money(p.moneda,p.precio)+(p.tipo==="mensual"?" /mes":"");
   function propCard(p){
     const base=(p.precioModo!=="adefinir"&&p.precio!=null&&p.precio!=="")?Number(p.precio):null;
-    const rows=PROP_DESC.map(([k,label,mult])=>{ const d=(p.descuentos||{})[k]; if(d==null||d===""||Number(d)<=0)return null; let ex=""; if(base!=null&&p.tipo==="mensual"){ const tot=base*mult*(1-Number(d)/100); ex=" · "+money(p.moneda,tot)+(mult>1?" ("+money(p.moneda,tot/mult)+"/mes)":""); } return {label,pct:Number(d),ex}; }).filter(Boolean);
+    const rows=PROP_DESC.map(([k,label,mult])=>{ const d=(p.descuentos||{})[k]; if(d==null||d===""||Number(d)<=0)return null; let ex=""; if(base!=null){ const tot=(p.tipo==="mensual"?base*mult:base)*(1-Number(d)/100); ex=" · "+money(p.moneda,tot)+(p.tipo==="mensual"&&mult>1?" ("+money(p.moneda,tot/mult)+"/mes)":""); } return {label,pct:Number(d),ex}; }).filter(Boolean);
     const disc=rows.length?'<div class="cr-prop-disc"><b>Descuentos por pago adelantado</b><ul>'+rows.map(r=>'<li><span>'+esc(r.label)+'</span><span>-'+r.pct+'%'+(r.ex?esc(r.ex):"")+'</span></li>').join("")+'</ul></div>':"";
     const incl=(p.bullets&&p.bullets.length)?'<ul>'+p.bullets.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':"";
     let priceHTML='<div class="cr-prop-price">'+esc(priceLine(p))+'</div>';
@@ -265,18 +265,39 @@ function SR_boot(D){
   function hayPropuestas(){ return on.propuestas!==false&&D.report.propuestas.length>0; }
   function cerrarPropuestas(){ const el=document.getElementById("tjModal"); if(el) el.remove(); document.removeEventListener("keydown",tjKey); }
   function tjKey(e){ if(e.key==="Escape") cerrarPropuestas(); }
+  // Textos editables (Configuración → Propuestas de trabajo); sin datos, los de siempre.
+  const TJ=Object.assign({kicker:"Trabajemos juntos",titulo:"Sigamos mejorando tu producto",texto:"Elegí cómo querés avanzar sobre este diagnóstico. Reservás tu lugar y te escribo para coordinar los detalles.",recomendada:null},D.report.tj||{});
   function abrirPropuestas(){
     cerrarPropuestas();
     const ps=D.report.propuestas, el=document.createElement("div"); el.id="tjModal"; el.className="tj-bg";
+    // Recomendada: la elegida en Configuración ("" = ninguna); los reportes viejos destacan la primera.
+    const recId=TJ.recomendada==null?(ps.length>1&&ps[0]?ps[0].id:""):TJ.recomendada;
+    const esRec=p=>!!recId&&p.id===recId;
+    // Elegida: la que el cliente tocó (al abrir, la recomendada o la primera). Sus preguntas frecuentes van abajo.
+    let elegida=Math.max(0,ps.findIndex(esRec));
+    const faqHTML=()=>{ const p=ps[elegida], f=(p&&p.faq)||[]; if(!f.length) return "";
+      return '<section class="tj-faq" aria-labelledby="tjFaqT"><h3 id="tjFaqT">Preguntas frecuentes'+(ps.length>1?' <span>· '+esc(p.titulo)+'</span>':'')+'</h3>'
+        +f.map(x=>'<details class="tj-faq-i"><summary>'+esc(x.q)+'</summary><div class="cr-prose">'+para(x.a)+'</div></details>').join("")+'</section>'; };
+    const hayFaq=ps.some(p=>p.faq&&p.faq.length);
     el.innerHTML='<div class="tj-card" role="dialog" aria-modal="true" aria-labelledby="tjT"><button class="tj-x" id="tjX" aria-label="Cerrar">'+xIco+'</button>'
-      +'<div class="tj-head"><span class="pr-kicker">Trabajemos juntos</span><h2 id="tjT">Sigamos mejorando tu producto</h2><p>Elegí cómo querés avanzar sobre este diagnóstico. Reservás tu lugar y te escribo para coordinar los detalles.</p></div>'
-      +'<div class="tj-cols" style="--n:'+Math.min(ps.length,3)+'">'+ps.map((p,i)=>'<div class="tj-col'+(i===0&&ps.length>1?" destacada":"")+'">'+(i===0&&ps.length>1?'<span class="tj-badge">Recomendado</span>':'')+propCard(p)+'<button class="tj-res" data-res="'+i+'">Reservar ahora tu diagnóstico</button></div>').join("")+'</div>'
+      +'<div class="tj-head">'+(TJ.kicker?'<span class="pr-kicker">'+esc(TJ.kicker)+'</span>':'')+'<h2 id="tjT">'+esc(TJ.titulo||"")+'</h2>'+(TJ.texto?'<p>'+esc(TJ.texto)+'</p>':'')+'</div>'
+      +'<div class="tj-cols" style="--n:'+Math.min(ps.length,3)+'">'+ps.map((p,i)=>'<div class="tj-col'+(esRec(p)?" destacada":"")+(hayFaq&&i===elegida?" elegida":"")+'" data-col="'+i+'"'+(hayFaq?' tabindex="0" role="button" aria-pressed="'+(i===elegida)+'" aria-label="Ver las preguntas frecuentes de '+esc(p.titulo)+'"':'')+'>'+(esRec(p)?'<span class="tj-badge">Recomendado</span>':'')+propCard(p)+'<button class="tj-res" data-res="'+i+'">'+esc(p.boton||"Reservar ahora tu diagnóstico")+'</button></div>').join("")+'</div>'
+      +'<div id="tjFaq">'+faqHTML()+'</div>'
       +'<p class="tj-err" id="tjErr" role="alert"></p></div>';
     document.body.appendChild(el);
     el.onclick=e=>{ if(e.target===el) cerrarPropuestas(); };
     el.querySelector("#tjX").onclick=cerrarPropuestas;
     document.addEventListener("keydown",tjKey);
-    el.querySelectorAll("[data-res]").forEach(b=>b.onclick=()=>reservar(ps[+b.dataset.res],b));
+    el.querySelectorAll("[data-res]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); reservar(ps[+b.dataset.res],b); });
+    if(hayFaq) el.querySelectorAll("[data-col]").forEach(c=>{ const elegir=()=>{ elegida=+c.dataset.col;
+        el.querySelectorAll("[data-col]").forEach(x=>{ const on=+x.dataset.col===elegida; x.classList.toggle("elegida",on); x.setAttribute("aria-pressed",on); });
+        ubicarFaq(); };
+      c.onclick=elegir; c.onkeydown=e=>{ if((e.key==="Enter"||e.key===" ")&&e.target===c){ e.preventDefault(); elegir(); } }; });
+    // Con las propuestas en una columna (celular), las preguntas van justo debajo de la elegida.
+    function ubicarFaq(){ const box=el.querySelector("#tjFaq"); box.innerHTML=faqHTML();
+      const col=el.querySelector('[data-col="'+elegida+'"]');
+      if(matchMedia("(max-width:800px)").matches&&col) col.after(box); else el.querySelector(".tj-cols").after(box); }
+    if(hayFaq) ubicarFaq();
     el.querySelector("#tjX").focus({preventScroll:true});
   }
   // En el link público avisa al consultor (POST /api/publico, mismo PIN); en la vista previa
@@ -351,4 +372,6 @@ function SR_boot(D){
   function secContacto(main){ main.innerHTML='<h2>Contacto</h2>'+contactoCard(); }
   document.documentElement.setAttribute("data-theme","light");
   shell();
+  // Vista previa desde Configuración → Propuestas: abre directo "Trabajemos juntos".
+  if(D.preview&&V.tjOpen&&hayPropuestas()){ V.tjOpen=false; abrirPropuestas(); }
 }

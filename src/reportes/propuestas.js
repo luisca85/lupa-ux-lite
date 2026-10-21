@@ -9,6 +9,18 @@ export function defaultPropuestas(){ return [
   {titulo:"Propuesta Mensual Pro",tipo:"fixed",texto:"Trabajamos con un plan mensual y un fee fijo por tareas ilimitadas al mes. Sin contratos de permanencia.",bullets:["Hasta 2 proyectos diferentes","Hasta 2 tareas en paralelo","UI Design","UX Design","Evaluaciones heurísticas","Hasta 1 prueba con usuarios al mes","Reuniones ilimitadas"],precioModo:"monto",moneda:"USD",precio:1000,lanz:{on:true,pct:20},descuentos:{mensual:null,trimestral:null,semestral:null,anual:null}}
 ]; }
 export function esSeedViejo(arr){ if(!Array.isArray(arr)||arr.length!==2)return false; const t=arr.map(p=>(p&&p.titulo)||""); return t[0]==="Plan mensual con fee fijo"&&t[1]==="Propuesta ad-hoc al proyecto"; }
+/* Textos del modal "Trabajemos juntos" (r.tj). recomendada = id de la propuesta destacada
+   o "" para no recomendar ninguna. */
+export const TJ_TEXTOS={kicker:"Trabajemos juntos",titulo:"Sigamos mejorando tu producto",texto:"Elegí cómo querés avanzar sobre este diagnóstico. Reservás tu lugar y te escribo para coordinar los detalles."};
+export const BOTON_RESERVA="Reservar ahora tu diagnóstico";
+export function normalizeTj(r){
+  if(!r.tj||typeof r.tj!=="object") r.tj={};
+  Object.keys(TJ_TEXTOS).forEach(k=>{ if(typeof r.tj[k]!=="string") r.tj[k]=TJ_TEXTOS[k]; });
+  // Hasta ahora se destacaba siempre la primera (con más de una): se conserva para lo ya cargado.
+  if(r.tj.recomendada===undefined) r.tj.recomendada=r.propuestas.length>1&&r.propuestas[0]?r.propuestas[0].id:"";
+  if(r.tj.recomendada&&!r.propuestas.some(p=>p&&p.id===r.tj.recomendada)) r.tj.recomendada="";
+  return r.tj;
+}
 export const PROP_DESC=[["mensual","Pago mensual",1],["trimestral","Trimestral (3 meses)",3],["semestral","Semestral (medio año)",6],["anual","Anual (12 meses)",12]];
 const MONEDA_SYM={USD:"US$",ARS:"$",EUR:"€"};
 export function propMoney(mon,n){ const s=MONEDA_SYM[mon]||(mon?mon+" ":""); return s+" "+Math.round(Number(n||0)).toLocaleString("es-AR"); }
@@ -24,6 +36,9 @@ export function normalizePropuesta(p){
   PROP_DESC.forEach(([k])=>{ if(!(k in p.descuentos))p.descuentos[k]=null; });
   if(!p.lanz||typeof p.lanz!=="object")p.lanz={on:false,pct:20};
   if(p.lanz.pct==null||p.lanz.pct==="")p.lanz.pct=20;
+  if(typeof p.boton!=="string")p.boton="";
+  if(!Array.isArray(p.faq))p.faq=[];
+  p.faq=p.faq.filter(f=>f&&(String(f.q||"").trim()||String(f.a||"").trim())).map(f=>({q:String(f.q||""),a:String(f.a||"")}));
   return p;
 }
 /* Precio de lanzamiento: el precio guardado YA tiene el descuento aplicado.
@@ -46,10 +61,12 @@ export function propDiscRows(p){
   PROP_DESC.forEach(([k,label,mult])=>{
     const pct=d[k];
     if(pct==null||pct===""||Number(pct)<=0)return;
+    // Precio final con el descuento: total del período (y por mes) en los planes mensuales,
+    // y el precio fijo con el descuento en los de precio fijo.
     let extra="";
-    if(base!=null&&p.tipo==="mensual"){
-      const total=base*mult*(1-Number(pct)/100);
-      extra=" · "+propMoney(p.moneda,total)+(mult>1?" ("+propMoney(p.moneda,total/mult)+"/mes)":"");
+    if(base!=null){
+      const total=(p.tipo==="mensual"?base*mult:base)*(1-Number(pct)/100);
+      extra=" · "+propMoney(p.moneda,total)+(p.tipo==="mensual"&&mult>1?" ("+propMoney(p.moneda,total/mult)+"/mes)":"");
     }
     rows.push({label,pct:Number(pct),extra});
   });
