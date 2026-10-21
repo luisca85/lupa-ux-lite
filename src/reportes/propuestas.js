@@ -37,6 +37,7 @@ export function normalizePropuesta(p){
   if(!p.lanz||typeof p.lanz!=="object")p.lanz={on:false,pct:20};
   if(p.lanz.pct==null||p.lanz.pct==="")p.lanz.pct=20;
   if(typeof p.boton!=="string")p.boton="";
+  if(typeof p.cta!=="boolean")p.cta=true; // botón de reserva en la card
   if(!Array.isArray(p.faq))p.faq=[];
   p.faq=p.faq.filter(f=>f&&(String(f.q||"").trim()||String(f.a||"").trim())).map(f=>({q:String(f.q||""),a:String(f.a||"")}));
   return p;
@@ -61,12 +62,12 @@ export function propDiscRows(p){
   PROP_DESC.forEach(([k,label,mult])=>{
     const pct=d[k];
     if(pct==null||pct===""||Number(pct)<=0)return;
-    // Precio final con el descuento: total del período (y por mes) en los planes mensuales,
-    // y el precio fijo con el descuento en los de precio fijo.
+    // Precio final con el descuento, igual en todos los planes: el total del período y,
+    // en los de más de un mes, su valor por mes ("-10% · US$ 3.240 (US$ 1.080/mes)").
     let extra="";
     if(base!=null){
-      const total=(p.tipo==="mensual"?base*mult:base)*(1-Number(pct)/100);
-      extra=" · "+propMoney(p.moneda,total)+(p.tipo==="mensual"&&mult>1?" ("+propMoney(p.moneda,total/mult)+"/mes)":"");
+      const total=base*mult*(1-Number(pct)/100);
+      extra=" · "+propMoney(p.moneda,total)+(mult>1?" ("+propMoney(p.moneda,total/mult)+"/mes)":"");
     }
     rows.push({label,pct:Number(pct),extra});
   });

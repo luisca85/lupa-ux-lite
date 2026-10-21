@@ -23,7 +23,7 @@ function SR_boot(D){
   const priceLine=p=>(p.precioModo==="adefinir"||p.precio==null||p.precio==="")?"A definir":money(p.moneda,p.precio)+(p.tipo==="mensual"?" /mes":"");
   function propCard(p){
     const base=(p.precioModo!=="adefinir"&&p.precio!=null&&p.precio!=="")?Number(p.precio):null;
-    const rows=PROP_DESC.map(([k,label,mult])=>{ const d=(p.descuentos||{})[k]; if(d==null||d===""||Number(d)<=0)return null; let ex=""; if(base!=null){ const tot=(p.tipo==="mensual"?base*mult:base)*(1-Number(d)/100); ex=" · "+money(p.moneda,tot)+(p.tipo==="mensual"&&mult>1?" ("+money(p.moneda,tot/mult)+"/mes)":""); } return {label,pct:Number(d),ex}; }).filter(Boolean);
+    const rows=PROP_DESC.map(([k,label,mult])=>{ const d=(p.descuentos||{})[k]; if(d==null||d===""||Number(d)<=0)return null; let ex=""; if(base!=null){ const tot=base*mult*(1-Number(d)/100); ex=" · "+money(p.moneda,tot)+(mult>1?" ("+money(p.moneda,tot/mult)+"/mes)":""); } return {label,pct:Number(d),ex}; }).filter(Boolean);
     const disc=rows.length?'<div class="cr-prop-disc"><b>Descuentos por pago adelantado</b><ul>'+rows.map(r=>'<li><span>'+esc(r.label)+'</span><span>-'+r.pct+'%'+(r.ex?esc(r.ex):"")+'</span></li>').join("")+'</ul></div>':"";
     const incl=(p.bullets&&p.bullets.length)?'<ul>'+p.bullets.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':"";
     let priceHTML='<div class="cr-prop-price">'+esc(priceLine(p))+'</div>';
@@ -281,7 +281,7 @@ function SR_boot(D){
     const hayFaq=ps.some(p=>p.faq&&p.faq.length);
     el.innerHTML='<div class="tj-card" role="dialog" aria-modal="true" aria-labelledby="tjT"><button class="tj-x" id="tjX" aria-label="Cerrar">'+xIco+'</button>'
       +'<div class="tj-head">'+(TJ.kicker?'<span class="pr-kicker">'+esc(TJ.kicker)+'</span>':'')+'<h2 id="tjT">'+esc(TJ.titulo||"")+'</h2>'+(TJ.texto?'<p>'+esc(TJ.texto)+'</p>':'')+'</div>'
-      +'<div class="tj-cols" style="--n:'+Math.min(ps.length,3)+'">'+ps.map((p,i)=>'<div class="tj-col'+(esRec(p)?" destacada":"")+(hayFaq&&i===elegida?" elegida":"")+'" data-col="'+i+'"'+(hayFaq?' tabindex="0" role="button" aria-pressed="'+(i===elegida)+'" aria-label="Ver las preguntas frecuentes de '+esc(p.titulo)+'"':'')+'>'+(esRec(p)?'<span class="tj-badge">Recomendado</span>':'')+propCard(p)+'<button class="tj-res" data-res="'+i+'">'+esc(p.boton||"Reservar ahora tu diagnóstico")+'</button></div>').join("")+'</div>'
+      +'<div class="tj-cols" style="--n:'+Math.min(ps.length,3)+'">'+ps.map((p,i)=>'<div class="tj-col'+(esRec(p)?" destacada":"")+(hayFaq&&i===elegida?" elegida":"")+'" data-col="'+i+'"'+(hayFaq?' tabindex="0" role="button" aria-pressed="'+(i===elegida)+'" aria-label="Ver las preguntas frecuentes de '+esc(p.titulo)+'"':'')+'>'+(esRec(p)?'<span class="tj-badge">Recomendado</span>':'')+propCard(p)+(p.cta===false?'':'<button class="tj-res" data-res="'+i+'">'+esc(p.boton||"Reservar ahora tu diagnóstico")+'</button>')+'</div>').join("")+'</div>'
       +'<div id="tjFaq">'+faqHTML()+'</div>'
       +'<p class="tj-err" id="tjErr" role="alert"></p></div>';
     document.body.appendChild(el);

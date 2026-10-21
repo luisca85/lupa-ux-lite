@@ -67,8 +67,10 @@
 .cr-prop-disc{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 .cr-prop-disc>b{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:6px;font-weight:500}
 .cr-prop-disc ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
-.cr-prop-disc li{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted)}
-.cr-prop-disc li span:last-child{color:var(--accent-strong);font-weight:600;white-space:nowrap;text-align:right}
+/* Un descuento por fila: el período arriba y el precio final abajo ("-10% · US$ 3.240 (US$ 1.080/mes)") */
+.cr-prop-disc ul{gap:8px}
+.cr-prop-disc li{display:flex;flex-direction:column;gap:1px;font-size:13px;color:var(--muted)}
+.cr-prop-disc li span:last-child{color:var(--accent-strong);font-weight:600;overflow-wrap:anywhere}
 .cr-contact{display:flex;gap:20px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px}
 .cr-contact-main{flex:1;min-width:220px}
 .cr-contact-name{font-weight:600;margin-top:6px}
@@ -271,7 +273,7 @@
 .tj-col:not(.destacada) .tj-res{background:var(--ink,#111);}
 .tj-col:not(.destacada) .tj-res:hover{background:#333}
 .tj-err{text-align:center;color:var(--prob);font-size:13px;margin:14px 0 0;min-height:1em}
-@media (max-width:800px){.tj-cols{grid-template-columns:1fr}.tj-card{padding:28px 18px 20px}.tj-fab{right:16px;bottom:16px;height:50px;padding:0 20px;font-size:15px}}
+@media (max-width:800px){.tj-cols{grid-template-columns:minmax(0,1fr)}.tj-card{padding:28px 18px 20px}.tj-fab{right:16px;bottom:16px;height:50px;padding:0 20px;font-size:15px}}
 .ty{max-width:640px;margin:20px auto 40px;text-align:center;display:flex;flex-direction:column;align-items:center}
 .ty-logo{display:inline-flex;align-items:center;gap:8px;margin-bottom:34px}
 .ty-mark{width:32px;height:32px;border-radius:4px;background:#171717;color:#fafafa;display:grid;place-items:center}
