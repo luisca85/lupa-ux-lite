@@ -9,6 +9,7 @@ import { actividadDe, despublicarReporte, firmaReporte, linkPublico, publicarRep
 import { buildShareHtml, collectShareData } from "../share/compartir.js";
 import { toast } from "../ui/modales.js";
 import { exportarJSON, exportarTexto, puedeExportar } from "./exportar.js";
+import { renderPestanas } from "./pestanas.js";
 
 /* ============ Reportes: panel de configuración (izquierda) + vista previa en vivo (derecha) ============
    La vista previa es la MISMA página autónoma que recibe el cliente (SR_boot), en un iframe:
@@ -28,6 +29,8 @@ export function renderReportesInto(c,est){
       <section class="rp-sec rp-sel" aria-labelledby="rpSelT"><div class="rp-sec-h"><b id="rpSelT">Qué ve el cliente</b><small>Secciones e ítems visibles</small></div>
         <div class="rp-body"><p class="rhint">Prendé o apagá secciones y elegí ítem por ítem. Lo que ocultes no aparece en la vista previa ni en el link. Lo nuevo aparece visible.</p><div id="rptSel"></div>
         <p class="rhint" style="margin-top:10px">El contenido del proyecto (muestra, resumen, diagnóstico y propuestas) y la marca se cargan en <b>Configuración</b>.</p></div></section>
+      <section class="rp-sec rp-px" aria-labelledby="rpPxT"><div class="rp-sec-h"><b id="rpPxT">Pestañas propias</b><small>Tu contenido en el menú del reporte</small></div>
+        <div class="rp-body" id="rptPx"></div></section>
       ${puedeExportar()?`<section class="rp-sec rp-exp" aria-labelledby="rpExpT"><div class="rp-sec-h"><b id="rpExpT">Exportar</b><small>Solo para vos</small></div>
         <div class="rp-body"><p class="rhint">Lo mismo que ve tu cliente, sin imágenes: todos los hallazgos, los user journeys y los user flows.</p>
           <div class="rp-exp-a"><button type="button" class="btn-q" id="rpExpTxt">Texto plano (.txt)</button><button type="button" class="btn-q" id="rpExpJson">JSON para IA (.json)</button></div></div></section>`:""}
@@ -43,6 +46,7 @@ export function renderReportesInto(c,est){
   if(et) et.onclick=()=>{ exportarTexto(est); toast("Reporte exportado en texto plano"); };
   if(ej) ej.onclick=()=>{ exportarJSON(est); toast("Reporte exportado en JSON"); };
   renderSeleccion(c.querySelector("#rptSel"),est,r);
+  renderPestanas(c.querySelector("#rptPx"),est,r,()=>{ if(window._rptSchedule) window._rptSchedule(); });
   const card=c.querySelector("#rptShareCard"), ctx={firma:null};
   renderCompartir(card,est,r,ctx);
   // Vista previa en vivo: se reconstruye con un pequeño retraso después de cada cambio. De paso

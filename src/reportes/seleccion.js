@@ -39,7 +39,10 @@ export function vistaCliente(r,hallazgos,flujos){
     hallazgosClave:diag?r.hallazgosClave:[],
     recomendaciones:diag?r.recomendaciones:[],
     protopersonas:on.protopersonas===false?[]:(r.protopersonas||[]).filter(p=>!hid("protopersonas",p.id)),
-    propuestas:on.propuestas===false?[]:(r.propuestas||[]).filter(p=>!hid("propuestas",p.id))};
+    propuestas:on.propuestas===false?[]:(r.propuestas||[]).filter(p=>!hid("propuestas",p.id)),
+    // Pestañas propias: solo las visibles, con nombre y con el contenido de su tipo.
+    pestanas:(r.pestanas||[]).filter(p=>p&&p.visible!==false&&String(p.nombre||"").trim())
+      .map(p=>({id:p.id,nombre:String(p.nombre).trim(),tipo:p.tipo==="html"?"html":"texto",html:p.tipo==="html"?(p.html||""):"",texto:p.tipo==="html"?"":(p.texto||"")}))};
   delete rr.ocultos; delete rr.publico; // nunca viaja al cliente
   return {r:rr,hallazgos:hz,flujos:[...flows,...jrs]};
 }
