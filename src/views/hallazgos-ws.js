@@ -14,12 +14,17 @@ import { autoTitulo, bindSev, etiquetaPaso, formularioHallazgo, guardarHallazgo 
 /* ============ Hallazgos: área de trabajo con pantallas y pines + panel derecho ============
    Estado (core/state.js): hzGroup (id de la pantalla activa), hzQuick (popover {h, nuevo}),
    hzForm/hzFormNuevo (formulario de edición en el panel), hzSevF (filtro por severidad),
-   hzPanel ("lista" | "catalogo"). Un clic en la captura crea un hallazgo: no hay modo "agregar". */
+   hzPanel ("lista" | "catalogo"). Un clic en la captura crea un hallazgo: no hay modo "agregar".
+   hzGroup también puede ser una vista del menú "Todas": TODOS (los hallazgos de todas las
+   pantallas) o SIN (los hallazgos que no tienen pantalla). */
 const imgCache=new Map();
 const getImg=async(pid)=>{ const k=state.activeId+"/"+pid; if(!imgCache.has(k)) imgCache.set(k,pantallaStore.getImg(state.activeId,pid).catch(()=>null)); return imgCache.get(k); };
 const $=id=>document.getElementById(id);
 const pantallas=()=>state.pantallas||[];
-const grupo=()=>state.hallazgos.filter(h=>h.pantallaId&&h.pantallaId===state.hzGroup);
+const TODOS="__todos", SIN="__sin";
+const esVista=g=>g===TODOS||g===SIN;
+const sinPantalla=()=>{ const ids=new Set(pantallas().map(p=>p.id)); return state.hallazgos.filter(h=>!h.pantallaId||!ids.has(h.pantallaId)); };
+const grupo=()=>state.hzGroup===TODOS?state.hallazgos.slice():state.hzGroup===SIN?sinPantalla():state.hallazgos.filter(h=>h.pantallaId&&h.pantallaId===state.hzGroup);
 const byNum=(a,b)=>((a.createdAt||0)-(b.createdAt||0))||String(a.id).localeCompare(String(b.id));
 const pasoLabel=h=>{ const ps=pasosDe(h); if(!ps.length) return ""; const e=etiquetaPaso(ps[0]); return e?(e.etiqueta.replace(/^\d+\.\s*/,"")+(ps.length>1?` +${ps.length-1}`:"")):""; };
 const hzMeta=h=>{ const x=catalogoIdsDe(h).map(heurById).find(Boolean); return [h.severidad!=null&&h.severidad!==""?`Sev. ${h.severidad} · ${SEVERIDAD[h.severidad].label}`:"Sin severidad",x?x.nombre:"",proximamente("flujos")?"":pasoLabel(h)].filter(Boolean).join("  ·  "); };
@@ -30,7 +35,7 @@ export function renderWorkspace(c){
     (async()=>{ try{ state.flujos=await flowStore.list(state.activeId); state._flujosFor=state.activeId; }catch(e){} if(state.studyTab==="hallazgos"&&$("hzPanel")) renderPanel(); })();
   }
   const ps=pantallas();
-  if(!ps.some(p=>p.id===state.hzGroup)) state.hzGroup=ps[0]?ps[0].id:null;
+  if(!esVista(state.hzGroup)&&!ps.some(p=>p.id===state.hzGroup)) state.hzGroup=ps[0]?ps[0].id:null;
   c.classList.add("hz-ws-host");
   c.innerHTML=`<div class="hz-ws"><section class="hz-stage" id="hzStage" aria-label="Área de trabajo"></section><aside class="hz-panel" id="hzPanel" aria-label="Panel de hallazgos"></aside></div>`;
   renderStage(); renderPanel(); bindGlobal();
@@ -48,27 +53,30 @@ function renderStage(){
     $("wsUp").onclick=()=>pantallaModal(null,"imagen");
     return;
   }
-  const p=ps.find(x=>x.id===g)||ps[0]; state.hzGroup=p.id;
+  const vista=esVista(g)?g:null;
+  const p=vista?{}:(ps.find(x=>x.id===g)||ps[0]); if(!vista) state.hzGroup=p.id;
   const cnt=pid=>state.hallazgos.filter(h=>h.pantallaId===pid).length;
+  const itemVista=(v,nm,n)=>`<button role="option" aria-selected="${g===v}" class="ws-vista ${g===v?'on':''}" data-p="${v}"><span class="i" aria-hidden="true">${v===TODOS?"∗":"∅"}</span><span class="nm">${nm}</span><span class="c">${n}</span></button>`;
   st.innerHTML=`<div class="ws-tabs" id="wsTabs">
       <button class="ws-nav" id="wsPrev" aria-label="Ver pantallas anteriores" title="Pantallas anteriores" hidden>${chevL()}</button>
       <div class="ws-group-wrap" id="wsGWrap"><div class="ws-group" id="wsGroup" role="tablist" aria-label="Pantallas">${ps.map(x=>`<button class="ws-gbtn ${x.id===p.id?'on':''}" role="tab" aria-selected="${x.id===p.id}" tabindex="${x.id===p.id?0:-1}" data-p="${x.id}" title="${esc(x.nombre)}${x.origen==="url"?" · URL":""}"><span class="nm">${esc(x.nombre)}</span>${x.origen==="url"?`<span class="url-b">URL</span>`:""}</button>`).join("")}</div></div>
       <button class="ws-nav" id="wsNext" aria-label="Ver más pantallas" title="Más pantallas" hidden>${chevR()}</button>
-      <div class="ws-all-wrap"><button class="ws-all" id="wsAll" aria-haspopup="listbox" aria-expanded="false" title="Ver todas las pantallas" hidden>Todas <span class="c">${ps.length}</span></button>
-        <div class="ws-all-menu" id="wsAllMenu" role="listbox" aria-label="Todas las pantallas" hidden>${ps.map((x,i)=>`<button role="option" aria-selected="${x.id===p.id}" class="${x.id===p.id?'on':''}" data-p="${x.id}"><span class="i">${i+1}</span><span class="nm">${esc(x.nombre)}</span>${x.origen==="url"?`<span class="url-b">URL</span>`:""}<span class="c">${cnt(x.id)}</span></button>`).join("")}</div></div>
+      <div class="ws-all-wrap"><button class="ws-all ${vista?'on':''}" id="wsAll" aria-haspopup="listbox" aria-expanded="false" title="Todos los hallazgos, los que no tienen pantalla y todas las pantallas">${vista===TODOS?"Todos los hallazgos":vista===SIN?"Sin pantalla":"Todas"} <span class="c">${vista?grupo().length:ps.length}</span></button>
+        <div class="ws-all-menu" id="wsAllMenu" role="listbox" aria-label="Todas las pantallas" hidden>${itemVista(TODOS,"Todos los hallazgos",state.hallazgos.length)}${itemVista(SIN,"Sin pantalla",sinPantalla().length)}<div class="ws-all-sep" role="presentation">Pantallas</div>${ps.map((x,i)=>`<button role="option" aria-selected="${x.id===p.id}" class="${x.id===p.id?'on':''}" data-p="${x.id}"><span class="i">${i+1}</span><span class="nm">${esc(x.nombre)}</span>${x.origen==="url"?`<span class="url-b">URL</span>`:""}<span class="c">${cnt(x.id)}</span></button>`).join("")}</div></div>
       ${(()=>{ const lim=state.cuenta&&state.cuenta.limites; return lim&&ps.length>=lim.pantallas
         ?`<button class="ws-new off" id="wsAdd" disabled title="En la beta cada estudio puede tener hasta ${lim.pantallas} pantallas">${ps.length} de ${lim.pantallas} pantallas</button>`
         :`<button class="ws-new" id="wsAdd">Nueva pantalla <span class="fig-ico ico-mas" aria-hidden="true"></span></button>`; })()}
     </div>
-    <div class="ws-canvas" id="wsCanvas">
+    ${vista?`<div class="ws-canvas ws-over-host" id="wsCanvas"><div class="ws-over" id="wsOver"></div></div>`:`<div class="ws-canvas" id="wsCanvas">
       <div class="ws-tools"><button class="ws-tool" id="wsCambiar" title="Cambiar pantalla (nombre, URL o imagen)" aria-label="Cambiar pantalla"><span class="fig-ico ico-pant-cambiar" aria-hidden="true"></span></button>
         <button class="ws-tool txt" id="wsEliminarP">Eliminar pantalla <span class="fig-ico ico-eliminar" aria-hidden="true"></span></button></div>
       <div class="ws-scroll" id="wsScroll"></div>
-    </div>`;
+    </div>`}`;
   const elegir=pid=>{ state.hzGroup=pid; state.hzQuick=null; if(state.hzForm&&!state.hzFormNuevo) state.hzForm=null; renderStage(); renderPanel(); const b=st.querySelector(`.ws-gbtn[data-p="${pid}"]`); if(b) b.focus({preventScroll:true}); };
   st.querySelectorAll(".ws-gbtn").forEach(b=>b.onclick=()=>elegir(b.dataset.p));
   bindTabsOverflow(st,ps,p,elegir);
   $("wsAdd").onclick=()=>pantallaModal(null,"imagen");
+  if(vista) return renderVista(vista,elegir);
   $("wsCambiar").onclick=()=>pantallaModal(p);
   $("wsEliminarP").onclick=()=>eliminarPantalla(p);
   renderCanvas(p);
@@ -81,7 +89,7 @@ function bindTabsOverflow(st,ps,p,elegir){
   const mostrarActiva=()=>{ if(!on) return; const l=on.offsetLeft, r=l+on.offsetWidth; if(l<g.scrollLeft) g.scrollLeft=l-24; else if(r>g.scrollLeft+g.clientWidth) g.scrollLeft=r-g.clientWidth+24; };
   const update=()=>{ if(!document.body.contains(g)) return;
     const over=g.scrollWidth>g.clientWidth+1;
-    prev.hidden=next.hidden=all.hidden=!over;
+    prev.hidden=next.hidden=!over;
     prev.disabled=g.scrollLeft<=1; next.disabled=g.scrollLeft+g.clientWidth>=g.scrollWidth-1;
     wrap.classList.toggle("fade-l",over&&!prev.disabled); wrap.classList.toggle("fade-r",over&&!next.disabled); };
   const paso=dir=>{ g.scrollLeft+=dir*Math.max(120,g.clientWidth*0.8); update(); };
@@ -107,10 +115,35 @@ function bindTabsOverflow(st,ps,p,elegir){
     else if(e.key==="ArrowDown"){ e.preventDefault(); (items[k+1]||items[0]).focus(); }
     else if(e.key==="ArrowUp"){ e.preventDefault(); (items[k-1]||items[items.length-1]).focus(); } };
 }
+/* Vistas del menú "Todas": sin captura ni pines editables. TODOS muestra cada pantalla en
+   miniatura con sus pines (clic en la miniatura: ir a la pantalla; en un pin: editarlo);
+   SIN lista en tarjetas los hallazgos que no tienen pantalla. */
+function renderVista(v,elegir){
+  const el=$("wsOver"); if(!el) return;
+  const sin=sinPantalla().sort(byNum);
+  const tarjeta=h=>{ const c=sevVar(h.severidad); return `<button class="ws-ov-hz ${h.id===state.hzSel?'on':''}" data-hz="${h.id}" ${c?`style="--sc:${c}"`:""}><span class="t">${esc(h.titulo||autoTitulo(h.descripcion)||"(sin texto)")}</span>${h.descripcion?`<span class="d">${esc(h.descripcion)}</span>`:""}<span class="m">${esc(hzMeta(h))}</span></button>`; };
+  if(v===SIN){
+    el.innerHTML=`<div class="ws-ov-head"><div><h3>Hallazgos sin pantalla</h3><p>${sin.length?`${sin.length} ${sin.length===1?"hallazgo no está ubicado":"hallazgos no están ubicados"} en ninguna pantalla. Abrí uno para agregarle una pantalla y un pin.`:"Todos los hallazgos están ubicados en una pantalla."}</p></div>
+        <button class="btn-sec" id="wsOvNuevo">Nuevo hallazgo sin pantalla <span class="fig-ico ico-mas" aria-hidden="true"></span></button></div>
+      ${sin.length?`<div class="ws-ov-list">${sin.map(tarjeta).join("")}</div>`:""}`;
+    $("wsOvNuevo").onclick=()=>abrirForm(nuevoHallazgo({id:uid(),createdAt:Date.now()}),true);
+  } else {
+    const ps=pantallas();
+    el.innerHTML=`<div class="ws-ov-head"><div><h3>Todos los hallazgos</h3><p>${state.hallazgos.length} en ${ps.length} ${ps.length===1?"pantalla":"pantallas"}${sin.length?` y ${sin.length} sin pantalla`:""}. Clic en una pantalla para trabajar en ella.</p></div></div>
+      <div class="ws-ov-grid">${ps.map(p=>{ const hz=state.hallazgos.filter(h=>h.pantallaId===p.id&&h.pin).sort(byNum), n=state.hallazgos.filter(h=>h.pantallaId===p.id).length;
+        return `<div class="ws-ov-card"><div class="ws-ov-thumb" data-ir="${p.id}" role="button" tabindex="0" aria-label="Ir a ${esc(p.nombre)}"><div class="ws-ov-img" data-img="${p.id}">${hz.map(h=>{ const c=sevVar(h.severidad); return `<button class="ws-pin mini ${c?'':'sin-sev'} ${h.id===state.hzSel?'on':''}" data-hz="${h.id}" style="left:${h.pin.x*100}%;top:${h.pin.y*100}%;${c?`--pc:${c}`:""}" title="${esc(h.titulo||autoTitulo(h.descripcion))}">${pinNumero(h,state.hallazgos)}</button>`; }).join("")}</div></div>
+          <div class="ws-ov-cap"><span class="nm">${esc(p.nombre)}</span><span class="c">${n}</span></div></div>`; }).join("")}
+        ${sin.length?`<div class="ws-ov-card"><div class="ws-ov-thumb sin" data-ir="${SIN}" role="button" tabindex="0" aria-label="Ver hallazgos sin pantalla"><span>${sin.length} ${sin.length===1?"hallazgo":"hallazgos"}<br>sin pantalla</span></div><div class="ws-ov-cap"><span class="nm">Sin pantalla</span><span class="c">${sin.length}</span></div></div>`:""}</div>`;
+    ps.forEach(async p=>{ const d=await getImg(p.id), box=el.querySelector(`.ws-ov-img[data-img="${p.id}"]`); if(!box) return;
+      if(d&&d.base) box.insertAdjacentHTML("afterbegin",`<img src="${d.base}" alt="" draggable="false">`); else box.classList.add("vacia"); });
+  }
+  el.querySelectorAll("[data-ir]").forEach(t=>{ t.onclick=e=>{ if(!e.target.closest("[data-hz]")) elegir(t.dataset.ir); }; t.onkeydown=e=>{ if((e.key==="Enter"||e.key===" ")&&e.target===t){ e.preventDefault(); elegir(t.dataset.ir); } }; });
+  el.querySelectorAll("[data-hz]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); abrirForm(state.hallazgos.find(h=>h.id===b.dataset.hz)); });
+}
 async function renderCanvas(p){
   const cv=$("wsScroll"); if(!cv||!p||!p.id) return;
   const d=await getImg(p.id);
-  if(state.hzGroup!==p.id||!$("wsScroll")) return;
+  if(state.hzGroup!==p.id||$("wsScroll")!==cv) return;   // la pantalla cambió mientras cargaba la imagen
   if(!d||!d.base){
     cv.innerHTML=`<div class="ev-drop ws-capture" id="wsCap" tabindex="0">${camIco()}
       <div class="pz-main">Pegá o subí la captura de ${p.url?esc(p.url.replace(/^https?:\/\//,"")):"esta pantalla"}</div>
@@ -189,7 +222,7 @@ function bindQuick(p,h,nuevo){
     catch(e){ console.error("qSave",e); toast("No se pudo guardar. Probá de nuevo."); b.disabled=false; }
   };
 }
-function abrirForm(h,nuevo){ if(!h) return; state.hzForm={...h}; state.hzFormNuevo=!!nuevo; state.hzPanel="lista"; state.hzSel=nuevo?null:h.id; state.hzQuick=null; renderPanel(); const p=pantallas().find(x=>x.id===state.hzGroup); if(p) renderCanvas(p); }
+function abrirForm(h,nuevo){ if(!h) return; state.hzForm={...h}; state.hzFormNuevo=!!nuevo; state.hzPanel="lista"; state.hzSel=nuevo?null:h.id; state.hzQuick=null; if(esVista(state.hzGroup)) renderStage(); renderPanel(); const p=pantallas().find(x=>x.id===state.hzGroup); if(p) renderCanvas(p); }
 function eliminarPantalla(p){
   const count=state.hallazgos.filter(h=>h.pantallaId===p.id).length;
   openConfirm("Eliminar pantalla",`Se elimina "<b>${esc(p.nombre)}</b>". ${count?`Sus ${count} ${count===1?"hallazgo no se borra: pasa":"hallazgos no se borran: pasan"} a "Sin pantalla".`:"No tiene hallazgos."}`,async()=>{
@@ -277,8 +310,9 @@ export function renderPanel(){
   if(state.hzPanel==="catalogo") return renderPanelCatalogo(el);
   if(state.hzForm&&!state.hzFormNuevo&&!state.hallazgos.some(h=>h.id===state.hzForm.id)) state.hzForm=null;
   if(state.hzForm) return renderForm(el);
-  const p=pantallas().find(x=>x.id===state.hzGroup);
-  if(!p){
+  const vista=esVista(state.hzGroup)?state.hzGroup:null;
+  const p=vista?null:pantallas().find(x=>x.id===state.hzGroup);
+  if(!p&&!vista){
     el.innerHTML=`<div class="hp-top"><div><h2>Hallazgos</h2></div><button class="btn-sec" id="hpCat">Catálogo <span class="fig-ico ico-ir" aria-hidden="true"></span></button></div>
       <div class="alert">${infoIco()}<span>Cuando cargues una pantalla y ubiques un pin, el hallazgo aparece en esta lista. Desde acá lo filtrás por severidad y lo editás.</span></div>`;
     $("hpCat").onclick=()=>{ state.hzPanel="catalogo"; renderPanel(); };
@@ -287,12 +321,19 @@ export function renderPanel(){
   const base=grupo().sort(byNum), f=state.hzSevF??"todas";
   const list=base.filter(h=>f==="todas"||String(h.severidad)===String(f));
   const chips=[["todas","Todas",null],...SEVERIDAD.map(s=>[String(s.n),s.label,s.n])];
-  el.innerHTML=`<div class="hp-top"><div><h2>Hallazgos</h2><p class="hp-pant">${esc(p.nombre)}</p><p>${base.length} en esta pantalla</p></div>
+  const card=h=>{ const c=sevVar(h.severidad); return `<button class="hp-card ${h.id===state.hzSel?'on':''}" data-hz="${h.id}" ${c?`style="--sc:${c}"`:""}><span class="hp-pin ${c?'sev':''}">${numDe(h)}</span><span class="hp-det"><span class="t">${esc(h.titulo||autoTitulo(h.descripcion)||"(sin texto)")}</span><span class="m">${esc(hzMeta(h))}</span></span></button>`; };
+  // En "Todos los hallazgos" la lista va agrupada por pantalla y al final los que no tienen.
+  const lista=()=>{ if(vista!==TODOS) return `<div class="hp-list">${list.map(card).join("")}</div>`;
+    const grupos=[...pantallas().map(x=>[x.nombre,list.filter(h=>h.pantallaId===x.id)]),["Sin pantalla",list.filter(h=>sinPantalla().includes(h))]].filter(([,hs])=>hs.length);
+    return grupos.map(([nm,hs])=>`<div class="hp-grp"><div class="hp-grp-t"><span>${esc(nm)}</span><span class="c">${hs.length}</span></div><div class="hp-list">${hs.map(card).join("")}</div></div>`).join(""); };
+  const sub=vista===TODOS?["Todas las pantallas",`${base.length} en total`]:vista===SIN?["Sin pantalla",`${base.length} sin pantalla`]:[p.nombre,`${base.length} en esta pantalla`];
+  const vacio=vista===TODOS?"El estudio todavía no tiene hallazgos.":vista===SIN?"No hay hallazgos sin pantalla.":"Esta pantalla todavía no tiene hallazgos. Hacé clic en la imagen para ubicar el primero.";
+  el.innerHTML=`<div class="hp-top"><div><h2>Hallazgos</h2><p class="hp-pant">${esc(sub[0])}</p><p>${sub[1]}</p></div>
       <button class="btn-sec" id="hpCat">Catálogo <span class="fig-ico ico-ir" aria-hidden="true"></span></button></div>
     <div class="hp-filters" role="group" aria-label="Filtrar por severidad">${chips.map(([v,l,n])=>`<button class="chip-f ${String(f)===v?'on':''}" data-f="${v}" aria-pressed="${String(f)===v}" ${n!==null?`style="--sc:var(--sev${n})"`:""}>${l}</button>`).join("")}</div>
-    ${!base.length?`<div class="hp-empty"><span>Esta pantalla todavía no tiene hallazgos. Hacé clic en la imagen para ubicar el primero.</span></div>`
+    ${!base.length?`<div class="hp-empty"><span>${vacio}</span></div>`
       :!list.length?`<div class="hp-empty"><span>Ningún hallazgo con esta severidad.</span></div>`
-      :`<div class="hp-list">${list.map(h=>{ const c=sevVar(h.severidad); return `<button class="hp-card ${h.id===state.hzSel?'on':''}" data-hz="${h.id}" ${c?`style="--sc:${c}"`:""}><span class="hp-pin ${c?'sev':''}">${numDe(h)}</span><span class="hp-det"><span class="t">${esc(h.titulo||autoTitulo(h.descripcion)||"(sin texto)")}</span><span class="m">${esc(hzMeta(h))}</span></span></button>`; }).join("")}</div>`}`;
+      :lista()}`;
   $("hpCat").onclick=()=>{ state.hzPanel="catalogo"; renderPanel(); };
   el.querySelectorAll(".chip-f").forEach(b=>b.onclick=()=>{ state.hzSevF=b.dataset.f; renderPanel(); });
   el.querySelectorAll(".hp-card[data-hz]").forEach(b=>b.onclick=()=>abrirForm(state.hallazgos.find(h=>h.id===b.dataset.hz)));
@@ -307,7 +348,7 @@ function renderForm(el){
     alEliminar:()=>{ const id=h.id; state.hzForm=null; confirmDelHz(id); },
     alGuardar:saved=>{
       state.hzForm=null; state.hzFormNuevo=false; state.hzSel=saved.id;
-      if(saved.pantallaId&&saved.pantallaId!==state.hzGroup) state.hzGroup=saved.pantallaId;
+      if(saved.pantallaId&&saved.pantallaId!==state.hzGroup&&!esVista(state.hzGroup)) state.hzGroup=saved.pantallaId;
       toast(nuevo?"Hallazgo registrado":"Hallazgo actualizado"); renderStage(); renderPanel();
     }});
 }

@@ -816,6 +816,45 @@ body.in-home .home{padding-top:0;gap:0}
 .ws-new .fig-ico{width:16px;height:16px}
 .ws-all-wrap{margin-left:0}
 .ws-all-menu button.on{background:var(--surface-2);color:var(--ink);font-weight:600}
+/* Menú "Todas": vistas de todos los hallazgos y sin pantalla, arriba de la lista de pantallas */
+.ws-all.on{background:#000;color:#fff;border-color:#000}
+.ws-all.on .c{background:rgb(255 255 255 / .18);color:#fff}
+:root[data-theme="dark"] .ws-all.on{background:#fff;color:#000;border-color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ws-all.on{background:#fff;color:#000;border-color:#fff}}
+.ws-all-sep{padding:8px 8px 4px;margin-top:4px;border-top:1px solid var(--line);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+.ws-all-menu .ws-vista .i{font-family:inherit;font-size:13px;color:var(--muted)}
+/* Vistas sin captura: miniaturas de todas las pantallas o tarjetas de hallazgos sin pantalla */
+.ws-over-host{overflow:auto}
+.ws-over{padding:20px 24px 28px}
+.ws-ov-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;padding:14px 16px;border-radius:10px;background:var(--surface);box-shadow:0 1px 4px rgb(0 0 0 / .08)}
+.ws-ov-head h3{margin:0 0 2px;font-size:16px;font-weight:600}
+.ws-ov-head p{margin:0;font-size:13px;color:var(--muted)}
+.ws-ov-head .btn-sec{flex:none}
+.ws-ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.ws-ov-card{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ws-ov-thumb{position:relative;height:240px;padding:10px;display:grid;place-items:center;overflow:hidden;border-radius:8px;background:var(--surface-2);box-shadow:0 2px 8px rgb(0 0 0 / .12);cursor:pointer;outline:none}
+.ws-ov-thumb:hover,.ws-ov-thumb:focus-visible{box-shadow:0 0 0 2px #2563eb,0 2px 8px rgb(0 0 0 / .12)}
+.ws-ov-thumb.sin{display:grid;place-items:center;text-align:center;font-size:13px;color:var(--muted);border:1.5px dashed var(--line-input);box-shadow:none;background:var(--surface)}
+.ws-ov-img{position:relative;display:inline-block;max-width:100%;line-height:0;box-shadow:0 1px 4px rgb(0 0 0 / .15)}
+.ws-ov-img img{display:block;max-width:100%;max-height:220px;width:auto;height:auto}
+.ws-ov-img.vacia{width:100%;height:220px;background:var(--surface)}
+.ws-pin.mini{width:20px;height:20px;margin:-10px 0 0 -10px;font-size:11px;line-height:1}
+.ws-ov-cap{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
+.ws-ov-cap .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-ov-cap .c{font-family:var(--mono);font-size:11px;padding:0 5px;border-radius:3px;background:var(--surface);color:var(--muted)}
+.ws-ov-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.ws-ov-hz{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line-input);border-left:4px solid var(--sc,var(--line-input));border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.ws-ov-hz:hover{border-color:var(--faint);border-left-color:var(--sc,var(--faint))}
+.ws-ov-hz.on{box-shadow:0 0 0 2px #2563eb}
+.ws-ov-hz .t{font-size:14px;font-weight:600}
+.ws-ov-hz .d{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ws-ov-hz .m{font-size:12px;color:var(--faint)}
+/* Panel en "Todos los hallazgos": grupos por pantalla */
+.hp-grp+.hp-grp{margin-top:14px}
+.hp-grp-t{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:12px;font-weight:600;color:var(--muted)}
+.hp-grp-t span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hp-grp-t .c{font-family:var(--mono);font-weight:400;font-size:11px}
+@media (max-width:640px){.ws-ov-head{flex-direction:column}.ws-over{padding:12px}}
 
 /* ============ Secciones "Próximamente" (Flujos, Protopersonas) ============ */
 .proj-tabs .pronto{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
