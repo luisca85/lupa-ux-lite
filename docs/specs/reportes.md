@@ -93,13 +93,15 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   un modal) con:
   - "Cómo funciona el link y el PIN", en 5 pasos: Compartir y la foto, canales
     distintos, qué hace el cliente, reservas y seguridad;
-  - la lista de **Reservas** (nombre, propuesta, fecha);
-  - la lista de **Consentimientos** (nombre, fecha).
+  - la lista de **Reservas** ("Reservaron {propuesta} · fecha");
+  - la lista de **Consentimientos** ("Abrieron el link · fecha").
+  - Las de antes del 2026-10-21 muestran el nombre con que entró el cliente.
 - El globo se cierra con Escape, con un clic afuera o con el mismo botón.
 - Se mantiene lo que ya existía del link público:
   - foto en `publicos/{id}` + `publicos/{id}/partes/{n}`, en partes de ≤ 600 000
     caracteres;
-  - página `/r/{id}` con PIN, nombre y aceptación de las condiciones;
+  - página `/r/{id}` con PIN y aceptación de las condiciones (ver "Entrar al link
+    público");
   - 401 "Link o PIN incorrecto." (mismo mensaje para link inexistente o PIN
     incorrecto);
   - 5 fallos seguidos bloquean el link 15 minutos (429);
@@ -191,8 +193,8 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   - El detalle está en `propuestas.md`.
 - El modal se cierra con la X, Escape o un clic afuera.
 - Dado **Reservar ahora tu diagnóstico**, cuando se toca en el link público, entonces:
-  - envía `POST /api/publico` con `accion:"reserva"`, el mismo id y PIN, el nombre con
-    que entró el cliente y la propuesta (id, título y precio como texto);
+  - envía `POST /api/publico` con `accion:"reserva"`, el mismo id y PIN y la propuesta
+    (id, título y precio como texto). No manda datos de quien reserva;
   - si responde bien, muestra la **página de gracias**;
   - si falla, el modal sigue abierto con "No pudimos registrar la reserva. Revisá tu
     conexión y probá de nuevo."
@@ -200,7 +202,7 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
 - Dada la página de gracias, cuando se ve, entonces tiene:
   - el logo de **uxuaria** (marca de la home);
   - un check;
-  - "¡Gracias, {nombre}! Tu reserva está confirmada";
+  - "¡Gracias! Tu reserva está confirmada";
   - "Ya recibí tu decisión de avanzar con {propuesta}. Me voy a comunicar con vos muy
     pronto para coordinar los próximos pasos.";
   - la propuesta reservada con su precio;
@@ -208,21 +210,42 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   - el contacto de la Marca, si hay;
   - "Volver al reporte".
 
+### Entrar al link público (2026-10-21, exploración `explorar/reportes-condiciones`)
+- Dado `/r/{id}`, cuando se abre, entonces se pide solo el **PIN** y aceptar las
+  **Condiciones de uso**, con una sola casilla ("Acepto las condiciones de uso"). No se
+  pide nombre ni email.
+- Las condiciones dicen:
+  - que el reporte es confidencial y de solo lectura, y que se registra la aceptación y
+    la fecha, que se le muestran a quien lo compartió;
+  - que **quien preparó el reporte** puede mencionar que lo realizó y compartir
+    aprendizajes generales sobre la experiencia, sin revelar información clave ni datos
+    confidenciales;
+  - con links a las condiciones de los reportes y a la política de privacidad.
+- Vale igual para todos los reportes, de uxuaria y de las cuentas de la beta. Ya no
+  existe la casilla aparte "Una condición más de uxuaria".
+- Sin aceptar, la app muestra "Para ver el reporte tenés que aceptar las condiciones de
+  uso." y el servidor responde 400 ("Para ver el reporte, aceptá las condiciones de
+  uso.").
+- Al entrar, el servidor guarda `{fecha, mencion:true}` en
+  `publicos/{id}.consentimientos` (los últimos 10), sin datos de quien entra.
+- La card del PIN se achica al ancho del celular (antes desbordaba en pantallas
+  angostas).
+
 ### Reservas (API)
 - Dado `POST /api/publico` con `accion:"reserva"`, cuando el PIN es correcto, entonces:
-  - exige nombre y título de la propuesta (si faltan, 400 "Faltan datos de la
-    reserva.");
-  - guarda `{nombre, propuesta:{id, titulo, precio}, fecha}` en `publicos/{id}.reservas`
+  - exige el título de la propuesta (si falta, 400 "Faltan datos de la reserva.");
+  - guarda `{propuesta:{id, titulo, precio}, fecha}` en `publicos/{id}.reservas`
     (las últimas 20);
   - responde `{ok:true, enviado}`.
 - La reserva sigue las mismas reglas de PIN y bloqueo que abrir el link. No exige el
   consentimiento de nuevo.
 - Las reservas se conservan al actualizar la publicación y se borran al despublicar.
 - Dada una reserva, cuando existe `RESEND_API_KEY`, entonces manda un correo con Resend:
-  - asunto: "Nueva reserva: {propuesta} · {nombre}";
+  - asunto: "Nueva reserva: {propuesta}";
   - a `RESERVA_TO` (por defecto `info@uxuaria.com`), con copia a `RESERVA_CC`;
   - desde `RESERVA_FROM` (por defecto `Lupa UX <reservas@uxuaria.com>`);
-  - con nombre, propuesta, precio, estudio, cliente y fecha (hora de Buenos Aires).
+  - con "Tu cliente reservó {propuesta}", precio, estudio, cliente y fecha (hora de
+    Buenos Aires).
 - Si el correo falla o no está configurado, la reserva igual queda guardada
   (`enviado:false`) y el cliente ve la página de gracias.
 - Al publicar, `publicos/{id}` también guarda `estNombre` y `estCliente` para el correo.

@@ -202,3 +202,11 @@ fuera de la app (por ejemplo, con una IA) sin abrir un segundo canal de entrega.
 formato se limpia con una lista blanca al guardar y al mostrarlo. Motivo: sumar contenido
 propio (benchmarks, tableros, propuestas en HTML) sin abrir un hueco de XSS en el dominio
 de la app, que también ven otras cuentas.
+
+2026-10-21 - Cambia la decisión del 2026-10-20 sobre la mención. La cláusula de mención pasa a
+las condiciones de uso de todos los reportes: quien preparó el reporte (uxuaria o una cuenta
+de la beta) puede mencionar que lo realizó y compartir aprendizajes generales, sin revelar
+información clave ni datos confidenciales. Una sola casilla; se quita la condición aparte de
+uxuaria. Además, el link público ya no pide nombre ni email: solo PIN y aceptación, y se
+guarda la aceptación con la fecha. Motivo: entrar más rápido al reporte y no guardar datos
+personales del cliente que no hacen falta.
