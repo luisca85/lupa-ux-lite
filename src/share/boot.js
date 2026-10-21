@@ -325,17 +325,26 @@ function SR_boot(D){
     [...box.querySelectorAll("p")].forEach(p=>{ if(p.querySelector("ul,ol,h2,h3,h4,blockquote,aside,hr,p")) p.replaceWith(...p.childNodes); });
     return box.innerHTML;
   }
+  // Sin título: la pestaña es solo su contenido. El HTML ocupa todo el ancho y toma el alto de
+  // lo que muestra (sin scroll propio): el scroll es el de la página del reporte.
   function secPestana(main,p){
     if(!p){ V.section="presentacion"; return secPresentacion(main); }
-    if(p.tipo!=="html"){ main.innerHTML='<h2>'+esc(p.nombre)+'</h2><div class="cr-prose cr-px-texto">'+limpiarTexto(p.texto)+'</div>'; return; }
-    main.innerHTML='<h2 class="cr-px-h">'+esc(p.nombre)+'</h2><div class="cr-px-html"></div>';
+    if(p.tipo!=="html"){ main.innerHTML='<div class="cr-prose cr-px-texto">'+limpiarTexto(p.texto)+'</div>'; return; }
+    main.classList.add("sb-main-wide","cr-px-main");
+    main.innerHTML='<div class="cr-px-html"></div>';
     const fr=document.createElement("iframe");
-    fr.className="cr-px-frame"; fr.title=p.nombre; fr.setAttribute("sandbox","allow-scripts allow-popups allow-popups-to-escape-sandbox");
-    fr.setAttribute("referrerpolicy","no-referrer");
-    // El iframe avisa su alto (al cargar y un par de veces después) para que no tenga scroll propio.
-    const avisa='<script>(function(){function s(){try{parent.postMessage({lupaPx:1,h:Math.max(document.body?document.body.scrollHeight:0,document.documentElement.scrollHeight)},"*")}catch(e){}}addEventListener("load",function(){s();setTimeout(s,400);setTimeout(s,1500)})})()</scr'+'ipt>';
+    fr.className="cr-px-frame"; fr.title=p.nombre; fr.setAttribute("scrolling","no");
+    fr.setAttribute("sandbox","allow-scripts allow-popups allow-popups-to-escape-sandbox"); fr.setAttribute("referrerpolicy","no-referrer");
+    // El iframe avisa su alto cada vez que cambia (carga, imágenes, fuentes, scripts).
+    const avisa='<style>html,body{overflow:hidden!important}</style><script>(function(){var u=0;function s(){var d=document.documentElement,b=document.body;if(!b)return;var cs=getComputedStyle(b),h=Math.ceil(b.scrollHeight+parseFloat(cs.marginTop||0)+parseFloat(cs.marginBottom||0));if(Math.abs(h-u)<2)return;u=h;try{parent.postMessage({lupaPx:1,h:h},"*")}catch(e){}}addEventListener("load",s);if(window.ResizeObserver)new ResizeObserver(s).observe(document.documentElement);setTimeout(s,0);setTimeout(s,800);setTimeout(s,2500)})()</scr'+'ipt>';
     fr.srcdoc=String(p.html||"")+avisa;
-    const onMsg=e=>{ if(!document.body.contains(fr)){ removeEventListener("message",onMsg); return; } if(e.source===fr.contentWindow&&e.data&&e.data.lupaPx){ const h=Math.min(20000,Math.max(200,+e.data.h||0)); fr.style.height=h+"px"; } };
+    // Freno para contenido que mide en vh (crecería sin fin): a lo sumo 12 agrandadas seguidas.
+    let crecidas=0, alto=0;
+    const onMsg=e=>{ if(!document.body.contains(fr)){ removeEventListener("message",onMsg); return; }
+      if(e.source!==fr.contentWindow||!e.data||!e.data.lupaPx) return;
+      const h=Math.min(30000,Math.max(80,Math.ceil(+e.data.h||0)));
+      if(h>alto){ if(++crecidas>12) return; } else crecidas=0;
+      alto=h; fr.style.height=h+"px"; };
     addEventListener("message",onMsg);
     main.querySelector(".cr-px-html").appendChild(fr);
   }
