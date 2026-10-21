@@ -179,12 +179,16 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   (56 px de alto; 50 px en ≤ 800 px). No aparece en la página de gracias ni sin
   propuestas.
 - Dado **Trabajemos juntos**, cuando se toca, entonces se abre un modal:
-  - título "Sigamos mejorando tu producto";
+  - antetítulo, título y descripción editables (por defecto "Trabajemos juntos",
+    "Sigamos mejorando tu producto" y "Elegí cómo querés avanzar…");
   - las propuestas como **cards de pricing en columnas** (hasta 3 por fila; 1 en
     ≤ 800 px), con la misma tarjeta `propCard` de siempre;
-  - la primera, si hay más de una, destacada con borde azul y la etiqueta
-    "Recomendado";
-  - en cada card, el botón **Reservar ahora tu diagnóstico**.
+  - la recomendada (elegida en Configuración, o ninguna) destacada con borde azul y la
+    etiqueta "Recomendado". Los reportes publicados antes del cambio destacan la
+    primera si hay más de una;
+  - en cada card, su botón de reserva (por defecto **Reservar ahora tu diagnóstico**);
+  - debajo, las preguntas frecuentes de la propuesta elegida.
+  - El detalle está en `propuestas.md`.
 - El modal se cierra con la X, Escape o un clic afuera.
 - Dado **Reservar ahora tu diagnóstico**, cuando se toca en el link público, entonces:
   - envía `POST /api/publico` con `accion:"reserva"`, el mismo id y PIN, el nombre con
@@ -223,6 +227,59 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   (`enviado:false`) y el cliente ve la página de gracias.
 - Al publicar, `publicos/{id}` también guarda `estNombre` y `estCliente` para el correo.
 
+### Pestañas propias (2026-10-21, exploración `explorar/reporte-pestanas-custom`)
+- Dada la pestaña Reportes, cuando se abre, entonces debajo de "Qué ve el cliente" está
+  **Pestañas propias**:
+  - sin pestañas, el texto "Sumá una pestaña al menú del reporte con tu propio
+    contenido: un HTML que pegás o un texto con formato.";
+  - con pestañas, una fila por cada una con su casilla de visible, el nombre, el tipo
+    (HTML o Texto, y "· oculta" si está oculta), ↑ ↓ para el orden y **Editar**;
+  - el botón **+ Nueva pestaña**.
+  - Cada cambio (casilla, orden, guardar, eliminar) se guarda solo y actualiza la vista
+    previa.
+- Dado **+ Nueva pestaña** o **Editar**, cuando se toca, entonces se abre un modal con:
+  - **Nombre en el menú** (hasta 40 caracteres, obligatorio: "Poné un nombre para el
+    menú.");
+  - **Contenido**: "Texto con formato" o "HTML". Lo escrito en cada modo se conserva al
+    cambiar de uno a otro, pero se guarda solo el del modo elegido;
+  - **Mostrar al cliente** (marcado por defecto);
+  - **Crear pestaña** o **Guardar**, **Cancelar** y, si ya existe, **Eliminar pestaña**
+    con confirmación ("La pestaña … deja de aparecer en el reporte. No se puede
+    deshacer.").
+- Dado el modo **HTML**, cuando se pega o se escribe código, entonces a la derecha
+  "Así se ve en el reporte" lo muestra con sus estilos (~300 ms después de escribir).
+  Tab inserta dos espacios. Sin código no se guarda ("Pegá el código HTML."). Más de
+  400 KB tampoco ("El HTML pesa N KB; el máximo es 400 KB. Probá sin imágenes
+  incrustadas.").
+- Dado el modo **Texto con formato**, cuando se escribe, entonces el editor muestra el
+  texto con los mismos estilos que el reporte, y tiene:
+  - estilos de párrafo: Párrafo, Título, Subtítulo, Cita y Destacado;
+  - negrita, cursiva y subrayado (también con Ctrl/Cmd + B, I y U);
+  - lista con viñetas, lista numerada y separador;
+  - Link (sobre el texto seleccionado, con "Aplicar" y "Quitar"; sin `http`, se agrega
+    `https://`) y Limpiar (quita el formato).
+  - Enter en una Cita o un Destacado vacíos vuelve a Párrafo.
+  - Al pegar, se conservan los títulos, las listas, las negritas y los links, y se
+    descarta el resto.
+- Dada una pestaña visible con nombre, cuando el cliente abre el reporte, entonces
+  aparece en el menú lateral antes de **Contacto**, en el orden elegido, con un ícono
+  de documento (Texto) o de código (HTML). Las ocultas no viajan (`vistaCliente`).
+- Dada una pestaña abierta en el reporte, cuando se ve, entonces no tiene título en la
+  página: solo su contenido.
+  - **Texto**: con el estilo de lectura del reporte (Título 22 px, Subtítulo 17 px, Cita
+    con borde a la izquierda, Destacado con fondo azul claro).
+  - **HTML**: ocupa todo el ancho del contenido, sin borde ni margen. Toma el alto de lo
+    que muestra (también si cambia después de cargar), así que no tiene scroll propio:
+    el scroll es el de la página.
+- Seguridad:
+  - El HTML va en un iframe con `sandbox="allow-scripts allow-popups
+    allow-popups-to-escape-sandbox"`, sin `allow-same-origin`. Sus scripts corren, pero
+    no pueden leer ni cambiar el reporte, la app ni la sesión.
+  - El texto se limpia con una lista blanca al guardar y otra vez en `SR_boot`
+    (`limpiarTexto`). Solo quedan p, h2, h3, h4, blockquote, aside, listas, b, i, u, br,
+    hr y links `http(s):` o `mailto:`, que abren en otra pestaña. Se borran scripts,
+    estilos, iframes, atributos y eventos.
+
 ### Configuración: menú lateral + contenido
 - Dada la pestaña Configuración, cuando se abre, entonces:
   - a la izquierda hay un panel de 320 px con el menú **Datos del proyecto**, **Marca**
@@ -244,6 +301,8 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   (imágenes, datos, LinkedIn, textos de Presentación, servicio), con guardado
   automático y "Guardando…" / "Guardado".
 - Dadas **Propuestas de trabajo**, cuando se abren, entonces se ven:
+  - arriba, la tarjeta de textos de "Trabajemos juntos" con el plan recomendado y
+    **Vista previa** (ver `propuestas.md`);
   - una grilla de cards con tipo, título, precio ("A definir" si no tiene monto) y
     hasta 3 ítems de "qué incluye" ("+N más");
   - en cada card, la posición "N de M" y flechas ← → para cambiar el orden que ve el
@@ -275,7 +334,8 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
 - `reportes/publicar.js`: `firmaReporte`, `actividadDe`, campos `estNombre` /
   `estCliente` / `reservas`.
 - `share/boot.js`: grilla, filtros, Pronto, botón flotante, modal de propuestas,
-  reserva, página de gracias.
+  reserva, página de gracias y pestañas propias.
+- `reportes/pestanas.js`: lista y editor de pestañas propias.
 - `share/publico.js`: pasa id, PIN y nombre a `SR_boot`.
 - `share/compartir.js`: `buildShareHtml`, caché de composiciones, sin
   `generateSharePage`.
@@ -325,7 +385,8 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   - "Publicando…" / "Actualizando…" en la etiqueta;
   - "Cargando..." en la ayuda;
   - "Reservando…" en el botón de reserva;
-  - "Guardando…" en la Marca.
+  - "Guardando…" en la Marca;
+  - una pestaña HTML se ve en blanco hasta que carga su contenido.
 - **Error:**
   - "No se pudo actualizar la vista previa";
   - "No se pudo publicar: …" (toast);
@@ -334,6 +395,8 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   - "No pudimos registrar la reserva. Revisá tu conexión y probá de nuevo.";
   - "No se pudo guardar la marca.";
   - "Poné un título";
+  - "Poné un nombre para el menú.", "Pegá el código HTML.", "El HTML pesa N KB; el máximo
+    es 400 KB…" y "Seleccioná el texto del link" en las pestañas propias;
   - en `/r/{id}`, los mensajes de siempre.
 
 ## Diseño
@@ -379,12 +442,17 @@ construyeron en la exploración, sin frame propio en Figma.
 - `src/share/publico.js` (página `/r/{id}`).
 - `src/share/boot.js` (`SR_boot`).
 - `functions/api/[[path]].js` (`publico()`, `reservar()`, `avisarReserva()`).
+- `src/reportes/pestanas.js` (`renderPestanas`, `editorPestana`, `limpiarTexto`). En
+  `SR_boot`: `secPestana` y su propio `limpiarTexto` (la misma regla: si cambia una,
+  cambiar la otra).
 - Estilos: `base.css` (bloques "Reportes: …" y "Configuración: …"), `reportes.css`
-  (`.rp-exp-a`) y `cliente.css` (hallazgos en grilla, Trabajemos juntos, gracias,
-  `.cr-paso*` y `.cr-jr-hz*`).
+  (`.rp-exp-a` y `.px-*` del editor de pestañas) y `cliente.css` (hallazgos en grilla,
+  Trabajemos juntos, gracias, `.cr-paso*`, `.cr-jr-hz*` y `.cr-px-*` de las pestañas
+  propias).
 - Datos:
   - en el estudio, `estudios/{id}.reporte` (`ocultos`; `publico` con id, PIN, sal y
-    `firma`);
+    `firma`; `pestanas:[{id, nombre, tipo:"html"|"texto", html, texto, visible}]`; `tj`
+    con los textos de Trabajemos juntos y la recomendada);
   - en la foto, `publicos/{id}` (`estNombre`, `estCliente`, `consentimientos`,
     `reservas`) + `publicos/{id}/partes/{n}`.
 - Estado de la UI en `state.cfg` (ítem y editor abierto de Configuración).
@@ -403,6 +471,16 @@ construyeron en la exploración, sin frame propio en Figma.
   - si la página de gracias promete un plazo de respuesta (hoy no lo promete);
   - si limitar las reservas repetidas;
   - las propuestas por defecto que se siembran en cada estudio nuevo.
-- El texto plano y el JSON no llevan propuestas de trabajo (precios) ni protopersonas.
+- El texto plano y el JSON no llevan propuestas de trabajo (precios), protopersonas ni
+  pestañas propias.
+- Pestañas propias:
+  - no tienen prueba e2e propia (se verificaron en el navegador);
+  - un HTML que mide su alto en `vh` crecería sin fin: el alto deja de agrandarse
+    después de 12 aumentos seguidos (tope 30.000 px);
+  - el contenido de un HTML que se agranda solo después de 2,5 s sin cambiar el tamaño
+    de la página puede quedar cortado;
+  - el editor de texto usa `document.execCommand` (obsoleto, pero hoy funciona en los
+    navegadores);
+  - el bloqueo de copia del reporte no alcanza al contenido del HTML.
 - Un User Flow sin interacciones visibles o un journey sin pasos se listan igual, con
   "Sin pasos" en el mapa.

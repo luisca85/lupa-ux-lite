@@ -49,7 +49,8 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
   configuracion (pestaña Configuración: menú Datos del proyecto / Marca / Propuestas,
   edición en el panel), seleccion (`vistaCliente`: qué ve el cliente), publicar (foto en
   `publicos/`, PIN, `firmaReporte`, `actividadDe`), cliente (pantalla completa), exportar
-  (texto plano y JSON para IA, solo administrador).
+  (texto plano y JSON para IA, solo administrador), pestanas (pestañas propias del
+  reporte: HTML con sandbox o texto con formato).
 - `share/`: compartir (`collectShareData`, `buildShareHtml`, `montarVistaPrevia`,
   `montarReportePublico`), publico (página `/r/{id}`: PIN + consentimiento) y
   `boot.js` (`SR_boot`, único render del reporte del cliente, con reserva de propuestas;
@@ -140,7 +141,9 @@ pasos para lanzar (respaldo, migraciones, deploy, `migrar-cuentas`, quitar Acces
   pantalla por `pantallaId`; paso de journey → `flujos:[ids]`.
 - `cat_heur/{id}`, `cat_sesgo/{id}` — heurísticas y sesgos propios.
 
-Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio.
+Las propuestas de trabajo viven dentro de `reporte.propuestas` en cada estudio, con los
+textos de "Trabajemos juntos" y la recomendada en `reporte.tj`. Las pestañas propias del
+reporte viven en `reporte.pestanas`.
 
 ## API (functions/api)
 - Login (`AUTH_MODE="cuentas"`, fuera de `authorize()`): `POST /api/auth/codigo`

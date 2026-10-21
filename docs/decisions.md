@@ -195,3 +195,10 @@ hallazgo. Motivo: cargar igual desde las dos partes y que los datos queden empar
 texto plano y en JSON legible por IA, con lo mismo que ve el cliente y sin imágenes. Las
 cuentas de la beta y los clientes no tienen exportación. Motivo: trabajar el diagnóstico
 fuera de la app (por ejemplo, con una IA) sin abrir un segundo canal de entrega.
+
+2026-10-21 - El reporte del cliente acepta pestañas propias con HTML pegado por el autor
+(spec `rpt`). El HTML va en un iframe con `sandbox` que permite scripts pero no
+`allow-same-origin`, así corre aislado del reporte, de la app y de la sesión. El texto con
+formato se limpia con una lista blanca al guardar y al mostrarlo. Motivo: sumar contenido
+propio (benchmarks, tableros, propuestas en HTML) sin abrir un hueco de XSS en el dominio
+de la app, que también ven otras cuentas.
