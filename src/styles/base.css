@@ -1407,3 +1407,11 @@ body.solo-lectura :is(#wsAdd,#wsCambiar,#wsEliminarP,#wsCap,#qSave,#qDel,#hfSave
 .hps-pant-n{font-weight:600}
 .hps-pant-c{font-size:11px;color:var(--muted)}
 .hps-pant[hidden]{display:none}
+/* Propuestas de trabajo: textos de "Trabajemos juntos", recomendada y preguntas frecuentes */
+.cf-tj h3{margin:0}
+.cf-prop.rec{border-color:#1d5fd0;box-shadow:0 0 0 1px #1d5fd0}
+.cf-prop-rec{align-self:flex-start;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:#1d5fd0;border-radius:var(--r-pill);padding:2px 9px}
+.cf-faq{display:flex;flex-direction:column;gap:10px}
+.cf-faq-i{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
+.cf-faq-h{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+.cf-faq-i .pf{margin:0}

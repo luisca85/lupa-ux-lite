@@ -43,6 +43,8 @@ export function vistaCliente(r,hallazgos,flujos){
     // Pestañas propias: solo las visibles, con nombre y con el contenido de su tipo.
     pestanas:(r.pestanas||[]).filter(p=>p&&p.visible!==false&&String(p.nombre||"").trim())
       .map(p=>({id:p.id,nombre:String(p.nombre).trim(),tipo:p.tipo==="html"?"html":"texto",html:p.tipo==="html"?(p.html||""):"",texto:p.tipo==="html"?"":(p.texto||"")}))};
+  // Si la recomendada quedó oculta, no se recomienda ninguna.
+  if(rr.tj&&rr.tj.recomendada&&!rr.propuestas.some(p=>p.id===rr.tj.recomendada)) rr.tj={...rr.tj,recomendada:""};
   delete rr.ocultos; delete rr.publico; // nunca viaja al cliente
   return {r:rr,hallazgos:hz,flujos:[...flows,...jrs]};
 }

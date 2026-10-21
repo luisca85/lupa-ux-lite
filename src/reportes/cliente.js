@@ -9,7 +9,7 @@ import { toast } from "../ui/modales.js";
 // Usa el MISMO render que el link público y la página autónoma (SR_boot, con los
 // mismos filtros de "Qué ve el cliente"), sin PIN ni consentimiento. No hay otro
 // render del reporte en la app: no volver a duplicarlo.
-export async function openClientReport(estId){
+export async function openClientReport(estId,estado){
   const est=state.estudios.find(e=>e.id===estId);
   if(!est){ toast("No encontramos el estudio."); return; }
   try{
@@ -17,6 +17,7 @@ export async function openClientReport(estId){
     if(state._flujosFor!==estId){ state.flujos=await flowStore.list(estId); state._flujosFor=estId; }
     const r=await prepararEstudio(est); state.hallazgos=r.hallazgos; state.pantallas=r.pantallas; state.activeId=estId;
     state.marca=await brandStore.get();
-    montarVistaPrevia(await collectShareData(est));
+    const D=await collectShareData(est); if(estado) D.estado=estado;
+    montarVistaPrevia(D);
   }catch(e){ console.error("vista previa",e); toast("No se pudo abrir la vista previa: "+((e&&e.message)||e)); }
 }

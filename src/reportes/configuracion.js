@@ -1,7 +1,8 @@
 import { state } from "../core/state.js";
 import { esc, uid } from "../core/util.js";
 import { brandStore, ensureReporte, marcaActual, saveReporte, cuentaBeta } from "./comun.js";
-import { PROP_DESC, normalizePropuesta, propMoney, propPriceLine } from "./propuestas.js";
+import { BOTON_RESERVA, PROP_DESC, TJ_TEXTOS, normalizePropuesta, propMoney, propPriceLine } from "./propuestas.js";
+import { openClientReport } from "./cliente.js";
 import { plus, trash } from "../ui/iconos.js";
 import { loadBitmap, scaleImg } from "../ui/imagenes.js";
 import { toast } from "../ui/modales.js";
@@ -141,12 +142,18 @@ function renderMarca(box){
 
 /* ---- Propuestas de trabajo: grilla de cards; cada una se edita en el mismo panel ---- */
 function propuestas(main,est,c){
-  const r=est.reporte, st=cfg(), n=r.propuestas.length;
+  const r=est.reporte, st=cfg(), n=r.propuestas.length, tj=r.tj;
   main.innerHTML=`<div class="cf-wrap cf-wide">${cabecera("Propuestas de trabajo","El cliente las ve en \"Trabajemos juntos\", en este orden. Tocá una para editarla.")}
+    <section class="cf-card cf-tj"><div class="cf-lh"><h3>Textos de "Trabajemos juntos"</h3><button type="button" class="btn-q" id="cfTjPrev"${n?"":" disabled"}>Vista previa</button></div>
+      <div class="pf-row"><div class="pf"><label for="tj_k">Antetítulo</label><input id="tj_k" data-tj="kicker" value="${esc(tj.kicker)}" placeholder="${esc(TJ_TEXTOS.kicker)}"></div>
+        <div class="pf"><label for="tj_rec">Plan recomendado</label><select id="tj_rec"><option value="">Ninguno</option>${r.propuestas.map(p=>`<option value="${esc(p.id)}" ${tj.recomendada===p.id?"selected":""}>${esc(p.titulo||"(sin título)")}</option>`).join("")}</select></div></div>
+      <div class="pf"><label for="tj_t">Título</label><input id="tj_t" data-tj="titulo" value="${esc(tj.titulo)}" placeholder="${esc(TJ_TEXTOS.titulo)}"></div>
+      <div class="pf"><label for="tj_x">Descripción</label><textarea id="tj_x" data-tj="texto" rows="2" placeholder="${esc(TJ_TEXTOS.texto)}">${esc(tj.texto)}</textarea></div>
+      <p class="rhint">Se guardan solos. El recomendado lleva la etiqueta "Recomendado" y queda destacado; con "Ninguno", todos se ven iguales.</p></section>
     <div class="cf-grid" id="rptPropList">
       ${r.propuestas.map((p,i)=>{ const inc=(p.bullets||[]).slice(0,3);
-        return `<div class="cf-prop"><button type="button" class="cf-prop-open" data-i="${i}" aria-label="Editar ${esc(p.titulo||"propuesta")}">
-          <span class="cf-prop-tag">${p.tipo==="mensual"?"Plan fijo mensual":"Precio fijo"}</span>
+        return `<div class="cf-prop${tj.recomendada===p.id?" rec":""}"><button type="button" class="cf-prop-open" data-i="${i}" aria-label="Editar ${esc(p.titulo||"propuesta")}">
+          ${tj.recomendada===p.id?`<span class="cf-prop-rec">Recomendado</span>`:""}<span class="cf-prop-tag">${p.tipo==="mensual"?"Plan fijo mensual":"Precio fijo"}</span>
           <b class="cf-prop-t">${esc(p.titulo||"(sin título)")}</b>
           <span class="cf-prop-price">${esc(p.precioModo==="adefinir"?"A definir":propPriceLine(p))}</span>
           ${inc.length?`<ul>${inc.map(x=>`<li>${esc(x)}</li>`).join("")}${(p.bullets||[]).length>3?`<li class="mas">+${p.bullets.length-3} más</li>`:""}</ul>`:""}
@@ -155,6 +162,9 @@ function propuestas(main,est,c){
       <button type="button" class="cf-prop-new" id="rptAddProp"><span class="cf-plus">${plus()}</span><b>Nueva propuesta</b><small>Precio fijo o plan mensual</small></button>
     </div></div>`;
   main.querySelector("#rptAddProp").onclick=()=>{ st.edit={idx:null}; pintar(c,est); };
+  main.querySelectorAll("[data-tj]").forEach(inp=>inp.oninput=()=>{ tj[inp.dataset.tj]=inp.value; saveReporte(est); });
+  main.querySelector("#tj_rec").onchange=e=>{ tj.recomendada=e.target.value; saveReporte(est); pintar(c,est); };
+  main.querySelector("#cfTjPrev").onclick=()=>openClientReport(est.id,{tjOpen:true});
   main.querySelectorAll(".cf-prop-open").forEach(b=>b.onclick=()=>{ st.edit={idx:+b.dataset.i}; pintar(c,est); });
   main.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, j=i+(+b.dataset.mv), a=r.propuestas; if(j<0||j>=a.length) return;
     const [x]=a.splice(i,1); a.splice(j,0,x); saveReporte(est); pintar(c,est);
@@ -171,7 +181,11 @@ function editorPropuesta(main,est,{idx},volver){
       <div class="pf"><label>Tipo de propuesta</label>${seg("pr_tipo","t",[["fixed","Precio fijo"],["mensual","Plan fijo mensual"]],p.tipo)}</div>
       <div class="pf"><label for="pr_x">Descripción / beneficios</label><textarea id="pr_x" rows="3" placeholder="Qué gana el cliente con esta propuesta...">${esc(p.texto||"")}</textarea></div>
       <div class="pf"><label for="pr_b">Qué incluye <span class="hint">una por línea</span></label><textarea id="pr_b" rows="4" placeholder="Bloque fijo de horas por mes&#10;Reuniones de seguimiento&#10;Prioridad en la agenda">${esc((p.bullets||[]).join("\n"))}</textarea></div>
+      <div class="pf"><label for="pr_btn">Texto del botón</label><input id="pr_btn" maxlength="60" value="${esc(p.boton||"")}" placeholder="${esc(BOTON_RESERVA)}"></div>
     </section>
+    <section class="cf-card"><div class="cf-lh"><h3>Preguntas frecuentes <span class="hint">opcional</span></h3><button type="button" class="btn-q" id="pr_faqAdd">${plus()} Agregar pregunta</button></div>
+      <p class="rhint">Se ven debajo de las propuestas cuando el cliente elige esta.</p>
+      <div class="cf-faq" id="pr_faq"></div></section>
     <section class="cf-card"><h3>Precio</h3>
       ${seg("pr_modo","m",[["monto","Monto"],["adefinir","A definir"]],p.precioModo)}
       <div class="pf-row" id="pr_montoWrap" ${p.precioModo==="adefinir"?"hidden":""}>
@@ -208,10 +222,26 @@ function editorPropuesta(main,est,{idx},volver){
   $("#pr_lanz_on").onchange=e=>{ $("#pr_lanzFields").hidden=!e.target.checked; updLanzPrev(); };
   $("#pr_lanz_pct").oninput=updLanzPrev; $("#pr_precio").oninput=updLanzPrev; $("#pr_moneda").onchange=updLanzPrev;
   updTipo(); $("#pr_t").focus();
+  // Preguntas frecuentes: pares pregunta/respuesta, con subir, bajar y quitar.
+  const faq=(p.faq||[]).map(f=>({...f}));
+  const pintarFaq=()=>{ const box=$("#pr_faq");
+    box.innerHTML=faq.length?faq.map((f,i)=>`<div class="cf-faq-i"><div class="cf-faq-h"><span>Pregunta ${i+1}</span><span class="grow"></span>
+        <button type="button" class="icon-btn sm" data-fmv="-1" data-fi="${i}" aria-label="Subir" ${i===0?"disabled":""}>${chevL}</button><button type="button" class="icon-btn sm" data-fmv="1" data-fi="${i}" aria-label="Bajar" ${i===faq.length-1?"disabled":""}>${chevR}</button>
+        <button type="button" class="icon-btn sm" data-fdel="${i}" aria-label="Quitar pregunta ${i+1}">${trash()}</button></div>
+      <div class="pf"><input data-fq="${i}" value="${esc(f.q)}" placeholder="¿Cuánto tarda?" aria-label="Pregunta ${i+1}"></div>
+      <div class="pf"><textarea data-fa="${i}" rows="2" placeholder="Respuesta" aria-label="Respuesta ${i+1}">${esc(f.a)}</textarea></div></div>`).join("")
+      :`<span class="rhint">Sin preguntas frecuentes.</span>`;
+    box.querySelectorAll("[data-fq]").forEach(x=>x.oninput=()=>{ faq[+x.dataset.fq].q=x.value; });
+    box.querySelectorAll("[data-fa]").forEach(x=>x.oninput=()=>{ faq[+x.dataset.fa].a=x.value; });
+    box.querySelectorAll("[data-fdel]").forEach(b=>b.onclick=()=>{ faq.splice(+b.dataset.fdel,1); pintarFaq(); });
+    box.querySelectorAll("[data-fmv]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.fi, j=i+(+b.dataset.fmv); [faq[i],faq[j]]=[faq[j],faq[i]]; pintarFaq(); }); };
+  $("#pr_faqAdd").onclick=()=>{ faq.push({q:"",a:""}); pintarFaq(); const ins=$("#pr_faq").querySelectorAll("[data-fq]"); ins[ins.length-1].focus(); };
+  pintarFaq();
   $("#cfSave").onclick=()=>{
     const rec=normalizePropuesta({
       id:p.id||uid(), titulo:$("#pr_t").value.trim(), tipo:curTipo(), texto:$("#pr_x").value.trim(),
       bullets:$("#pr_b").value.split("\n").map(s=>s.trim()).filter(Boolean),
+      boton:$("#pr_btn").value.trim(), faq:faq.map(f=>({q:f.q.trim(),a:f.a.trim()})),
       precioModo:$("#pr_modo .seg.on")?.dataset.m||"adefinir", moneda:$("#pr_moneda").value,
       precio:$("#pr_precio").value!==""?Number($("#pr_precio").value):null,
       lanz:{on:$("#pr_lanz_on").checked,pct:$("#pr_lanz_pct").value!==""?Number($("#pr_lanz_pct").value):20},
@@ -221,5 +251,5 @@ function editorPropuesta(main,est,{idx},volver){
     if(idx==null) r.propuestas.push(rec); else r.propuestas[idx]=rec;
     saveReporte(est); toast(idx==null?"Propuesta creada":"Propuesta guardada"); volver();
   };
-  eliminar(main,"¿Eliminar esta propuesta?",()=>{ r.propuestas.splice(idx,1); saveReporte(est); toast("Propuesta eliminada"); volver(); });
+  eliminar(main,"¿Eliminar esta propuesta?",()=>{ const [x]=r.propuestas.splice(idx,1); if(x&&r.tj&&r.tj.recomendada===x.id) r.tj.recomendada=""; saveReporte(est); toast("Propuesta eliminada"); volver(); });
 }
