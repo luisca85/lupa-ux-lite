@@ -181,7 +181,8 @@ function editorPropuesta(main,est,{idx},volver){
       <div class="pf"><label>Tipo de propuesta</label>${seg("pr_tipo","t",[["fixed","Precio fijo"],["mensual","Plan fijo mensual"]],p.tipo)}</div>
       <div class="pf"><label for="pr_x">Descripción / beneficios</label><textarea id="pr_x" rows="3" placeholder="Qué gana el cliente con esta propuesta...">${esc(p.texto||"")}</textarea></div>
       <div class="pf"><label for="pr_b">Qué incluye <span class="hint">una por línea</span></label><textarea id="pr_b" rows="4" placeholder="Bloque fijo de horas por mes&#10;Reuniones de seguimiento&#10;Prioridad en la agenda">${esc((p.bullets||[]).join("\n"))}</textarea></div>
-      <div class="pf"><label for="pr_btn">Texto del botón</label><input id="pr_btn" maxlength="60" value="${esc(p.boton||"")}" placeholder="${esc(BOTON_RESERVA)}"></div>
+      <label class="chk"><input type="checkbox" id="pr_cta" ${p.cta===false?"":"checked"}> Mostrar el botón de reserva</label>
+      <div class="pf" id="pr_btnWrap" ${p.cta===false?"hidden":""}><label for="pr_btn">Texto del botón</label><input id="pr_btn" maxlength="60" value="${esc(p.boton||"")}" placeholder="${esc(BOTON_RESERVA)}"></div>
     </section>
     <section class="cf-card"><div class="cf-lh"><h3>Preguntas frecuentes <span class="hint">opcional</span></h3><button type="button" class="btn-q" id="pr_faqAdd">${plus()} Agregar pregunta</button></div>
       <p class="rhint">Se ven debajo de las propuestas cuando el cliente elige esta.</p>
@@ -215,12 +216,13 @@ function editorPropuesta(main,est,{idx},volver){
     const antes=Math.round((precio/(1-pct/100))/5)*5;
     prev.innerHTML='<span style="text-decoration:line-through;color:var(--faint)">'+esc(propMoney(mon,antes)+per)+'</span> <b style="color:var(--prob)">'+esc(propMoney(mon,precio)+per)+'</b>'; };
   const updTipo=()=>{ const m=curTipo()==="mensual"; $("#pr_perMes").hidden=!m;
-    $("#pr_descHint").textContent=m?"Para el plan mensual se calcula el total de cada período con su descuento.":"Se muestra el porcentaje de descuento por pagar por adelantado."; updLanzPrev(); };
+    $("#pr_descHint").textContent="Se muestra el total de cada período con su descuento y, si es de más de un mes, su valor por mes."; updLanzPrev(); };
   const segs=(sel,cb)=>main.querySelectorAll(sel+" .seg").forEach(s=>s.onclick=()=>{ main.querySelectorAll(sel+" .seg").forEach(y=>{ y.classList.remove("on"); y.setAttribute("aria-checked","false"); }); s.classList.add("on"); s.setAttribute("aria-checked","true"); cb(); });
   segs("#pr_tipo",updTipo);
   segs("#pr_modo",()=>{ const ad=$("#pr_modo .seg.on").dataset.m==="adefinir"; $("#pr_montoWrap").hidden=ad; $("#pr_lanzWrap").hidden=ad; });
   $("#pr_lanz_on").onchange=e=>{ $("#pr_lanzFields").hidden=!e.target.checked; updLanzPrev(); };
   $("#pr_lanz_pct").oninput=updLanzPrev; $("#pr_precio").oninput=updLanzPrev; $("#pr_moneda").onchange=updLanzPrev;
+  $("#pr_cta").onchange=e=>{ $("#pr_btnWrap").hidden=!e.target.checked; };
   updTipo(); $("#pr_t").focus();
   // Preguntas frecuentes: pares pregunta/respuesta, con subir, bajar y quitar.
   const faq=(p.faq||[]).map(f=>({...f}));
@@ -241,7 +243,7 @@ function editorPropuesta(main,est,{idx},volver){
     const rec=normalizePropuesta({
       id:p.id||uid(), titulo:$("#pr_t").value.trim(), tipo:curTipo(), texto:$("#pr_x").value.trim(),
       bullets:$("#pr_b").value.split("\n").map(s=>s.trim()).filter(Boolean),
-      boton:$("#pr_btn").value.trim(), faq:faq.map(f=>({q:f.q.trim(),a:f.a.trim()})),
+      boton:$("#pr_btn").value.trim(), cta:$("#pr_cta").checked, faq:faq.map(f=>({q:f.q.trim(),a:f.a.trim()})),
       precioModo:$("#pr_modo .seg.on")?.dataset.m||"adefinir", moneda:$("#pr_moneda").value,
       precio:$("#pr_precio").value!==""?Number($("#pr_precio").value):null,
       lanz:{on:$("#pr_lanz_on").checked,pct:$("#pr_lanz_pct").value!==""?Number($("#pr_lanz_pct").value):20},
