@@ -307,7 +307,7 @@ function SR_boot(D){
     if(D.publico){
       btn.disabled=true; const t=btn.textContent; btn.textContent="Reservando…";
       try{
-        const r=await fetch("/api/publico",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({accion:"reserva",id:D.publico.id,pin:D.publico.pin,email:D.publico.email,propuesta:{id:p.id||"",titulo:p.titulo||"",precio:priceLine(p)}})});
+        const r=await fetch("/api/publico",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({accion:"reserva",id:D.publico.id,pin:D.publico.pin,propuesta:{id:p.id||"",titulo:p.titulo||"",precio:priceLine(p)}})});
         if(!r.ok) throw new Error("http "+r.status);
       }catch(_){ btn.disabled=false; btn.textContent=t; if(err) err.textContent="No pudimos registrar la reserva. Revisá tu conexión y probá de nuevo."; return; }
     }

@@ -35,7 +35,7 @@ export const SECCIONES_LEGALES=[
       <li><b>Tu cuenta:</b> el email con el que ingresás y la fecha en que creaste la cuenta. Para entrar te mandamos un código de un solo uso; guardamos solo una versión cifrada (hash), nunca el código en claro.</li>
       <li><b>Lista de espera:</b> si los cupos de la beta están completos, guardamos tu email y la fecha para avisarte cuando haya lugar.</li>
       <li><b>Tu trabajo:</b> estudios, pantallas, hallazgos, flujos, textos del reporte, propuestas y los datos de marca que cargás (nombre, rol, contacto).</li>
-      <li><b>De tus clientes, al abrir un reporte compartido:</b> el email que escriben, la aceptación de las condiciones y la fecha. Si reservan una propuesta, también la propuesta elegida y la fecha.</li>
+      <li><b>De tus clientes, al abrir un reporte compartido:</b> la aceptación de las condiciones y la fecha (no se les pide ningún dato personal). Si reservan una propuesta, también la propuesta elegida y la fecha.</li>
     </ul>
     <h3>Para qué se usan</h3>
     <p>Solo para que la herramienta funcione: dejarte entrar a tu cuenta, guardar tu trabajo, mostrar el reporte a quien tenga el link y el PIN, registrar quién lo abrió y avisarte cuando un cliente reserva una propuesta. No se venden datos ni se usan para publicidad. Cada cuenta ve solo su propio trabajo.</p>
@@ -61,7 +61,7 @@ export const SECCIONES_LEGALES=[
     <h3>Confidencialidad</h3>
     <p>El reporte es confidencial y de solo lectura. No lo reenvíes ni compartas el PIN con personas ajenas a tu equipo sin permiso de quien te lo envió.</p>
     <h3>Qué registramos al abrirlo</h3>
-    <p>Para abrirlo pedimos tu email y que aceptes estas condiciones. Guardamos tu email, la aceptación y la fecha, y se los mostramos a quien te compartió el reporte. Si reservás una propuesta, también guardamos cuál elegiste y le avisamos por email. Más detalles en la política de privacidad.</p>
+    <p>Para abrirlo pedimos que aceptes estas condiciones. Guardamos la aceptación y la fecha, y se los mostramos a quien te compartió el reporte. Si reservás una propuesta, también guardamos cuál elegiste y le avisamos por email. Más detalles en la política de privacidad.</p>
     <h3>Mención del trabajo</h3>
     <p>Al aceptar estas condiciones, aceptás que quien preparó el reporte pueda mencionar que lo realizó y compartir aprendizajes generales sobre la experiencia (por ejemplo, en sus redes o su portfolio), sin revelar información clave ni datos confidenciales de tu empresa o producto.</p>` },
   { id:"almacenamiento", titulo:"Cookies y almacenamiento", html:`

@@ -88,17 +88,16 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     cli.on("pageerror", (e) => cliErr.push(e.message));
     await cli.goto(new URL(link).pathname);
     await cli.locator("#pubPin").fill(pin);
-    // Se entra con el email (no con el nombre) y una sola casilla, que incluye la mención.
-    await cli.locator("#pubEmail").fill("ana");
-    await cli.locator("#pubAcepto").check();
+    // Solo PIN y una casilla de condiciones (que incluye la mención); no se pide ningún dato.
+    await expect(cli.locator("#pubEmail, #pubNombre")).toHaveCount(0);
     await expect(cli.locator(".pub-terms")).toContainText("Quien preparó el reporte puede mencionar que lo realizó");
     await expect(cli.getByRole("link", { name: "política de privacidad" })).toHaveAttribute("href", "/legal/privacidad");
     await cli.getByRole("button", { name: "Ver reporte" }).click();
-    await expect(cli.locator("#pubErr")).toHaveText("Escribí un email válido.");
-    // El servidor también exige el email (un pedido con nombre y sin email no entra).
-    const sinEmail = await cli.evaluate(async ({ id, pin }) => (await fetch("/api/publico", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, pin, nombre: "Ana", acepto: true }) })).status, { id: new URL(link).pathname.split("/")[2], pin });
-    expect(sinEmail).toBe(400);
-    await cli.locator("#pubEmail").fill("Ana@Cliente.com");
+    await expect(cli.locator("#pubErr")).toHaveText("Para ver el reporte tenés que aceptar las condiciones de uso.");
+    // El servidor también exige la aceptación.
+    const sinAceptar = await cli.evaluate(async ({ id, pin }) => (await fetch("/api/publico", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, pin }) })).status, { id: new URL(link).pathname.split("/")[2], pin });
+    expect(sinAceptar).toBe(400);
+    await cli.locator("#pubAcepto").check();
     await cli.getByRole("button", { name: "Ver reporte" }).click();
     await expect(cli.getByRole("heading", { name: estudio })).toBeVisible();
     await expect(cli.getByRole("button", { name: "Contacto" })).toHaveCount(0); // se publicó sin Contacto
@@ -113,8 +112,8 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
 
   await test.step("la ayuda muestra la reserva y el consentimiento", async () => {
     await page.getByRole("button", { name: "Cómo funciona el link y el PIN" }).click();
-    await expect(page.locator("#hpRes")).toContainText("ana@cliente.com reservó Diagnóstico completo");
-    await expect(page.locator("#hpCons")).toContainText("ana@cliente.com");
+    await expect(page.locator("#hpRes")).toContainText("Reservaron Diagnóstico completo");
+    await expect(page.locator("#hpCons")).toContainText("Abrieron el link");
     await page.keyboard.press("Escape");
     await expect(page.locator("#rpHelpPop")).toBeHidden();
   });

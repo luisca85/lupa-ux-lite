@@ -196,14 +196,14 @@ async function publico(request, env) {
   // Reserva desde "Trabajemos juntos": exige el mismo PIN, la registra y avisa por correo.
   if (body.accion === "reserva") return reservar(body, meta, guardar, env, now);
 
-  // Consentimiento obligatorio: sin email válido y aceptación, no se entrega el reporte. Las
+  // Consentimiento obligatorio: sin aceptar las condiciones, no se entrega el reporte. Las
   // condiciones incluyen la mención del trabajo por quien preparó el reporte (mencion:true).
-  const email = emailDe(body && body.email);
-  if (!email || body.acepto !== true) {
+  // No se pide ni se guarda ningún dato de quien abre: solo la aceptación y la fecha.
+  if (body.acepto !== true) {
     await guardar(meta);
-    return json({ error: "Para ver el reporte, escribí tu email y aceptá las condiciones de uso.", consentimiento: true }, 400);
+    return json({ error: "Para ver el reporte, aceptá las condiciones de uso.", consentimiento: true }, 400);
   }
-  meta.consentimientos = [...(Array.isArray(meta.consentimientos) ? meta.consentimientos : []), { email, fecha: now, mencion: true }].slice(-PUB_MAX_CONSENT);
+  meta.consentimientos = [...(Array.isArray(meta.consentimientos) ? meta.consentimientos : []), { fecha: now, mencion: true }].slice(-PUB_MAX_CONSENT);
   await guardar(meta);
 
   const { results } = await env.DB.prepare("SELECT data FROM docs WHERE parent = ? ORDER BY path").bind(path + "/partes").all();
@@ -220,14 +220,12 @@ async function publico(request, env) {
    verificado en Resend). Si el correo falla, la reserva igual queda registrada. */
 const PUB_MAX_RESERVAS = 20;
 const txt = (v, n) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n);
-// Email de quien abre el reporte (en minúsculas) o "" si no es válido.
-function emailDe(v) { const e = String(v == null ? "" : v).trim().toLowerCase(); return e.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : ""; }
 
 async function reservar(body, meta, guardar, env, now) {
-  const email = emailDe(body.email), p = body.propuesta || {};
+  const p = body.propuesta || {};
   const propuesta = { id: txt(p.id, 64), titulo: txt(p.titulo, 140), precio: txt(p.precio, 60) };
-  if (!email || !propuesta.titulo) { await guardar(meta); return json({ error: "Faltan datos de la reserva." }, 400); }
-  const reserva = { email, propuesta, fecha: now };
+  if (!propuesta.titulo) { await guardar(meta); return json({ error: "Faltan datos de la reserva." }, 400); }
+  const reserva = { propuesta, fecha: now };
   meta.reservas = [...(Array.isArray(meta.reservas) ? meta.reservas : []), reserva].slice(-PUB_MAX_RESERVAS);
   await guardar(meta);
   let enviado = false;
@@ -248,8 +246,8 @@ async function avisarReserva(env, meta, r) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const estudio = meta.estNombre || "un estudio", cliente = meta.estCliente ? " (" + meta.estCliente + ")" : "";
   const fecha = new Date(r.fecha).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "long", timeStyle: "short" });
-  const quien = r.email || r.nombre || "";
-  const asunto = "Nueva reserva: " + r.propuesta.titulo + " · " + quien;
+  const quien = r.nombre || "Tu cliente"; // las reservas viejas tienen el nombre de quien entró
+  const asunto = "Nueva reserva: " + r.propuesta.titulo + (r.nombre ? " · " + r.nombre : "");
   const html = "<h2>Nueva reserva desde el reporte</h2>"
     + "<p><b>" + esc(quien) + "</b> reservó <b>" + esc(r.propuesta.titulo) + "</b>" + (r.propuesta.precio ? " (" + esc(r.propuesta.precio) + ")" : "") + ".</p>"
     + "<p>Estudio: " + esc(estudio + cliente) + "<br>Fecha: " + esc(fecha) + "</p>"
