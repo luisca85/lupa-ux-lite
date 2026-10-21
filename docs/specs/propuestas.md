@@ -16,12 +16,12 @@ el reporte, con precio, qué incluye, descuentos y precio de lanzamiento.
   moneda y, si el tipo es Plan fijo mensual, con " /mes"; si es "A definir", dice
   "A definir".
 - Dados descuentos por pago adelantado (mensual, trimestral, semestral, anual) en %,
-  cuando se ve la propuesta con monto, entonces cada uno muestra el % y el **precio
-  final con el descuento**:
-  - en el plan mensual, el total del período y su valor por mes;
-  - en precio fijo, el precio fijo con el descuento (cambio del 2026-10-21; antes
-    mostraba solo el %).
+  cuando se ve la propuesta con monto, entonces todos los planes (precio fijo o mensual)
+  los muestran igual, con el **precio final con el descuento**: el período en una línea
+  y, debajo, el %, el total del período (monto × meses) y, si es de más de un mes, su
+  valor por mes. Ejemplo: "Trimestral (3 meses)" / "-10% · US$ 3.240 (US$ 1.080/mes)".
   - Con "A definir" se muestra solo el %. Los vacíos o en 0 no se muestran.
+  - En celular la fila no desborda la card.
 - Dado el precio de lanzamiento activo con N% (1–99) y un monto, cuando se ve la
   propuesta, entonces muestra el "antes" tachado (`precio / (1 - N/100)`, redondeado
   a múltiplos de 5), el precio guardado como "ahora", la etiqueta "Lanzamiento -N%" y
