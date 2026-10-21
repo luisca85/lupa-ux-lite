@@ -38,8 +38,8 @@ Se llega desde el pie de página (spec `home`). Surgió en la exploración
 - **Política de privacidad:**
   - qué se guarda: el email de Cloudflare Access; el trabajo (estudios, pantallas,
     hallazgos, flujos, reportes, propuestas, marca); y, del cliente que abre un
-    reporte, su nombre, la aceptación y la fecha, más la propuesta reservada si
-    reserva;
+    reporte, la aceptación y la fecha (sin datos personales; desde el 2026-10-21), más
+    la propuesta reservada si reserva;
   - para qué: solo para que la herramienta funcione, sin venta ni publicidad;
   - quién los recibe: Cloudflare (hosting, base y login), Resend (correo de aviso de
     reserva) y Google Fonts (tipografías). Sin servidor, todo queda en el navegador;
@@ -70,8 +70,8 @@ su ruta en `src/app/render.js`, los enlaces del pie (`src/ui/pie.js`) y los esti
 
 ## Fuera de alcance / No tocar
 - El reporte del cliente (`SR_boot`) no cambia. El consentimiento del link público
-  (`src/share/publico.js`, `POST /api/publico`) solo suma la cláusula de mención para
-  los reportes de uxuaria (ver Conocido).
+  (`src/share/publico.js`, `POST /api/publico`) incluye la cláusula de mención dentro de
+  las condiciones de uso (ver Conocido).
 - La API y `authorize()`: las páginas legales son texto fijo dentro de la app y no
   agregan rutas.
 - Banner de cookies: no hace falta mientras no haya cookies que no sean necesarias.
@@ -127,12 +127,14 @@ botón de volver (`.cf-back`).
     acceso gratuito cada seis meses y el aviso de la Agencia de Acceso a la Información
     Pública.
   - **Responsable:** "Luis Carlos Romero León", igual que en el pie.
-  - **Condiciones en el link público:** son genéricas para todos (confidencial, solo
-    lectura, se registra nombre, aceptación y fecha) y enlazan a `/legal/reportes` y a
-    `/legal/privacidad`, que se leen sin cuenta. La cláusula de mención en redes y
-    portfolio de uxuaria se pide solo en los reportes de uxuaria: `mencion` en
-    `publicos/{id}`, que con cuentas fija el servidor (`true` solo para el
-    administrador). Los links anteriores no tienen el campo y se tratan como de uxuaria.
+  - **Condiciones en el link público** (cambio del 2026-10-21): son las mismas para todos
+    los reportes. Dicen que el reporte es confidencial y de solo lectura, que se registra
+    la aceptación y la fecha (sin nombre ni email), y que quien preparó el reporte puede
+    mencionar que lo realizó y compartir aprendizajes generales, sin revelar
+    información clave ni datos confidenciales. Una sola casilla. Enlazan a
+    `/legal/reportes` (sección "Mención del trabajo") y a `/legal/privacidad`, que se
+    leen sin cuenta. Ya no hay cláusula aparte para los reportes de uxuaria ni campo
+    `mencion` en `publicos/{id}`.
   - Nueva sección "Reportes compartidos" (`id: reportes`).
 - **Pendiente (decisión del 2026-10-16/20): revisión legal.** La beta se lanza sin
   revisión de un abogado y los textos se revisan después. Ver decisions.md.

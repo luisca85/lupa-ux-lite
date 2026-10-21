@@ -130,8 +130,8 @@ pasos para lanzar (respaldo, migraciones, deploy, `migrar-cuentas`, quitar Acces
 - `marca/perfil` — marca del autor (logo, contacto, servicio, LinkedIn, bienvenida y
   aclaraciones del reporte).
 - `publicos/{id}` — link público: `estId`, `estNombre`, `estCliente`, hash del PIN con
-  sal, fallos/bloqueo, últimos 10 consentimientos (nombre, fecha) y últimas 20 reservas
-  (nombre, propuesta, fecha). `publicos/{id}/partes/{n}` — la foto del reporte filtrado
+  sal, fallos/bloqueo, últimos 10 consentimientos (fecha) y últimas 20 reservas
+  (propuesta, fecha). Los de antes del 2026-10-21 tienen además el nombre. `publicos/{id}/partes/{n}` — la foto del reporte filtrado
   (JSON partido en trozos). En el estudio, `reporte.publico` guarda id, PIN, sal y la
   huella `firma` de lo publicado (detrás de Access) y `reporte.ocultos` lo que el
   cliente no ve.
@@ -164,7 +164,7 @@ reporte viven en `reporte.pestanas`.
 - Auth: `AUTH_MODE="access"` valida el JWT `Cf-Access-Jwt-Assertion` contra los
   certificados del team (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`); sin config → 503.
   `authorize()` devuelve `{denied}` o `{user}`; toda ruta pasa por ella, salvo
-  `POST /api/publico` ({id, pin, nombre, acepto}): Bypass en Access, solo lee
+  `POST /api/publico` ({id, pin, acepto}): Bypass en Access, solo lee
   `publicos/`, 401 igual para link o PIN inválido, 5 fallos → 15 min de bloqueo (429),
   400 sin consentimiento, `no-store` + `noindex`. Con `accion:"reserva"` (mismo PIN)
   guarda la reserva en `publicos/{id}` y avisa por correo con Resend si hay

@@ -196,20 +196,14 @@ async function publico(request, env) {
   // Reserva desde "Trabajemos juntos": exige el mismo PIN, la registra y avisa por correo.
   if (body.accion === "reserva") return reservar(body, meta, guardar, env, now);
 
-  // Consentimiento obligatorio: sin nombre y aceptación, no se entrega el reporte.
-  const nombre = String((body && body.nombre) || "").replace(/\s+/g, " ").trim().slice(0, 80);
-  if (!nombre || body.acepto !== true) {
+  // Consentimiento obligatorio: sin aceptar las condiciones, no se entrega el reporte. Las
+  // condiciones incluyen la mención del trabajo por quien preparó el reporte (mencion:true).
+  // No se pide ni se guarda ningún dato de quien abre: solo la aceptación y la fecha.
+  if (body.acepto !== true) {
     await guardar(meta);
-    return json({ error: "Para ver el reporte, escribí tu nombre y aceptá las condiciones de uso.", consentimiento: true }, 400);
+    return json({ error: "Para ver el reporte, aceptá las condiciones de uso.", consentimiento: true }, 400);
   }
-  // Reportes de uxuaria (mencion): piden además aceptar que uxuaria lo mencione. Los links
-  // de antes de las cuentas no tienen el campo y son todos de uxuaria.
-  const pideMencion = meta.mencion !== false;
-  if (pideMencion && body.aceptoMencion !== true) {
-    await guardar(meta);
-    return json({ error: "Este reporte lo preparó uxuaria y pide una condición más.", mencion: true, consentimiento: true }, 400);
-  }
-  meta.consentimientos = [...(Array.isArray(meta.consentimientos) ? meta.consentimientos : []), { nombre, fecha: now, ...(pideMencion ? { mencion: true } : {}) }].slice(-PUB_MAX_CONSENT);
+  meta.consentimientos = [...(Array.isArray(meta.consentimientos) ? meta.consentimientos : []), { fecha: now, mencion: true }].slice(-PUB_MAX_CONSENT);
   await guardar(meta);
 
   const { results } = await env.DB.prepare("SELECT data FROM docs WHERE parent = ? ORDER BY path").bind(path + "/partes").all();
@@ -228,10 +222,10 @@ const PUB_MAX_RESERVAS = 20;
 const txt = (v, n) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n);
 
 async function reservar(body, meta, guardar, env, now) {
-  const nombre = txt(body.nombre, 80), p = body.propuesta || {};
+  const p = body.propuesta || {};
   const propuesta = { id: txt(p.id, 64), titulo: txt(p.titulo, 140), precio: txt(p.precio, 60) };
-  if (!nombre || !propuesta.titulo) { await guardar(meta); return json({ error: "Faltan datos de la reserva." }, 400); }
-  const reserva = { nombre, propuesta, fecha: now };
+  if (!propuesta.titulo) { await guardar(meta); return json({ error: "Faltan datos de la reserva." }, 400); }
+  const reserva = { propuesta, fecha: now };
   meta.reservas = [...(Array.isArray(meta.reservas) ? meta.reservas : []), reserva].slice(-PUB_MAX_RESERVAS);
   await guardar(meta);
   let enviado = false;
@@ -252,9 +246,10 @@ async function avisarReserva(env, meta, r) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const estudio = meta.estNombre || "un estudio", cliente = meta.estCliente ? " (" + meta.estCliente + ")" : "";
   const fecha = new Date(r.fecha).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "long", timeStyle: "short" });
-  const asunto = "Nueva reserva: " + r.propuesta.titulo + " · " + r.nombre;
+  const quien = r.nombre || "Tu cliente"; // las reservas viejas tienen el nombre de quien entró
+  const asunto = "Nueva reserva: " + r.propuesta.titulo + (r.nombre ? " · " + r.nombre : "");
   const html = "<h2>Nueva reserva desde el reporte</h2>"
-    + "<p><b>" + esc(r.nombre) + "</b> reservó <b>" + esc(r.propuesta.titulo) + "</b>" + (r.propuesta.precio ? " (" + esc(r.propuesta.precio) + ")" : "") + ".</p>"
+    + "<p><b>" + esc(quien) + "</b> reservó <b>" + esc(r.propuesta.titulo) + "</b>" + (r.propuesta.precio ? " (" + esc(r.propuesta.precio) + ")" : "") + ".</p>"
     + "<p>Estudio: " + esc(estudio + cliente) + "<br>Fecha: " + esc(fecha) + "</p>"
     + "<p>Le prometimos que le escribís pronto.</p>";
   const res = await fetch("https://api.resend.com/emails", {
@@ -513,8 +508,6 @@ export async function onRequest({ request, env, params }) {
           return json({ error: "El documento debe ser un objeto" }, 400);
         if (esPublico(path) && path.split("/").length === 2) {
           data["dueño"] = user.id;
-          // Con cuentas, solo los reportes del administrador (uxuaria) piden la condición de mención.
-          if (env.AUTH_MODE === "cuentas") data.mencion = !!user.admin;
         }
         const limite = await chocaLimite(env, pedida, path, user);
         if (limite) return limite;

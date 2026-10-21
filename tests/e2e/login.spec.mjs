@@ -175,15 +175,6 @@ test("beta: 1 estudio a la vez y 15 pantallas por estudio", async ({ page }) => 
   await expect(page.locator("#newStudy")).toBeEnabled();
 });
 
-test("link público: una cuenta de la beta no puede pedir la condición de uxuaria", async ({ page }) => {
-  await entrarCon(page, unico("gabi"));
-  const pub = "publicos/beta" + Date.now() + "abcdef";
-  expect((await api(page, "PUT", pub, { estNombre: "X", mencion: true })).status).toBe(200);
-  const leido = await api(page, "GET", pub);
-  expect(leido.body.data.mencion).toBe(false);
-  await api(page, "DELETE", pub);
-});
-
 test("beta: con los cupos completos, un email nuevo queda en la lista de espera", async ({ page }) => {
   // MAX_CUENTAS=8 en este servidor; el administrador no cuenta.
   let r = null;

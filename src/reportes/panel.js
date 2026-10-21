@@ -131,8 +131,8 @@ function pintarAyuda(pop,est,r){
   if(!r.publico) return;
   actividadDe(est).then(({consentimientos,reservas})=>{
     const res=pop.querySelector("#hpRes"), cons=pop.querySelector("#hpCons"); if(!res) return;
-    res.innerHTML=reservas.length?`<ul class="pub-cons-list">${reservas.slice().reverse().map(x=>`<li><b>${esc(x.nombre)}</b> reservó ${esc(x.propuesta&&x.propuesta.titulo||"")} · ${esc(fechaCorta(x.fecha))}</li>`).join("")}</ul>`:"Todavía no hay reservas.";
-    cons.innerHTML=consentimientos.length?`<ul class="pub-cons-list">${consentimientos.slice().reverse().map(x=>`<li><b>${esc(x.nombre)}</b> · ${esc(fechaCorta(x.fecha))}</li>`).join("")}</ul>`:"Todavía nadie abrió el link.";
+    res.innerHTML=reservas.length?`<ul class="pub-cons-list">${reservas.slice().reverse().map(x=>`<li>${x.nombre?`<b>${esc(x.nombre)}</b> reservó`:"Reservaron"} ${esc(x.propuesta&&x.propuesta.titulo||"")} · ${esc(fechaCorta(x.fecha))}</li>`).join("")}</ul>`:"Todavía no hay reservas.";
+    cons.innerHTML=consentimientos.length?`<ul class="pub-cons-list">${consentimientos.slice().reverse().map(x=>`<li>${x.nombre?`<b>${esc(x.nombre)}</b> · `:"Abrieron el link · "}${esc(fechaCorta(x.fecha))}</li>`).join("")}</ul>`:"Todavía nadie abrió el link.";
   }).catch(()=>{ const res=pop.querySelector("#hpRes"); if(res) res.textContent="No se pudo cargar la actividad."; });
 }
 function abrirModalCompartir(est,r,alCerrar){

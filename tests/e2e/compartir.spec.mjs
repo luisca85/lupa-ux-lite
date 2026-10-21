@@ -88,15 +88,16 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     cli.on("pageerror", (e) => cliErr.push(e.message));
     await cli.goto(new URL(link).pathname);
     await cli.locator("#pubPin").fill(pin);
-    await cli.locator("#pubNombre").fill("Ana Cliente");
-    await cli.locator("#pubAcepto").check();
+    // Solo PIN y una casilla de condiciones (que incluye la mención); no se pide ningún dato.
+    await expect(cli.locator("#pubEmail, #pubNombre")).toHaveCount(0);
+    await expect(cli.locator(".pub-terms")).toContainText("Quien preparó el reporte puede mencionar que lo realizó");
     await expect(cli.getByRole("link", { name: "política de privacidad" })).toHaveAttribute("href", "/legal/privacidad");
     await cli.getByRole("button", { name: "Ver reporte" }).click();
-    // Reporte de uxuaria (sin cuentas): pide además la condición de mención.
-    await expect(cli.locator("#pubMencionBox")).toBeVisible();
-    await cli.getByRole("button", { name: "Ver reporte" }).click();
-    await expect(cli.locator("#pubErr")).toHaveText("Para ver este reporte tenés que aceptar la condición de uxuaria.");
-    await cli.locator("#pubMencion").check();
+    await expect(cli.locator("#pubErr")).toHaveText("Para ver el reporte tenés que aceptar las condiciones de uso.");
+    // El servidor también exige la aceptación.
+    const sinAceptar = await cli.evaluate(async ({ id, pin }) => (await fetch("/api/publico", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, pin }) })).status, { id: new URL(link).pathname.split("/")[2], pin });
+    expect(sinAceptar).toBe(400);
+    await cli.locator("#pubAcepto").check();
     await cli.getByRole("button", { name: "Ver reporte" }).click();
     await expect(cli.getByRole("heading", { name: estudio })).toBeVisible();
     await expect(cli.getByRole("button", { name: "Contacto" })).toHaveCount(0); // se publicó sin Contacto
@@ -104,15 +105,15 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     const mia = cli.getByRole("dialog").locator(".tj-col").last(); // la propuesta agregada va al final
     await expect(mia.getByRole("heading", { name: "Diagnóstico completo" })).toBeVisible();
     await mia.getByRole("button", { name: "Reservar ahora tu diagnóstico" }).click();
-    await expect(cli.getByRole("heading", { name: /Gracias, Ana/ })).toBeVisible();
+    await expect(cli.getByRole("heading", { name: "¡Gracias! Tu reserva está confirmada" })).toBeVisible();
     await expect(cli.locator(".ty-res")).toContainText("Diagnóstico completo");
     expect(cliErr).toEqual([]);
   });
 
   await test.step("la ayuda muestra la reserva y el consentimiento", async () => {
     await page.getByRole("button", { name: "Cómo funciona el link y el PIN" }).click();
-    await expect(page.locator("#hpRes")).toContainText("Ana Cliente reservó Diagnóstico completo");
-    await expect(page.locator("#hpCons")).toContainText("Ana Cliente");
+    await expect(page.locator("#hpRes")).toContainText("Reservaron Diagnóstico completo");
+    await expect(page.locator("#hpCons")).toContainText("Abrieron el link");
     await page.keyboard.press("Escape");
     await expect(page.locator("#rpHelpPop")).toBeHidden();
   });
