@@ -70,9 +70,11 @@ nada. Sale de la exploración `explorar/modelo-pantallas`.
   origen URL llevan la marca "URL". A la derecha, el botón azul "Nueva pantalla +" (28 px,
   radio 4) abre el alta: subir imagen o pegar URL, más el nombre. Al crearla queda activa.
 - Cuando las pestañas no entran: flechas ‹ › a los costados (desplazan un bloque y se
-  desactivan en las puntas), desvanecido en el borde donde hay más, y el botón "Todas (N)"
-  con la lista de pantallas (número, nombre, marca URL y cantidad de hallazgos) para saltar
-  directo. Con teclado: ←/→ cambian de pantalla, Inicio/Fin van a la primera/última; en la
+  desactivan en las puntas) y desvanecido en el borde donde hay más. El botón "Todas (N)"
+  está **siempre visible**: su menú tiene arriba "Todos los hallazgos" y "Sin pantalla"
+  (con sus cantidades) y, bajo "Pantallas", la lista de pantallas (número, nombre, marca URL
+  y cantidad de hallazgos) para saltar directo (ver "Vistas Todos los hallazgos y Sin
+  pantalla"). Con teclado: ←/→ cambian de pantalla, Inicio/Fin van a la primera/última; en la
   lista, ↑/↓, Enter y Esc. La pestaña activa siempre queda a la vista.
 - **Lienzo**: muestra la captura de la pantalla activa con sus pines numerados, sobre fondo
   gris punteado (radio 14). Arriba a la derecha: "Cambiar pantalla" (nombre, URL o reemplazar
@@ -161,8 +163,42 @@ nada. Sale de la exploración `explorar/modelo-pantallas`.
   captura de una pantalla de URL que todavía no la tiene.
 - Una pantalla de origen URL sin captura muestra la zona para pegarla o subirla (la captura
   automática de la URL no existe todavía).
-- Los hallazgos sin pantalla (generales, o de una pantalla eliminada) no se muestran en esta
-  sección por ahora; siguen en el Resumen y en el reporte.
+- Los hallazgos sin pantalla (generales, o de una pantalla eliminada) se ven en la vista
+  "Sin pantalla" del menú "Todas" (ver abajo); siguen también en el Resumen y en el reporte.
+
+### Vistas "Todos los hallazgos" y "Sin pantalla" (2026-10-21)
+Sale de la exploración `explorar/hallazgos-todas-las-pantallas`.
+- Dado el menú "Todas", cuando se elige "Todos los hallazgos" o "Sin pantalla", entonces
+  ninguna pestaña de pantalla queda activa y el botón pasa a negro (invertido en tema
+  oscuro) con el nombre de la vista y su cantidad ("Todos los hallazgos 20", "Sin pantalla
+  4"). Elegir una pestaña o una pantalla del menú vuelve al lienzo de esa pantalla.
+- **Todos los hallazgos** (área de trabajo): encabezado "Todos los hallazgos" con "N en M
+  pantallas y K sin pantalla. Clic en una pantalla para trabajar en ella." y una grilla de
+  tarjetas, una por pantalla en el orden de las pestañas: la captura completa en miniatura
+  (sin recortar, 220 px de alto como máximo) con sus pines numerados chicos en el color de
+  su severidad, y abajo el nombre y la cantidad de hallazgos. Al final, si hay hallazgos sin
+  pantalla, una tarjeta punteada "N hallazgos sin pantalla" que lleva a esa vista.
+  - Clic (o Enter / Espacio) en una miniatura: va a esa pantalla. Clic en un pin: abre ese
+    hallazgo en el formulario del panel, sin salir de la vista.
+  - Una pantalla de URL sin captura se muestra como un recuadro vacío.
+- **Todos los hallazgos** (panel): "Hallazgos", "TODAS LAS PANTALLAS" y "N en total", con los
+  mismos filtros por severidad. La lista va agrupada por pantalla (nombre y cantidad del
+  grupo, en el orden de las pestañas) y al final el grupo "Sin pantalla"; los grupos sin
+  hallazgos (o sin resultados para el filtro) no aparecen.
+- **Sin pantalla** (área de trabajo): encabezado "Hallazgos sin pantalla" con "N hallazgos
+  no están ubicados en ninguna pantalla. Abrí uno para agregarle una pantalla y un pin." y
+  el botón "Nuevo hallazgo sin pantalla +", que abre el formulario único vacío en el panel.
+  Debajo, una tarjeta por hallazgo con título, descripción (hasta 3 líneas) y "Sev. N ·
+  etiqueta · heurística", con un borde izquierdo del color de su severidad.
+- **Sin pantalla** (panel): "Hallazgos", "SIN PANTALLA" y "N sin pantalla", con filtros y la
+  lista de esos hallazgos (sin número de pin: "·").
+- Un hallazgo cuenta como "sin pantalla" si no tiene `pantallaId` o si su pantalla ya no
+  existe en el estudio.
+- Tocar una tarjeta (del área o del panel) abre el formulario único y la marca como
+  seleccionada. Al guardar se queda en la vista: si se le agregó una pantalla a un hallazgo
+  de "Sin pantalla", sale de esa lista y pasa al grupo de su pantalla.
+- Pegar una imagen (Ctrl/Cmd + V) estando en una de estas vistas crea una pantalla nueva y
+  la deja activa.
 
 ### Editor completo (Resumen "Nuevo hallazgo" y "Más campos")
 - La página de alta y el modal usan el mismo editor (`hzEditor`): título, ubicación o paso
@@ -186,7 +222,7 @@ borrado), lectores adaptados (`share/compartir.js`, `reportes/texto-plano.js`,
 `journey/relaciones.js`, `ui/imagenes.js`, `flujos/*`, `data/store.js`) y `base.css`.
 
 ## Fuera de alcance / No tocar
-- Fuera de alcance: dónde ubicar los hallazgos sin pantalla (A CONFIRMAR); captura
+- Fuera de alcance: captura
   automática de URLs (requiere Cloudflare Browser Rendering); herramientas de anotación
   sobre la pantalla además de los pines; borrar los respaldos v1.
 - No tocar: el render de `SR_boot` (solo su paleta de severidad se alineó, spec `ds`);
@@ -202,8 +238,12 @@ borrado), lectores adaptados (`share/compartir.js`, `reportes/texto-plano.js`,
   imagen"; el panel muestra el aviso "Cuando cargues una pantalla y ubiques un pin, el
   hallazgo aparece en esta lista. Desde acá lo filtrás por severidad y lo editás.");
   pantalla sin hallazgos; filtro sin resultados ("Ningún hallazgo con esta severidad.");
-  pantalla de URL sin captura.
-- Carga: el lienzo se arma cuando llega la imagen de la pantalla.
+  pantalla de URL sin captura; "Todos los hallazgos" sin hallazgos ("El estudio todavía no
+  tiene hallazgos."); "Sin pantalla" vacío ("Todos los hallazgos están ubicados en una
+  pantalla." en el área y "No hay hallazgos sin pantalla." en el panel).
+- Carga: el lienzo se arma cuando llega la imagen de la pantalla (si mientras tanto se
+  cambió de pantalla o de vista, no se dibuja); en "Todos los hallazgos" cada miniatura
+  aparece cuando llega su imagen.
 - Error: "No se pudo guardar. Probá de nuevo." (el botón vuelve a habilitarse); "No se pudo
   procesar la imagen"; migración fallida: aviso con el error y el estudio abre igual.
 
@@ -212,20 +252,23 @@ Figma "Ux-Diagnostic-tool": "Lupa UX · Proyecto · empty state"
 https://www.figma.com/design/TgoGlLsjt4rs2dH04TQnFL/Ux-Diagnostic-tool?node-id=29-3102,
 "Lupa UX · Proyecto · nuevo hallazgo" (node 29:3575) y "Lupa UX · Proyecto · editar
 hallazgo" (node 37:5809). Desvíos acordados: flechas y menú "Todas" para pestañas que no
-entran; zoom en lienzo; tipografía Geist (el Figma usa IBM Plex Sans en el panel).
+entran, con las vistas "Todos los hallazgos" y "Sin pantalla" (sin diseño en Figma); zoom
+en lienzo; tipografía Geist (el Figma usa IBM Plex Sans en el panel).
 
 ## Definición de hecho
 - La de AGENTS.md: `npm run check`, `npm run smoke` y `npm run test:e2e` pasan (con Node 20,
   ver `.nvmrc`).
 - Propio: abrir un estudio v1 real y verificar pantallas, copias y respaldo; crear dos
   hallazgos seguidos con clic + Guardar; zoom y arrastre sin crear hallazgos; pestañas que
-  no entran (flechas, "Todas", teclado); vista previa del reporte con la evidencia.
+  no entran (flechas, "Todas", teclado); "Todos los hallazgos" (miniaturas con pines, ir a
+  una pantalla, abrir un pin, panel agrupado) y "Sin pantalla" (tarjetas, nuevo hallazgo
+  sin pantalla); vista previa del reporte con la evidencia.
 
 ## Dónde vive
 - `src/data/pantallas.js`: `pantallaStore`, `pantallaDesdeImagen`, `hashStr`, `normalizarPin`,
   `pinNumero`, `nuevoHallazgo`, `migrarEstudio`, `prepararEstudio`, `MODELO`, `SEV_DEFAULT`.
 - `src/views/hallazgos-ws.js`: `renderWorkspace`, `renderStage`, `bindTabsOverflow`,
-  `renderCanvas` (zoom), `quickBox`/`bindQuick`, `renderPanel`, `renderForm` (usa `formularioHallazgo`),
+  `renderVista` (vistas `TODOS` y `SIN`, con `esVista` y `sinPantalla`), `renderCanvas` (zoom), `quickBox`/`bindQuick`, `renderPanel`, `renderForm` (usa `formularioHallazgo`),
   `pantallaModal`, `eliminarPantalla`, `renderPanelCatalogo`.
 - `src/views/hallazgos.js`: `hzEditor`, `hzModal`, `openHzPage`/`renderHzPage`,
   `confirmDelHz`, `cleanFlowMarkers` (también limpia `paso.hallazgos` de los journeys).
@@ -233,7 +276,8 @@ entran; zoom en lienzo; tipografía Geist (el Figma usa IBM Plex Sans en el pane
   `pasosDe`, `opcionesPasos`, `etiquetaPaso`, `sincronizarPasos`, `renombrarPantalla`,
   `guardarHallazgo`, `autoTitulo`, `sevScale`, `bindSev`. Lo usan `hallazgos-ws.js`
   (`renderForm`), `flujos/detalle-nodo.js` y `journey/relaciones.js`.
-- `src/core/state.js`: `pantallas`, `hzGroup`, `hzQuick`, `hzForm`, `hzSevF`, `hzVP`,
+- Estilos: `base.css` (`.ws-all.on`, `.ws-all-sep`, `.ws-ov-*`, `.ws-pin.mini`, `.hp-grp*`).
+- `src/core/state.js`: `pantallas`, `hzGroup` (id de pantalla, `"__todos"` o `"__sin"`), `hzQuick`, `hzForm`, `hzSevF`, `hzVP`,
   `catalogoIdsDe`, `heurDe`, `sesgosDe`.
 - Pruebas: `tests/e2e/migracion.spec.mjs`, `tests/e2e/pantallas.spec.mjs`.
 
@@ -243,6 +287,8 @@ entran; zoom en lienzo; tipografía Geist (el Figma usa IBM Plex Sans en el pane
   llevarlo al formulario único.
 - "Pegar del portapapeles" usa `navigator.clipboard.read()`, que pide permiso al navegador:
   no se probó de forma automática. Ctrl/Cmd + V sí se prueba.
+- Las vistas "Todos los hallazgos" y "Sin pantalla" no tienen prueba e2e propia (se
+  verificaron en el navegador con un estudio real).
 - Las métricas de Sev 3 y Sev 4 cuentan solo problemas, no oportunidades ni observaciones.
 - Los hallazgos nuevos se guardan con tipo "Problema" (la interfaz ya no edita el tipo),
   así que el Resumen y el reporte que agrupan por tipo los cuentan como problemas.
