@@ -38,7 +38,7 @@ function SR_boot(D){
   const JW=224;
   const hzById={}; D.hallazgos.forEach(h=>hzById[h.id]=h);
   const SVG=(w,p,sw)=>'<svg width="'+w+'" height="'+w+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(sw||1.8)+'" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
-  const ICP={home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',flag:'<path d="M5 21V4M5 4h11l-2 3.5L16 11H5"/>',flow:'<circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M8.2 6H16M6 8.2V13a3 3 0 0 0 3 3h1M18 8.2V13a3 3 0 0 1-3 3h-1"/>',chart:'<path d="M4 20V4M4 20h16M8 20v-6M12 20V9M16 20v-9"/>',user:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/>',report:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'};
+  const ICP={home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',flag:'<path d="M5 21V4M5 4h11l-2 3.5L16 11H5"/>',flow:'<circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M8.2 6H16M6 8.2V13a3 3 0 0 0 3 3h1M18 8.2V13a3 3 0 0 1-3 3h-1"/>',chart:'<path d="M4 20V4M4 20h16M8 20v-6M12 20V9M16 20v-9"/>',user:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/>',report:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',doc:'<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/>',code:'<path d="m9 8-4 4 4 4M15 8l4 4-4 4"/>'};
   const crIco=t=>SVG(16,ICP[t]||"");
   const chevR='<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
   const chevL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>';
@@ -62,6 +62,7 @@ function SR_boot(D){
     if(on.journeys!==false&&D.journeys.length)list.push({id:"journeys",label:"User Journeys",icon:crIco("chart")});
     if(on.protopersonas!==false&&D.report.protopersonas.length)list.push({id:"protopersonas",label:"Protopersonas",icon:crIco("user"),count:D.report.protopersonas.length});
     if(on.diagnostico!==false&&(D.report.diagIntro||D.report.hallazgosClave.length||D.report.recomendaciones.length))list.push({id:"diagnostico",label:"Diagnóstico",icon:crIco("report")});
+    (D.report.pestanas||[]).forEach(p=>list.push({id:"px:"+p.id,label:p.nombre,icon:crIco(p.tipo==="html"?"code":"doc")}));
     if(on.contacto!==false)list.push({id:"contacto",label:"Contacto",icon:crIco("mail")});
     return list;
   }
@@ -101,7 +102,8 @@ function SR_boot(D){
     el.querySelector("#liSkip").onclick=close; el.onclick=e=>{ if(e.target===el) close(); };
   }
   function render(main){
-    ({gracias:secGracias,presentacion:secPresentacion,hallazgos:secHz,flujos:secFlujos,journeys:secJourneys,protopersonas:secProto,diagnostico:secDiag,propuestas:secProp,contacto:secContacto}[V.section]||secPresentacion)(main);
+    if(String(V.section).indexOf("px:")===0) secPestana(main,(D.report.pestanas||[]).find(p=>"px:"+p.id===V.section));
+    else ({gracias:secGracias,presentacion:secPresentacion,hallazgos:secHz,flujos:secFlujos,journeys:secJourneys,protopersonas:secProto,diagnostico:secDiag,propuestas:secProp,contacto:secContacto}[V.section]||secPresentacion)(main);
     const r=D.report, f=document.createElement("div"); f.className="cr-foot";
     f.innerHTML=((r.muestra&&r.muestra.on&&r.muestra.texto&&V.section!=="presentacion")?'<div class="cr-foot-note">'+esc(r.muestra.texto)+"</div>":"")+"<div>"+esc(m.wordmark)+(m.sitio?" · "+esc(m.sitio):"")+"</div>";
     main.appendChild(f); root.scrollTop=0; main.scrollTop=0; if(root.parentElement)root.parentElement.scrollTop=0; window.scrollTo(0,0);
@@ -302,6 +304,49 @@ function SR_boot(D){
       +((m.email||m.tel)?'<p class="ty-cto">¿Querés adelantarte? '+(m.email?'<a href="mailto:'+esc(m.email)+'">'+esc(m.email)+'</a>':'')+(m.email&&m.tel?' · ':'')+(m.tel?esc(m.tel):'')+'</p>':'')
       +'<button class="btn ty-back" id="tyBack">'+chevL+' Volver al reporte</button></div>';
     main.querySelector("#tyBack").onclick=()=>{ V.section="presentacion"; shell(); };
+  }
+  /* ---- Pestañas propias ----
+     Texto: HTML del editor, limpiado con una lista blanca (misma regla que limpiarTexto en
+     reportes/pestanas.js; acá no se puede importar). HTML: va en un iframe con sandbox y sin
+     allow-same-origin, así su código no toca la página del reporte ni la sesión. */
+  const TXT_OK={P:1,H2:1,H3:1,H4:1,BLOCKQUOTE:1,ASIDE:1,UL:1,OL:1,LI:1,B:1,STRONG:1,I:1,EM:1,U:1,A:1,BR:1,HR:1};
+  function limpiarTexto(html){
+    const doc=new DOMParser().parseFromString("<div>"+String(html||"")+"</div>","text/html"), box=doc.body.firstChild;
+    (function walk(el){ [...el.childNodes].forEach(n=>{
+      if(n.nodeType===3) return; if(n.nodeType!==1){ n.remove(); return; }
+      if(/^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|TEMPLATE|SVG|MATH|NOSCRIPT)$/.test(n.tagName)){ n.remove(); return; }
+      walk(n);
+      if(!TXT_OK[n.tagName]){ if(n.tagName==="DIV"){ const p=doc.createElement("p"); while(n.firstChild)p.appendChild(n.firstChild); n.replaceWith(p); } else n.replaceWith(...n.childNodes); return; }
+      const href=n.tagName==="A"?(n.getAttribute("href")||""):"";
+      [...n.attributes].forEach(a=>n.removeAttribute(a.name));
+      if(n.tagName==="A"){ if(/^(https?:|mailto:)/i.test(href.trim())){ n.setAttribute("href",href.trim()); n.setAttribute("target","_blank"); n.setAttribute("rel","noopener noreferrer"); } else n.replaceWith(...n.childNodes); }
+    }); })(box);
+    // Un párrafo no puede contener listas ni otros bloques (el editor a veces los anida).
+    [...box.querySelectorAll("p")].forEach(p=>{ if(p.querySelector("ul,ol,h2,h3,h4,blockquote,aside,hr,p")) p.replaceWith(...p.childNodes); });
+    return box.innerHTML;
+  }
+  // Sin título: la pestaña es solo su contenido. El HTML ocupa todo el ancho y toma el alto de
+  // lo que muestra (sin scroll propio): el scroll es el de la página del reporte.
+  function secPestana(main,p){
+    if(!p){ V.section="presentacion"; return secPresentacion(main); }
+    if(p.tipo!=="html"){ main.innerHTML='<div class="cr-prose cr-px-texto">'+limpiarTexto(p.texto)+'</div>'; return; }
+    main.classList.add("sb-main-wide","cr-px-main");
+    main.innerHTML='<div class="cr-px-html"></div>';
+    const fr=document.createElement("iframe");
+    fr.className="cr-px-frame"; fr.title=p.nombre; fr.setAttribute("scrolling","no");
+    fr.setAttribute("sandbox","allow-scripts allow-popups allow-popups-to-escape-sandbox"); fr.setAttribute("referrerpolicy","no-referrer");
+    // El iframe avisa su alto cada vez que cambia (carga, imágenes, fuentes, scripts).
+    const avisa='<style>html,body{overflow:hidden!important}</style><script>(function(){var u=0;function s(){var d=document.documentElement,b=document.body;if(!b)return;var cs=getComputedStyle(b),h=Math.ceil(b.scrollHeight+parseFloat(cs.marginTop||0)+parseFloat(cs.marginBottom||0));if(Math.abs(h-u)<2)return;u=h;try{parent.postMessage({lupaPx:1,h:h},"*")}catch(e){}}addEventListener("load",s);if(window.ResizeObserver)new ResizeObserver(s).observe(document.documentElement);setTimeout(s,0);setTimeout(s,800);setTimeout(s,2500)})()</scr'+'ipt>';
+    fr.srcdoc=String(p.html||"")+avisa;
+    // Freno para contenido que mide en vh (crecería sin fin): a lo sumo 12 agrandadas seguidas.
+    let crecidas=0, alto=0;
+    const onMsg=e=>{ if(!document.body.contains(fr)){ removeEventListener("message",onMsg); return; }
+      if(e.source!==fr.contentWindow||!e.data||!e.data.lupaPx) return;
+      const h=Math.min(30000,Math.max(80,Math.ceil(+e.data.h||0)));
+      if(h>alto){ if(++crecidas>12) return; } else crecidas=0;
+      alto=h; fr.style.height=h+"px"; };
+    addEventListener("message",onMsg);
+    main.querySelector(".cr-px-html").appendChild(fr);
   }
   function secContacto(main){ main.innerHTML='<h2>Contacto</h2>'+contactoCard(); }
   document.documentElement.setAttribute("data-theme","light");

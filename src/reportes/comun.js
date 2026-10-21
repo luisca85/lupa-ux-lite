@@ -35,6 +35,8 @@ export function ensureReporte(est){
   if(r.code===undefined) r.code="";
   if(!r.online) r.online={hallazgos:true,flujos:true,journeys:true,protopersonas:true,diagnostico:true,propuestas:true,contacto:true};
   if(r.muestra===undefined) r.muestra={on:true,texto:"Esta es una muestra inicial del diagnóstico. Hay más hallazgos y más recorridos por revisar en profundidad."};
+  // Pestañas propias del reporte (HTML pegado o texto con formato), en el orden del menú.
+  if(!Array.isArray(r.pestanas)) r.pestanas=[];
   if(!Array.isArray(r.propuestas)) r.propuestas=cuentaBeta()?[]:defaultPropuestas();
   // Reemplazo por única vez de los seeds viejos (nunca editados) por el set nuevo.
   else if(esSeedViejo(r.propuestas)) r.propuestas=cuentaBeta()?[]:defaultPropuestas();
