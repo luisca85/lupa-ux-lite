@@ -231,6 +231,29 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
 - La card del PIN se achica al ancho del celular (antes desbordaba en pantallas
   angostas).
 
+### Seguridad del link público (2026-10-25, `fix/reporte-link-xss`)
+Quien publica puede escribir la foto (`publicos/{id}/partes/…`) a mano por la API, y el
+link público vive en el mismo dominio que la app. Para que una foto maliciosa no ejecute
+código como quien abre el link (con su sesión), hay dos capas:
+- **`/r/{id}` corre aislado:** después del PIN, el reporte (`SR_boot`) se monta en un
+  iframe con `sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox
+  allow-top-navigation-by-user-activation"`, sin `allow-same-origin` (origen opaco). No
+  puede usar la cookie de sesión, llamar a la API de la app ni leer la página de afuera.
+  - La reserva la hace la página de afuera, que tiene id y PIN: el iframe la pide por
+    `postMessage` ({lupaReserva, n}) y espera {lupaReservaOk, n} (15 s como máximo). El
+    PIN no entra al iframe.
+- **`SR_boot` normaliza los datos antes de dibujar (`sanear`):**
+  - ids: solo `[A-Za-z0-9_-]`; otro valor se reemplaza por un hash fijo, así las
+    referencias entre hallazgos, flujos y journeys siguen coincidiendo;
+  - imágenes: solo `data:image/…;base64` o `https://` (si no, no se muestra);
+  - colores `#hex` y números;
+  - `crHref` devuelve siempre una URL `http(s)` escapada.
+  - El JSON incrustado en la página escapa todo `<` (`\u003c`).
+- La vista previa en la app (iframe de Reportes y Pantalla completa) muestra los datos
+  del propio autor y no usa el iframe aislado.
+- `compartir.spec` publica una foto maliciosa y verifica que no corre nada, que el
+  iframe tiene origen `null` y que no puede leer la página de afuera.
+
 ### Reservas (API)
 - Dado `POST /api/publico` con `accion:"reserva"`, cuando el PIN es correcto, entonces:
   - exige el título de la propuesta (si falta, 400 "Faltan datos de la reserva.");

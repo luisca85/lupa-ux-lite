@@ -14,6 +14,43 @@ function SR_boot(D){
     document.addEventListener("keydown",function(e){ const k=(e.key||"").toLowerCase(); if((e.ctrlKey||e.metaKey)&&["c","x","a","p","s","u"].indexOf(k)>=0) e.preventDefault(); },true);
   })();
   const esc=s=>(s==null?"":String(s)).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  /* Seguridad: D viene de la foto publicada, que su dueño puede escribir a mano por la API.
+     Antes de dibujar, se normaliza todo lo que se inserta sin esc(): ids (siempre
+     [A-Za-z0-9_-], con un mapeo fijo para que las referencias entre hallazgos, flujos y
+     journeys sigan coincidiendo), URLs de imágenes (solo data:image en base64 o https),
+     colores (#hex) y números. Lo de texto ya pasa por esc(). Además, en el link público el
+     reporte corre en un iframe con sandbox (share/publico.js). */
+  (function sanear(){
+    const id=v=>{ const t=String(v==null?"":v); if(/^[A-Za-z0-9_-]{1,80}$/.test(t)) return t; let h=7; for(let i=0;i<t.length;i++) h=(h*31+t.charCodeAt(i))>>>0; return "x"+h.toString(36); };
+    const url=v=>{ const t=String(v==null?"":v).trim(); return (/^data:image\/(png|jpe?g|webp|gif|avif);base64,[A-Za-z0-9+\/=\s]+$/i.test(t)||/^https:\/\/[^\s"'<>()\\]+$/i.test(t))?t:""; };
+    const col=v=>/^#[0-9a-f]{3,8}$/i.test(String(v||""))?String(v):"";
+    const num=v=>{ const n=Number(v); return Number.isFinite(n)?n:0; };
+    const sev=v=>(v===0||v===1||v===2||v===3||v===4||/^[0-4]$/.test(String(v)))?Number(v):null;
+    const arr=v=>Array.isArray(v)?v:[];
+    const obj=v=>v&&typeof v==="object"&&!Array.isArray(v)?v:{};
+    D.brand=obj(D.brand); D.est=obj(D.est); D.report=obj(D.report);
+    D.brand.headerImg=url(D.brand.headerImg)||null;
+    D.hallazgos=arr(D.hallazgos).map(obj); D.flows=arr(D.flows).map(obj); D.journeys=arr(D.journeys).map(obj);
+    D.hallazgos.forEach(h=>{ h.id=id(h.id); h.severidad=sev(h.severidad);
+      h.imgs=arr(h.imgs).map(obj).map(im=>({...im,url:url(im.url),pins:arr(im.pins).map(obj).map(q=>({...q,n:num(q.n),color:col(q.color)}))})).filter(im=>im.url);
+      h.pasos=arr(h.pasos).map(obj).map(q=>({...q,flujoId:id(q.flujoId),pasoId:id(q.pasoId)}));
+      h.heur=arr(h.heur); h.sesgos=arr(h.sesgos); h.tags=arr(h.tags); });
+    D.flows.forEach(f=>{ f.id=id(f.id);
+      f.nodes=arr(f.nodes).map(obj).map(n=>({...n,id:id(n.id),x:num(n.x),y:num(n.y),thumb:url(n.thumb)||null,full:url(n.full)||null,
+        markers:arr(n.markers).map(obj).map(k=>({x:num(k.x),y:num(k.y),hallazgoId:id(k.hallazgoId)}))}));
+      f.edges=arr(f.edges).map(obj).map(e=>({...e,from:id(e.from),to:id(e.to)})); });
+    D.journeys.forEach(j=>{ j.id=id(j.id);
+      j.etapas=arr(j.etapas).map(obj).map(e=>({...e,id:id(e.id),color:col(e.color)}));
+      j.carriles=j.carriles&&typeof j.carriles==="object"?j.carriles:undefined; // {emocion:false,…}: solo se compara
+      j.pasos=arr(j.pasos).map(obj).map(q=>({...q,id:id(q.id),etapaId:q.etapaId==null?q.etapaId:id(q.etapaId),emocion:sev(q.emocion)==null?2:sev(q.emocion),
+        hallazgos:arr(q.hallazgos).map(id),tpPills:arr(q.tpPills),acciones:arr(q.acciones),expectativas:arr(q.expectativas),pain:arr(q.pain),oportunidades:arr(q.oportunidades)})); });
+    const r=D.report;
+    r.protopersonas=arr(r.protopersonas).map(obj).map(q=>({...q,foto:url(q.foto)}));
+    r.propuestas=arr(r.propuestas).map(obj).map(q=>({...q,id:id(q.id),bullets:arr(q.bullets),faq:arr(q.faq).map(obj),lanz:q.lanz?{on:!!obj(q.lanz).on,pct:num(obj(q.lanz).pct)}:q.lanz}));
+    r.pestanas=arr(r.pestanas).map(obj).map(q=>({...q,id:id(q.id)}));
+    r.hallazgosClave=arr(r.hallazgosClave).map(obj); r.recomendaciones=arr(r.recomendaciones).map(obj).map(b=>({...b,bullets:arr(b.bullets)}));
+    if(r.tj&&typeof r.tj==="object"&&r.tj.recomendada) r.tj.recomendada=id(r.tj.recomendada);
+  })();
   const linesOf=t=>String(t||"").split("\n").map(s=>s.replace(/^[-•]\s*/,"").trim()).filter(Boolean);
   const bullets=t=>{const l=linesOf(t);if(!l.length)return"";if(l.length===1)return"<p>"+esc(l[0])+"</p>";return"<ul>"+l.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>";};
   const para=t=>String(t||"").split(/\n{2,}/).map(p=>p.trim()).filter(Boolean).map(p=>"<p>"+esc(p).replace(/\n/g,"<br>")+"</p>").join("");
@@ -53,7 +90,7 @@ function SR_boot(D){
   // Vista previa en vivo de la app: arranca donde estaba y deja leer la sección actual.
   if(D.preview){ if(D.estado) Object.assign(V,D.estado); window.__SRV=V; }
   function brandMark(){ return m.headerImg?'<img src="'+m.headerImg+'" alt="" style="max-height:30px;max-width:150px;object-fit:contain">':'<span class="cr-word">'+esc(m.wordmark)+'</span>'; }
-  function crHref(u){u=String(u||"");return /^https?:\/\//i.test(u)?u:("https://"+u);}
+  function crHref(u){u=String(u||"").trim();return esc(/^https?:\/\//i.test(u)?u:("https://"+u));} // siempre http(s) y escapado: va dentro de href="…"
   function sections(){
     const list=[{id:"presentacion",label:"Presentación",icon:crIco("home")}];
     if(on.hallazgos!==false)list.push({id:"hallazgos",label:"Hallazgos",icon:crIco("flag"),count:D.hallazgos.length});
@@ -95,7 +132,7 @@ function SR_boot(D){
     if(sec==="presentacion"||V.liVisto||!m.linkedin) return go();
     V.liVisto=true;
     const el=document.createElement("div"); el.className="li-bg";
-    el.innerHTML='<div class="li-card" role="dialog" aria-modal="true" aria-labelledby="liT"><h3 id="liT">¿Me dejarías una recomendación?</h3><p>Antes de seguir: si este diagnóstico te resulta útil, una recomendación en LinkedIn me ayuda muchísimo a seguir haciendo este trabajo. Toma un minuto.</p><p class="li-how">En mi perfil: <b>Más</b> → <b>Recomendar</b>.</p><div class="li-acts"><a class="btn primary" id="liGo" href="'+esc(crHref(m.linkedin))+'" target="_blank" rel="noopener">Dejar recomendación en LinkedIn</a><button class="btn ghost" id="liSkip">Ver el reporte</button></div></div>';
+    el.innerHTML='<div class="li-card" role="dialog" aria-modal="true" aria-labelledby="liT"><h3 id="liT">¿Me dejarías una recomendación?</h3><p>Antes de seguir: si este diagnóstico te resulta útil, una recomendación en LinkedIn me ayuda muchísimo a seguir haciendo este trabajo. Toma un minuto.</p><p class="li-how">En mi perfil: <b>Más</b> → <b>Recomendar</b>.</p><div class="li-acts"><a class="btn primary" id="liGo" href="'+crHref(m.linkedin)+'" target="_blank" rel="noopener">Dejar recomendación en LinkedIn</a><button class="btn ghost" id="liSkip">Ver el reporte</button></div></div>';
     document.body.appendChild(el);
     const close=()=>{ el.remove(); go(); };
     el.querySelector("#liGo").addEventListener("click",()=>setTimeout(close,50));
@@ -137,7 +174,7 @@ function SR_boot(D){
       +'<div class="pr-author"><div class="pr-author-h"><span class="sb-av lg">'+esc((m.nombre||"?").trim().charAt(0).toUpperCase())+'</span><div><b>'+quien+'</b><span>'+esc(m.rol||"")+'</span></div></div>'
         +'<div class="pr-author-grid"><div><span class="pr-lbl">Estudio</span><b>'+esc(m.wordmark||"")+'</b>'+(m.servicioNombre?'<span>'+esc(m.servicioNombre)+(m.servicioDesc?' · '+esc(m.servicioDesc):'')+'</span>':'')+'</div>'
         +'<div><span class="pr-lbl">Contacto</span>'+(m.email?'<a href="mailto:'+esc(m.email)+'">'+esc(m.email)+'</a>':'')+(m.tel?'<span>'+esc(m.tel)+'</span>':'')+(m.sitio?'<a href="'+crHref(m.sitio)+'" target="_blank" rel="noopener">'+esc(m.sitio)+'</a>':'')+'</div></div>'
-        +(m.linkedin?'<div class="pr-li"><p>Si este diagnóstico te sirvió, me ayudaría mucho una recomendación en LinkedIn. Te recomiendo dejarla antes de ver el resto del reporte: en mi perfil, <b>Más</b> → <b>Recomendar</b>.</p><a class="btn primary" href="'+esc(crHref(m.linkedin))+'" target="_blank" rel="noopener">'+crIco("spark")+' Dejar recomendación en LinkedIn</a></div>':'')
+        +(m.linkedin?'<div class="pr-li"><p>Si este diagnóstico te sirvió, me ayudaría mucho una recomendación en LinkedIn. Te recomiendo dejarla antes de ver el resto del reporte: en mi perfil, <b>Más</b> → <b>Recomendar</b>.</p><a class="btn primary" href="'+crHref(m.linkedin)+'" target="_blank" rel="noopener">'+crIco("spark")+' Dejar recomendación en LinkedIn</a></div>':'')
       +'</div>';
   }
   function hzCard(h){ const s=(h.severidad!=null&&h.severidad!=="")?+h.severidad:null, img=(h.imgs||[])[0];
@@ -300,6 +337,14 @@ function SR_boot(D){
     if(hayFaq) ubicarFaq();
     el.querySelector("#tjX").focus({preventScroll:true});
   }
+  // Link público aislado (iframe con sandbox): la página de afuera tiene el id y el PIN y
+  // hace la reserva; acá se le pide por postMessage y se espera la respuesta (15 s como máximo).
+  let nReserva=0;
+  function pedirReserva(propuesta){ const n=++nReserva;
+    return new Promise(res=>{ const fin=ok=>{ removeEventListener("message",oir); clearTimeout(t); res(ok); };
+      const oir=e=>{ if(e.source===window.parent&&e.data&&e.data.n===n&&"lupaReservaOk" in e.data) fin(!!e.data.lupaReservaOk); };
+      const t=setTimeout(()=>fin(false),15000);
+      addEventListener("message",oir); window.parent.postMessage({lupaReserva:propuesta,n},"*"); }); }
   // En el link público avisa al consultor (POST /api/publico, mismo PIN); en la vista previa
   // de la app y fuera de línea solo muestra la página de gracias.
   async function reservar(p,btn){
@@ -307,8 +352,10 @@ function SR_boot(D){
     if(D.publico){
       btn.disabled=true; const t=btn.textContent; btn.textContent="Reservando…";
       try{
-        const r=await fetch("/api/publico",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({accion:"reserva",id:D.publico.id,pin:D.publico.pin,propuesta:{id:p.id||"",titulo:p.titulo||"",precio:priceLine(p)}})});
-        if(!r.ok) throw new Error("http "+r.status);
+        const propuesta={id:p.id||"",titulo:p.titulo||"",precio:priceLine(p)};
+        if(D.publico.aislado){ if(!(await pedirReserva(propuesta))) throw new Error("reserva"); }
+        else { const r=await fetch("/api/publico",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({accion:"reserva",id:D.publico.id,pin:D.publico.pin,propuesta})});
+          if(!r.ok) throw new Error("http "+r.status); }
       }catch(_){ btn.disabled=false; btn.textContent=t; if(err) err.textContent="No pudimos registrar la reserva. Revisá tu conexión y probá de nuevo."; return; }
     }
     V.reserva={titulo:p.titulo||"",precio:priceLine(p)}; cerrarPropuestas(); V.section="gracias"; shell();

@@ -210,3 +210,9 @@ información clave ni datos confidenciales. Una sola casilla; se quita la condic
 uxuaria. Además, el link público ya no pide nombre ni email: solo PIN y aceptación, y se
 guarda la aceptación con la fecha. Motivo: entrar más rápido al reporte y no guardar datos
 personales del cliente que no hacen falta.
+
+2026-10-25 - El link público `/r/{id}` muestra el reporte en un iframe con `sandbox` sin
+`allow-same-origin`, y `SR_boot` normaliza ids, URLs de imágenes, colores y números antes de
+dibujar (spec `rpt`). La reserva la hace la página de afuera por `postMessage`. Motivo: con
+la beta abierta, cualquier cuenta puede escribir a mano la foto de un reporte publicado. Sin
+esto, un link podía ejecutar código en el dominio de la app con la sesión de quien lo abre.

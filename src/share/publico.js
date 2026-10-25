@@ -44,7 +44,11 @@ export function abrirReportePublico(id){
     try{
       const r = await fetch("/api/publico", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ id, pin:pinEl.value, acepto:acEl.checked }) });
       const ct = r.headers.get("content-type") || "";
-      if(r.ok && ct.includes("application/json")){ montarReportePublico({ ...(await r.json()), publico:{ id, pin:pinEl.value } }); return; }
+      if(r.ok && ct.includes("application/json")){
+        const pin = pinEl.value;
+        // La reserva la manda esta página: el reporte corre aislado y no recibe el PIN.
+        const reservar = async propuesta => { const x = await fetch("/api/publico", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ accion:"reserva", id, pin, propuesta }) }); return x.ok; };
+        montarReportePublico(await r.json(), reservar); return; }
       const j = ct.includes("application/json") ? await r.json() : {};
       err.textContent = j.error || "No se pudo abrir el reporte.";
     }catch(_){ err.textContent = "Sin conexión. Probá de nuevo."; }
