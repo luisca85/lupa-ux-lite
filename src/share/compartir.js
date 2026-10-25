@@ -66,15 +66,32 @@ export async function collectShareData(est){
    vivo de la pestaña Reportes (en un iframe, con D.preview). */
 export function buildShareHtml(D){
   const css=[...document.querySelectorAll("style")].map(s=>s.textContent).join("\n");
-  const boot="("+SR_BOOT_SRC.trim()+")("+JSON.stringify(D).replace(/<\//g,"<\\/")+");";
-  return "<!doctype html><html lang=\"es\" data-theme=\"light\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>"+esc(D.est.nombre)+" · Diagnóstico UX</title><style>"+css+"</style></head><body style=\"margin:0;background:#faf9f5\"><div id=\"shareRoot\"></div><script>\n"+boot+"\n</scr"+"ipt></body></html>";
+  // Las tipografías de Google Fonts que carga la app (index.html), para que se vean igual.
+  const fuentes=[...document.querySelectorAll('link[rel="stylesheet"]')].map(l=>l.href).filter(h=>/^https:\/\/fonts\.googleapis\.com\//.test(h)).map(h=>'<link rel="stylesheet" href="'+esc(h)+'">').join("");
+  const boot="("+SR_BOOT_SRC.trim()+")("+JSON.stringify(D).replace(/</g,"\\u003c")+");";
+  return "<!doctype html><html lang=\"es\" data-theme=\"light\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>"+esc(D.est.nombre)+" · Diagnóstico UX</title>"+fuentes+"<style>"+css+"</style></head><body style=\"margin:0;background:#faf9f5\"><div id=\"shareRoot\"></div><script>\n"+boot+"\n</scr"+"ipt></body></html>";
 }
-/* Renderiza el reporte del cliente (el mismo SR_boot de la página autónoma) dentro
-   de la página actual. Lo usa el link público /r/{id}. */
-export function montarReportePublico(D){
-  document.body.innerHTML='<div id="shareRoot"></div>';
-  document.body.style.cssText="margin:0;background:#faf9f5";
-  (new Function("D","return ("+SR_BOOT_SRC.trim()+")(D);"))(D);
+/* Link público /r/{id}: el reporte (el mismo SR_boot) corre en un iframe con sandbox y SIN
+   allow-same-origin, o sea en un origen opaco. Así, aunque la foto publicada traiga algo
+   malicioso, no puede usar la sesión de quien abre el link ni llamar a la API de la app.
+   La reserva la hace esta página (que tiene id y PIN): el iframe la pide por postMessage. */
+export function montarReportePublico(D,reservar){
+  document.body.innerHTML="";
+  document.body.style.cssText="margin:0;background:#faf9f5;overflow:hidden";
+  const fr=document.createElement("iframe");
+  fr.className="pub-frame"; fr.title=(D.est&&D.est.nombre?D.est.nombre+" · ":"")+"Reporte";
+  fr.setAttribute("sandbox","allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation");
+  fr.setAttribute("referrerpolicy","no-referrer");
+  fr.style.cssText="position:fixed;inset:0;width:100%;height:100%;border:0;display:block";
+  fr.srcdoc=buildShareHtml({...D,publico:{aislado:true}});
+  addEventListener("message",async e=>{
+    if(e.source!==fr.contentWindow||!e.data||typeof e.data!=="object"||!e.data.lupaReserva) return;
+    const q=e.data.lupaReserva, n=e.data.n, txt=v=>String(v==null?"":v).slice(0,140);
+    let ok=false; try{ ok=await reservar({id:txt(q.id),titulo:txt(q.titulo),precio:txt(q.precio)}); }catch(_){ ok=false; }
+    fr.contentWindow.postMessage({lupaReservaOk:!!ok,n},"*");
+  });
+  document.body.appendChild(fr);
+  fr.focus();
 }
 
 /* Vista previa en la app: el mismo SR_boot sobre una capa encima de la app, sin

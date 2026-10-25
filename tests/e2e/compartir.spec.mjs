@@ -99,14 +99,16 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     expect(sinAceptar).toBe(400);
     await cli.locator("#pubAcepto").check();
     await cli.getByRole("button", { name: "Ver reporte" }).click();
-    await expect(cli.getByRole("heading", { name: estudio })).toBeVisible();
-    await expect(cli.getByRole("button", { name: "Contacto" })).toHaveCount(0); // se publicó sin Contacto
-    await cli.getByRole("button", { name: "Trabajemos juntos" }).click();
-    const mia = cli.getByRole("dialog").locator(".tj-col").last(); // la propuesta agregada va al final
+    // El reporte corre en un iframe con sandbox (origen opaco); la reserva la hace la página.
+    const rep = cli.frameLocator("iframe.pub-frame");
+    await expect(rep.getByRole("heading", { name: estudio })).toBeVisible();
+    await expect(rep.getByRole("button", { name: "Contacto" })).toHaveCount(0); // se publicó sin Contacto
+    await rep.getByRole("button", { name: "Trabajemos juntos" }).click();
+    const mia = rep.getByRole("dialog").locator(".tj-col").last(); // la propuesta agregada va al final
     await expect(mia.getByRole("heading", { name: "Diagnóstico completo" })).toBeVisible();
     await mia.getByRole("button", { name: "Reservar ahora tu diagnóstico" }).click();
-    await expect(cli.getByRole("heading", { name: "¡Gracias! Tu reserva está confirmada" })).toBeVisible();
-    await expect(cli.locator(".ty-res")).toContainText("Diagnóstico completo");
+    await expect(rep.getByRole("heading", { name: "¡Gracias! Tu reserva está confirmada" })).toBeVisible();
+    await expect(rep.locator(".ty-res")).toContainText("Diagnóstico completo");
     expect(cliErr).toEqual([]);
   });
 
@@ -116,6 +118,39 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     await expect(page.locator("#hpCons")).toContainText("Abrieron el link");
     await page.keyboard.press("Escape");
     await expect(page.locator("#rpHelpPop")).toBeHidden();
+  });
+
+  await test.step("seguridad: una foto publicada con datos maliciosos no ejecuta nada ni toca la app", async () => {
+    // Quien publica puede escribir la foto a mano por la API (publicos/{id}/partes/…).
+    const id = new URL(link).pathname.split("/")[2];
+    const x = '"><img src=x onerror="window.__pwn=1;try{parent.__pwn=1}catch(e){}">';
+    const D = {
+      brand: { wordmark: "w", nombre: "n", headerImg: 'x" onerror="window.__pwn=1;try{parent.__pwn=1}catch(e){}' , sitio: 'a" onmouseover="window.__pwn=1' },
+      est: { nombre: "Malicioso" }, metrics: {},
+      report: { online: {}, propuestas: [{ id: x, titulo: "P", tipo: "fixed", precioModo: "adefinir", bullets: [] }], protopersonas: [], hallazgosClave: [], recomendaciones: [],
+        muestra: { on: false }, pestanas: [{ id: x, nombre: "Pestaña", tipo: "texto", texto: '<p onclick="x()">Hola<img src=x onerror="window.__pwn=1"></p>' }] },
+      hallazgos: [{ id: x, severidad: '1" onmouseover="x', tipo: "Problema", titulo: "H", imgs: [{ url: 'x" onerror="window.__pwn=1', pins: [] }], pasos: [] }],
+      flows: [], journeys: [],
+    };
+    const put = await page.evaluate(async ([p, d]) => (await fetch("/api/doc?path=" + encodeURIComponent(p), { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(d) })).status, ["publicos/" + id + "/partes/000", { t: JSON.stringify(D) }]);
+    expect(put).toBe(200);
+    const cli = await context.newPage();
+    await cli.goto(new URL(link).pathname);
+    await cli.locator("#pubPin").fill(pin);
+    await cli.locator("#pubAcepto").check();
+    await cli.getByRole("button", { name: "Ver reporte" }).click();
+    const rep = cli.frameLocator("iframe.pub-frame");
+    await expect(rep.getByRole("heading", { name: "Malicioso" })).toBeVisible();
+    await rep.getByRole("button", { name: "Hallazgos" }).click();
+    await rep.getByRole("button", { name: "Pestaña" }).click();
+    await expect(rep.locator(".cr-px-texto")).toHaveText("Hola");
+    await cli.waitForTimeout(500);
+    const marco = cli.frames().find((f) => f !== cli.mainFrame());
+    expect(await marco.evaluate(() => window.__pwn)).toBeUndefined();   // escapado: no corre nada
+    expect(await cli.evaluate(() => window.__pwn)).toBeUndefined();
+    expect(await marco.evaluate(() => origin)).toBe("null");            // origen opaco: sin sesión ni API
+    expect(await marco.evaluate(() => { try { return parent.document.title; } catch (e) { return "bloqueado"; } })).toBe("bloqueado");
+    await cli.close();
   });
 
   await test.step("despublicar desde el modal", async () => {
