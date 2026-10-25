@@ -118,6 +118,15 @@ del día (tienen que quedar lejos de 100) y en D1 el tamaño de la base (tope gr
 npx wrangler d1 execute DB --env production --remote --command "SELECT email, creado FROM espera ORDER BY creado"
 ```
 
+## 11b. Revisión de seguridad (2026-10-25)
+- [x] Link público aislado (iframe con sandbox) y datos normalizados en `SR_boot`.
+- [x] Límite de espacio por cuenta (40 MB) y hasta 3 reportes publicados.
+- [x] Tope de reservas por link (3 por hora, sin repetir la misma propuesta en 24 h).
+- [x] Encabezados de seguridad (`_headers`).
+- [ ] 🔑 Rotar la clave secreta de Turnstile y la API key de Resend (aparecieron en capturas).
+- [ ] 🔑 Revisar que Cloudflare Pages siga construyendo desde GitHub (Settings → Builds).
+  Mientras tanto: `npm run build` y `npx wrangler pages deploy --branch main`.
+
 ## 12. Después del lanzamiento
 - Quitar el soporte de Access del código: `verifyAccess()`, `AUTH_MODE="access"`, las
   variables `ACCESS_*` de `wrangler.toml` y el logout de Access en `ui/sesion.js`.

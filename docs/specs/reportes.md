@@ -510,7 +510,15 @@ construyeron en la exploración, sin frame propio en Figma.
   corta con "Generar PIN nuevo" o "Despublicar").
 - La huella también cambia si se vuelve a codificar una imagen. En la práctica se
   calcula siempre en el mismo navegador.
-- Cada reserva manda un correo; no hay límite aparte del PIN y del tope de 20 guardadas.
+- Tope de reservas (2026-10-25): por link, hasta 3 por hora, y la misma propuesta no se
+  repite en 24 h. Pasado el tope, la API responde `{ok:true, enviado:false,
+  limitado:true}`: quien reserva ve la página de gracias, pero no se guarda ni se manda
+  correo. Siguen guardándose las últimas 20.
+- Encabezados de seguridad (2026-10-25): `_headers` (lo copia el build a `dist/`) pone en
+  las páginas `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none';
+  base-uri 'self'; object-src 'none'`, `nosniff`, `Referrer-Policy`, HSTS y
+  `Permissions-Policy`. La API los pone en `json()`. No hay CSP de scripts: el build es un
+  solo HTML con JS inline.
 - La primera vista previa de un estudio con muchas capturas tarda unos segundos
   (compone cada pin); después se reutiliza la caché.
 - A CONFIRMAR:

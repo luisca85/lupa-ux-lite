@@ -175,6 +175,27 @@ test("beta: 1 estudio a la vez y 15 pantallas por estudio", async ({ page }) => 
   await expect(page.locator("#newStudy")).toBeEnabled();
 });
 
+test("beta: límite de espacio por cuenta y de reportes publicados", async ({ page }) => {
+  // En este servidor MAX_MB_CUENTA=3: dos documentos de ~1,6 MB no entran juntos.
+  await entrarCon(page, unico("cuota"));
+  const grande = "x".repeat(1_600_000);
+  expect((await api(page, "PUT", "cat_heur/a", { nombre: grande })).status).toBe(200);
+  const lleno = await api(page, "PUT", "cat_heur/b", { nombre: grande });
+  expect(lleno.status).toBe(413);
+  expect(lleno.body.limite).toBe("espacio");
+  // Achicar siempre se puede, y después vuelve a haber lugar.
+  expect((await api(page, "PUT", "cat_heur/a", { nombre: "chico" })).status).toBe(200);
+  expect((await api(page, "PUT", "cat_heur/b", { nombre: grande })).status).toBe(200);
+  // Hasta 3 reportes publicados por cuenta.
+  const base = "publicos/cuota" + Date.now();
+  for (let i = 1; i <= 3; i++) expect((await api(page, "PUT", base + "x" + i + "abcdef", { estNombre: "R" })).status).toBe(200);
+  const cuarto = await api(page, "PUT", base + "x4abcdef", { estNombre: "R" });
+  expect(cuarto.status).toBe(403);
+  expect(cuarto.body.limite).toBe("publicados");
+  for (let i = 1; i <= 3; i++) await api(page, "DELETE", base + "x" + i + "abcdef");
+  await api(page, "DELETE", "cat_heur/a"); await api(page, "DELETE", "cat_heur/b");
+});
+
 test("beta: con los cupos completos, un email nuevo queda en la lista de espera", async ({ page }) => {
   // MAX_CUENTAS=8 en este servidor; el administrador no cuenta.
   let r = null;

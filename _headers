@@ -1,0 +1,11 @@
+# Encabezados de seguridad de Cloudflare Pages para las páginas (la API los pone en json()).
+# El build lo copia a dist/ (vite.config.js). No se permite que otro sitio meta la app en un
+# iframe, el navegador no adivina tipos de archivo y la conexión es siempre segura.
+# No hay CSP de scripts: el build es un solo HTML con JS inline (ver docs/decisions.md).
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()

@@ -1,10 +1,15 @@
 import { defineConfig } from "vite";
+import { readFileSync } from "node:fs";
 import { viteSingleFile } from "vite-plugin-singlefile";
+
+// _headers (encabezados de seguridad de Cloudflare Pages) va junto al HTML en dist/.
+const encabezados = { name: "lupa-headers", apply: "build",
+  generateBundle(){ this.emitFile({ type: "asset", fileName: "_headers", source: readFileSync("_headers", "utf8") }); } };
 
 // El build sale como UN solo HTML (JS y CSS inline): se puede abrir con doble
 // clic (modo IndexedDB) y lo publica Cloudflare Pages desde dist/.
 export default defineConfig({
-  plugins: [viteSingleFile()],
+  plugins: [viteSingleFile(), encabezados],
   publicDir: false,
   build: {
     outDir: "dist",

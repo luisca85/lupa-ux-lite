@@ -25,7 +25,7 @@ const SEG_RE = /^[A-Za-z0-9_.:-]{1,128}$/;
 const json = (body, status = 200, extra = {}) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra },
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin", ...extra },
   });
 
 // Valida la ruta y exige cantidad par (doc) o impar (colección) de segmentos.
@@ -99,7 +99,19 @@ async function cuentaDe(env, email, local) {
 
 /* ---------- Límites de la beta (spec cta, fase 3) ----------
    Solo con AUTH_MODE="cuentas" y para quien no es administrador (ADMIN_EMAILS). */
-const LIMITE_ESTUDIOS = 1, LIMITE_PANTALLAS = 15;
+const LIMITE_ESTUDIOS = 1, LIMITE_PANTALLAS = 15, LIMITE_PUBLICADOS = 3;
+// Espacio por cuenta (datos + reportes publicados). D1 gratis tiene 5 GB: 40 MB × 100 cuentas
+// entra con margen. MAX_MB_CUENTA lo cambia (las pruebas usan uno chico).
+const maxBytesCuenta = (env) => Math.max(1, Number(env.MAX_MB_CUENTA) || 40) * 1_000_000;
+const tamSQL = "COALESCE(SUM(length(CAST(data AS BLOB))), 0) AS n";
+async function espacioUsado(env, user) {
+  const [desde, hasta] = finCuenta(user);
+  let n = (await env.DB.prepare("SELECT " + tamSQL + " FROM docs WHERE path >= ? AND path < ?").bind(desde, hasta).first()).n;
+  const { results } = await env.DB.prepare("SELECT path FROM docs WHERE parent = 'publicos' AND json_extract(data, '$.\"dueño\"') = ?").bind(user.id).all();
+  for (const r of results)
+    n += (await env.DB.prepare("SELECT " + tamSQL + " FROM docs WHERE path = ? OR (path >= ? AND path < ?)").bind(r.path, r.path + "/", r.path + "0").first()).n;
+  return n;
+}
 const admins = (env) => String(env.ADMIN_EMAILS || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
 const esAdmin = (env, email) => !!email && admins(env).includes(String(email).toLowerCase());
 const conLimites = (env, user) => env.AUTH_MODE === "cuentas" && !user.admin;
@@ -107,14 +119,23 @@ const maxCuentas = (env) => Math.max(0, Number(env.MAX_CUENTAS) || 100);
 const contar = async (env, parent) => (await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE parent = ?").bind(parent).first()).n;
 
 // Alta de un documento nuevo que choca con un límite: devuelve la Response 403, o null.
-async function chocaLimite(env, pedida, path, user) {
+async function chocaLimite(env, pedida, path, user, nuevoTam) {
   if (!conLimites(env, user)) return null;
+  // Espacio: solo se controla si el documento crece (achicar o borrar siempre se puede).
+  const previo = await env.DB.prepare("SELECT length(CAST(data AS BLOB)) AS n FROM docs WHERE path = ?").bind(path).first();
+  const antes = previo ? previo.n : 0;
+  if (nuevoTam > antes && (await espacioUsado(env, user)) - antes + nuevoTam > maxBytesCuenta(env))
+    return json({ error: `Llegaste al límite de espacio de la beta (${maxBytesCuenta(env) / 1_000_000} MB por cuenta). Borrá pantallas o imágenes que no uses y probá de nuevo.`, limite: "espacio" }, 413);
   const segs = pedida.split("/");
   const esNuevo = async () => !(await env.DB.prepare("SELECT 1 FROM docs WHERE path = ?").bind(path).first());
   if (segs.length === 2 && segs[0] === "estudios" && (await esNuevo()) && (await contar(env, parentOf(path))) >= LIMITE_ESTUDIOS)
     return json({ error: "En la beta podés tener 1 estudio.", limite: "estudios" }, 403);
   if (segs.length === 4 && segs[0] === "estudios" && segs[2] === "pantallas" && (await esNuevo()) && (await contar(env, parentOf(path))) >= LIMITE_PANTALLAS)
     return json({ error: `En la beta cada estudio puede tener hasta ${LIMITE_PANTALLAS} pantallas.`, limite: "pantallas" }, 403);
+  if (segs.length === 2 && segs[0] === "publicos" && !previo) {
+    const { n } = await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE parent = 'publicos' AND json_extract(data, '$.\"dueño\"') = ?").bind(user.id).first();
+    if (n >= LIMITE_PUBLICADOS) return json({ error: `En la beta podés tener hasta ${LIMITE_PUBLICADOS} reportes publicados. Despublicá uno y probá de nuevo.`, limite: "publicados" }, 403);
+  }
   return null;
 }
 
@@ -218,7 +239,7 @@ async function publico(request, env) {
    por correo con Resend si está configurado: RESEND_API_KEY (secreto), RESERVA_TO (por
    defecto info@uxuaria.com), RESERVA_CC (opcional) y RESERVA_FROM (remitente de un dominio
    verificado en Resend). Si el correo falla, la reserva igual queda registrada. */
-const PUB_MAX_RESERVAS = 20;
+const PUB_MAX_RESERVAS = 20, PUB_MAX_RESERVAS_HORA = 3, PUB_RESERVAS_VENTANA_MS = 60 * 60 * 1000, PUB_RESERVA_REPETIDA_MS = 24 * 60 * 60 * 1000;
 const txt = (v, n) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n);
 
 async function reservar(body, meta, guardar, env, now) {
@@ -226,7 +247,14 @@ async function reservar(body, meta, guardar, env, now) {
   const propuesta = { id: txt(p.id, 64), titulo: txt(p.titulo, 140), precio: txt(p.precio, 60) };
   if (!propuesta.titulo) { await guardar(meta); return json({ error: "Faltan datos de la reserva." }, 400); }
   const reserva = { propuesta, fecha: now };
-  meta.reservas = [...(Array.isArray(meta.reservas) ? meta.reservas : []), reserva].slice(-PUB_MAX_RESERVAS);
+  const previas = Array.isArray(meta.reservas) ? meta.reservas : [];
+  // Tope contra el spam de correos (cada reserva manda uno): por link, hasta 3 por hora, y la
+  // misma propuesta no se repite en 24 h. Pasado el tope, quien reserva igual ve la página de
+  // gracias, pero no se guarda ni se manda nada.
+  const enLaHora = previas.filter((r) => now - (r.fecha || 0) < PUB_RESERVAS_VENTANA_MS).length;
+  const repetida = previas.some((r) => now - (r.fecha || 0) < PUB_RESERVA_REPETIDA_MS && r.propuesta && r.propuesta.titulo === propuesta.titulo && (r.propuesta.id || "") === propuesta.id);
+  if (enLaHora >= PUB_MAX_RESERVAS_HORA || repetida) { await guardar(meta); return json({ ok: true, enviado: false, limitado: true }); }
+  meta.reservas = [...previas, reserva].slice(-PUB_MAX_RESERVAS);
   await guardar(meta);
   let enviado = false;
   try { enviado = await avisarReserva(env, meta, reserva); } catch (e) { enviado = false; }
@@ -509,12 +537,13 @@ export async function onRequest({ request, env, params }) {
         if (esPublico(path) && path.split("/").length === 2) {
           data["dueño"] = user.id;
         }
-        const limite = await chocaLimite(env, pedida, path, user);
+        const guardado = JSON.stringify(data);
+        const limite = await chocaLimite(env, pedida, path, user, new TextEncoder().encode(guardado).length);
         if (limite) return limite;
         await env.DB.prepare(
           "INSERT INTO docs (path, parent, data, updated_at) VALUES (?1, ?2, ?3, ?4) " +
           "ON CONFLICT(path) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at"
-        ).bind(path, parentOf(path), JSON.stringify(data), Date.now()).run();
+        ).bind(path, parentOf(path), guardado, Date.now()).run();
         return json({ ok: true });
       }
       if (method === "DELETE") {
