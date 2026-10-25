@@ -9,7 +9,7 @@ const port = process.argv[3] || "8790";
 const cuentas = process.argv[4] === "cuentas";
 const persist = cuentas ? ".wrangler/e2e-cuentas" : ".wrangler/e2e";
 const vars = cuentas
-  ? ["--binding", "AUTH_MODE=cuentas", "--binding", "AUTH_CODIGO_EN_RESPUESTA=1", "--binding", "ADMIN_EMAILS=admin@lupa.test", "--binding", "MAX_CUENTAS=8"]
+  ? ["--binding", "AUTH_MODE=cuentas", "--binding", "AUTH_CODIGO_EN_RESPUESTA=1", "--binding", "ADMIN_EMAILS=admin@lupa.test", "--binding", "MAX_CUENTAS=8", "--binding", "MAX_MB_CUENTA=3"]
   : [];
 const wrangler = process.platform === "win32" ? "npx.cmd" : "npx";
 

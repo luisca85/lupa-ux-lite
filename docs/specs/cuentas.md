@@ -79,6 +79,16 @@ Se construye en 4 fases, en este orden. Cada fase se revisa antes de seguir:
 - Dado un estudio con 15 pantallas, cuando se intenta agregar otra, entonces la API
   responde 403 (`limite: "pantallas"`). La app muestra "15 de 15 pantallas" y
   desactiva el botón de agregar.
+- Espacio (2026-10-25): cada cuenta de la beta tiene hasta **40 MB** (`MAX_MB_CUENTA`),
+  contando sus documentos (`u/{id}/…`) y sus reportes publicados (`publicos/{id}` y sus
+  partes). Dado un guardado que hace crecer un documento y pasa el límite, la API
+  responde 413 (`limite: "espacio"`, "Llegaste al límite de espacio de la beta (40 MB
+  por cuenta). Borrá pantallas o imágenes que no uses y probá de nuevo."). Achicar o
+  borrar siempre se puede.
+- Dada una cuenta con 3 reportes publicados, cuando publica otro con un link nuevo,
+  entonces la API responde 403 (`limite: "publicados"`). Actualizar uno ya publicado se
+  puede siempre.
+- El administrador no tiene estos límites.
 - Dadas 100 cuentas creadas, cuando un email nuevo pide código, entonces no se manda
   ningún email. Aparece "Los cupos de la beta están completos. Te avisamos cuando
   haya lugar." y el email queda en la lista de espera (`espera`). Las cuentas que ya

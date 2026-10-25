@@ -112,6 +112,29 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     expect(cliErr).toEqual([]);
   });
 
+  await test.step("reservas repetidas no se guardan ni mandan más correos; encabezados de seguridad", async () => {
+    const id = new URL(link).pathname.split("/")[2];
+    const otra = await context.newPage();
+    await otra.goto(new URL(link).pathname);
+    const estados = await otra.evaluate(async ({ id, pin }) => {
+      const out = [];
+      for (let i = 0; i < 5; i++) {
+        const r = await fetch("/api/publico", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ accion: "reserva", id, pin, propuesta: { id: "spam" + i, titulo: "Spam " + i } }) });
+        out.push((await r.json()).limitado ? "limitado" : r.status);
+      }
+      return out;
+    }, { id, pin });
+    // Ya hubo 1 reserva en la hora: entran 2 más y el resto queda limitado (sin error para quien reserva).
+    expect(estados).toEqual([200, 200, "limitado", "limitado", "limitado"]);
+    const doc = await page.evaluate(async (p) => (await (await fetch("/api/doc?path=" + encodeURIComponent(p))).json()).data, "publicos/" + id);
+    expect(doc.reservas.length).toBe(3);
+    const r = await otra.request.get("/");
+    expect(r.headers()["x-frame-options"]).toBe("DENY");
+    expect(r.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+    expect(r.headers()["x-content-type-options"]).toBe("nosniff");
+    await otra.close();
+  });
+
   await test.step("la ayuda muestra la reserva y el consentimiento", async () => {
     await page.getByRole("button", { name: "Cómo funciona el link y el PIN" }).click();
     await expect(page.locator("#hpRes")).toContainText("Reservaron Diagnóstico completo");
