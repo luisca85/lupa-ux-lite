@@ -216,3 +216,12 @@ personales del cliente que no hacen falta.
 dibujar (spec `rpt`). La reserva la hace la página de afuera por `postMessage`. Motivo: con
 la beta abierta, cualquier cuenta puede escribir a mano la foto de un reporte publicado. Sin
 esto, un link podía ejecutar código en el dominio de la app con la sesión de quien lo abre.
+
+2026-10-26 - Chequeo legal previo al lanzamiento (sin abogado todavía). Tres cambios para no
+inducir a error al cliente de un reporte: (1) la aclaración por defecto de uxuaria ("más de
+10 años de experiencia", "no hecho por IA") solo aparece en los reportes de uxuaria; en los
+de otras cuentas, solo si su autor la escribe. (2) El precio tachado ya no se calcula desde
+un %: lo carga el autor como precio anterior real, con fecha de validez opcional, y se quita
+"por tiempo limitado". (3) La página de gracias dice "Recibimos tu interés" y aclara que no
+es una compra ni un compromiso de pago. Motivo: evitar afirmaciones falsas, publicidad
+engañosa (Ley de Lealtad Comercial) y que una reserva se lea como contrato.

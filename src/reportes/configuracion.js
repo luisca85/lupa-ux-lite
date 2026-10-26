@@ -1,7 +1,7 @@
 import { state } from "../core/state.js";
 import { esc, uid } from "../core/util.js";
 import { brandStore, ensureReporte, marcaActual, saveReporte, cuentaBeta } from "./comun.js";
-import { BOTON_RESERVA, PROP_DESC, TJ_TEXTOS, normalizePropuesta, propMoney, propPriceLine } from "./propuestas.js";
+import { BOTON_RESERVA, PROP_DESC, TJ_TEXTOS, fechaLarga, normalizePropuesta, propMoney, propPriceLine } from "./propuestas.js";
 import { openClientReport } from "./cliente.js";
 import { plus, trash } from "../ui/iconos.js";
 import { loadBitmap, scaleImg } from "../ui/imagenes.js";
@@ -194,12 +194,15 @@ function editorPropuesta(main,est,{idx},volver){
         <div class="pf"><label for="pr_precio">Monto <span class="hint" id="pr_perMes" ${p.tipo==="mensual"?"":"hidden"}>por mes</span></label><input id="pr_precio" type="number" min="0" step="1" value="${p.precio!=null&&p.precio!==""?esc(p.precio):""}" placeholder="0"></div>
       </div>
       <div id="pr_lanzWrap" ${p.precioModo==="adefinir"?"hidden":""}>
-        <label class="chk"><input type="checkbox" id="pr_lanz_on" ${p.lanz&&p.lanz.on?"checked":""}> Mostrar precio de lanzamiento (descuento)</label>
-        <div class="pf-row" id="pr_lanzFields" ${p.lanz&&p.lanz.on?"":"hidden"}>
-          <div class="pf"><label for="pr_lanz_pct">Descuento <span class="hint">%</span></label><input id="pr_lanz_pct" type="number" min="1" max="99" step="1" value="${p.lanz&&p.lanz.pct!=null?esc(p.lanz.pct):20}"></div>
-          <div class="pf"><label>Cómo se ve</label><div class="hint" id="pr_lanz_prev" style="padding-top:8px;line-height:1.4"></div></div>
+        <label class="chk"><input type="checkbox" id="pr_lanz_on" ${p.lanz&&p.lanz.on?"checked":""}> Mostrar descuento o promoción</label>
+        <div id="pr_lanzFields" ${p.lanz&&p.lanz.on?"":"hidden"}>
+          <div class="pf-row">
+            <div class="pf"><label for="pr_lanz_antes">Precio anterior <span class="hint">opcional</span></label><input id="pr_lanz_antes" type="number" min="0" step="1" value="${p.lanz&&p.lanz.antes!=null?esc(p.lanz.antes):""}" placeholder="0"></div>
+            <div class="pf"><label for="pr_lanz_hasta">Válido hasta <span class="hint">opcional</span></label><input id="pr_lanz_hasta" type="date" value="${esc(p.lanz&&p.lanz.hasta||"")}"></div>
+            <div class="pf"><label>Cómo se ve</label><div class="hint" id="pr_lanz_prev" style="padding-top:8px;line-height:1.4"></div></div>
+          </div>
+          <p class="rhint">El monto de arriba es el precio final. Cargá un precio anterior <b>solo si lo cobraste de verdad</b>: mostrar un precio tachado que no existió puede considerarse publicidad engañosa. Con fecha, el cliente ve hasta cuándo vale y, pasada esa fecha, el descuento deja de mostrarse.</p>
         </div>
-        <p class="rhint">El monto de arriba es el precio final, ya con el descuento aplicado. El precio "antes" se calcula solo y se redondea.</p>
       </div>
     </section>
     <section class="cf-card"><h3>Descuentos por pago adelantado <span class="hint">opcional</span></h3>
@@ -211,17 +214,18 @@ function editorPropuesta(main,est,{idx},volver){
   $("#cfBack").onclick=volver; $("#cfCancel").onclick=volver;
   const curTipo=()=>$("#pr_tipo .seg.on")?.dataset.t||"fixed";
   const updLanzPrev=()=>{ const prev=$("#pr_lanz_prev");
-    const precio=Number($("#pr_precio").value), pct=Number($("#pr_lanz_pct").value), mon=$("#pr_moneda").value, per=curTipo()==="mensual"?" /mes":"";
-    if(!precio||!pct||pct<=0||pct>=100){ prev.innerHTML='<span style="color:var(--faint)">Cargá monto y %</span>'; return; }
-    const antes=Math.round((precio/(1-pct/100))/5)*5;
-    prev.innerHTML='<span style="text-decoration:line-through;color:var(--faint)">'+esc(propMoney(mon,antes)+per)+'</span> <b style="color:var(--prob)">'+esc(propMoney(mon,precio)+per)+'</b>'; };
+    const precio=Number($("#pr_precio").value), antes=Number($("#pr_lanz_antes").value), hasta=$("#pr_lanz_hasta").value, mon=$("#pr_moneda").value, per=curTipo()==="mensual"?" /mes":"";
+    if(!precio){ prev.innerHTML='<span style="color:var(--faint)">Cargá el monto</span>'; return; }
+    const tachado=antes>precio?'<span style="text-decoration:line-through;color:var(--faint)">'+esc(propMoney(mon,antes)+per)+'</span> ':"";
+    const aviso=$("#pr_lanz_antes").value!==""&&!(antes>precio)?'<br><span style="color:var(--prob)">El precio anterior tiene que ser mayor que el monto.</span>':"";
+    prev.innerHTML=tachado+'<b>'+esc(propMoney(mon,precio)+per)+'</b>'+(antes>precio?' <span>-'+Math.round((1-precio/antes)*100)+'%</span>':"")+(hasta?'<br>Válido hasta el '+esc(fechaLarga(hasta)):"")+aviso; };
   const updTipo=()=>{ const m=curTipo()==="mensual"; $("#pr_perMes").hidden=!m;
     $("#pr_descHint").textContent="Se muestra el total de cada período con su descuento y, si es de más de un mes, su valor por mes."; updLanzPrev(); };
   const segs=(sel,cb)=>main.querySelectorAll(sel+" .seg").forEach(s=>s.onclick=()=>{ main.querySelectorAll(sel+" .seg").forEach(y=>{ y.classList.remove("on"); y.setAttribute("aria-checked","false"); }); s.classList.add("on"); s.setAttribute("aria-checked","true"); cb(); });
   segs("#pr_tipo",updTipo);
   segs("#pr_modo",()=>{ const ad=$("#pr_modo .seg.on").dataset.m==="adefinir"; $("#pr_montoWrap").hidden=ad; $("#pr_lanzWrap").hidden=ad; });
   $("#pr_lanz_on").onchange=e=>{ $("#pr_lanzFields").hidden=!e.target.checked; updLanzPrev(); };
-  $("#pr_lanz_pct").oninput=updLanzPrev; $("#pr_precio").oninput=updLanzPrev; $("#pr_moneda").onchange=updLanzPrev;
+  $("#pr_lanz_antes").oninput=updLanzPrev; $("#pr_lanz_hasta").oninput=updLanzPrev; $("#pr_precio").oninput=updLanzPrev; $("#pr_moneda").onchange=updLanzPrev;
   $("#pr_cta").onchange=e=>{ $("#pr_btnWrap").hidden=!e.target.checked; };
   updTipo(); $("#pr_t").focus();
   // Preguntas frecuentes: pares pregunta/respuesta, con subir, bajar y quitar.
@@ -246,7 +250,7 @@ function editorPropuesta(main,est,{idx},volver){
       boton:$("#pr_btn").value.trim(), cta:$("#pr_cta").checked, faq:faq.map(f=>({q:f.q.trim(),a:f.a.trim()})),
       precioModo:$("#pr_modo .seg.on")?.dataset.m||"adefinir", moneda:$("#pr_moneda").value,
       precio:$("#pr_precio").value!==""?Number($("#pr_precio").value):null,
-      lanz:{on:$("#pr_lanz_on").checked,pct:$("#pr_lanz_pct").value!==""?Number($("#pr_lanz_pct").value):20},
+      lanz:{on:$("#pr_lanz_on").checked,antes:$("#pr_lanz_antes").value!==""?Number($("#pr_lanz_antes").value):null,hasta:$("#pr_lanz_hasta").value||""},
       descuentos:PROP_DESC.reduce((o,[k])=>{ const v=$("#pr_d_"+k).value; o[k]=v!==""?Number(v):null; return o; },{})
     });
     if(!rec.titulo){ $("#pr_t").focus(); return toast("Poné un título"); }

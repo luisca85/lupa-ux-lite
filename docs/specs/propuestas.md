@@ -22,10 +22,19 @@ el reporte, con precio, qué incluye, descuentos y precio de lanzamiento.
   valor por mes. Ejemplo: "Trimestral (3 meses)" / "-10% · US$ 3.240 (US$ 1.080/mes)".
   - Con "A definir" se muestra solo el %. Los vacíos o en 0 no se muestran.
   - En celular la fila no desborda la card.
-- Dado el precio de lanzamiento activo con N% (1–99) y un monto, cuando se ve la
-  propuesta, entonces muestra el "antes" tachado (`precio / (1 - N/100)`, redondeado
-  a múltiplos de 5), el precio guardado como "ahora", la etiqueta "Lanzamiento -N%" y
-  la línea de urgencia. Con "A definir" no se muestra.
+- Descuento o promoción (cambio del 2026-10-26, chequeo legal): dado "Mostrar descuento o
+  promoción" activo con un monto, el autor puede cargar:
+  - **Precio anterior** (opcional): un precio que cobró de verdad. Si es mayor que el
+    monto, se muestra tachado, con el monto como "ahora" y la etiqueta "-N%" (calculada
+    con los dos precios). Si no es mayor, el editor avisa "El precio anterior tiene que
+    ser mayor que el monto." y no se tacha nada.
+  - **Válido hasta** (opcional): una fecha. El cliente ve "Precio válido hasta el {fecha}."
+    Pasada la fecha, no se muestra ni el precio anterior ni la validez.
+  - El precio anterior ya **no se calcula** desde un %, y no existe la línea "Precio de
+    lanzamiento por tiempo limitado". Motivo: un precio tachado que nunca existió o una
+    urgencia sin fecha pueden considerarse publicidad engañosa (Ley de Lealtad
+    Comercial). Las propuestas guardadas con el % viejo se ven solo con su precio.
+  - Con "A definir" no se muestra.
 - Dada la grilla de propuestas, cuando se usan las flechas ← → de una card, entonces el
   nuevo orden se guarda y es el que ve el cliente en "Trabajemos juntos".
 - Dada una propuesta abierta en el editor, cuando se toca Eliminar, entonces se pide
@@ -33,7 +42,8 @@ el reporte, con precio, qué incluye, descuentos y precio de lanzamiento.
 - Dado un estudio sin propuestas guardadas (o con el set viejo de dos, nunca
   editado), cuando se abre su reporte, entonces se siembran las tres por defecto:
   Diagnóstico completo (US$ 300), Plan Mensual - Aliado (US$ 500) y Propuesta
-  Mensual Pro (US$ 1.000), con lanzamiento -20% activo.
+  Mensual Pro (US$ 1.000), sin descuento (desde el 2026-10-26; antes se sembraban con
+  lanzamiento -20%).
 - Dada la sección "Propuestas de trabajo" desmarcada en "Qué ve el cliente", o sin
   propuestas, cuando el cliente abre el reporte, entonces no aparece el botón flotante
   "Trabajemos juntos". Con propuestas, el botón abre un modal con las cards en columnas
@@ -81,7 +91,8 @@ descuentos), la tarjeta en el reporte del cliente y la confirmación de borrado.
 
 ## Fuera de alcance / No tocar
 - Fuera de alcance: cambiar los precios o textos de las propuestas por defecto.
-- El precio guardado es el precio FINAL con descuento. No guardar el "antes".
+- El precio guardado es el precio FINAL. El "antes" lo carga el autor (`lanz.antes`); no
+  volver a calcularlo ni a sugerir urgencia sin fecha.
 - Mantener sincronizados `propuestaCardHTML` / `propDiscRows` y el `propCard` de
   `SR_boot`, y los textos por defecto de `TJ_TEXTOS` con los de `SR_boot`.
 - `esSeedViejo` y la siembra en `ensureReporte` son migraciones de datos guardados:

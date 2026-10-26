@@ -6,7 +6,7 @@ import { esc } from "../core/util.js";
 import { pantallaStore, pinNumero } from "../data/pantallas.js";
 import { flowStore } from "../flujos/flujos.js";
 import { jrDefaultCarriles, jrNormalizePaso } from "../journey/journey.js";
-import { ensureReporte, marcaActual } from "../reportes/comun.js";
+import { cuentaBeta, ensureReporte, marcaActual } from "../reportes/comun.js";
 import { vistaCliente } from "../reportes/seleccion.js";
 import { compositeDataUrl } from "../ui/anotaciones.js";
 import { pasosDe } from "../views/hallazgo-form.js";
@@ -55,7 +55,7 @@ export async function collectShareData(est){
   const jOut=journeys.map(j=>{ (j.pasos||[]).forEach(jrNormalizePaso); return { id:j.id, nombre:j.nombre||"", descripcion:j.descripcion||"", etapas:(j.etapas||[]).map(e=>({id:e.id,nombre:e.nombre||"",descripcion:e.descripcion||"",color:e.color||""})), carriles:j.carriles||jrDefaultCarriles(), pasos:(j.pasos||[]).map(p=>({id:p.id,hallazgos:(p.hallazgos||[]).filter(id=>hzVis.has(id)),nombre:p.nombre,etapaId:p.etapaId,emocion:(p.emocion!=null?p.emocion:2),touchpoint:p.touchpoint||"",tpPills:p.tpPills||[],acciones:p.acciones||[],expectativas:p.expectativas||[],pain:p.pain||[],oportunidades:p.oportunidades||[]})) }; });
   const hz=v.hallazgos, byT=t=>hz.filter(x=>x.tipo===t).length, sevN=n=>hz.filter(x=>x.tipo==="Problema"&&x.severidad===n).length;
   return {
-    brand:{wordmark:m.wordmark,headerImg:m.headerImg||null,nombre:m.nombre,rol:m.rol,sitio:m.sitio,email:m.email||"",tel:m.tel||"",servicioNombre:m.servicioNombre||"",servicioDesc:m.servicioDesc||"",servicioUrl:m.servicioUrl||"",linkedin:m.linkedin||"",bienvenida:m.bienvenida||"",notaIA:m.notaIA||"",notaInicial:m.notaInicial||""},
+    brand:{wordmark:m.wordmark,headerImg:m.headerImg||null,nombre:m.nombre,rol:m.rol,sitio:m.sitio,email:m.email||"",tel:m.tel||"",servicioNombre:m.servicioNombre||"",servicioDesc:m.servicioDesc||"",servicioUrl:m.servicioUrl||"",linkedin:m.linkedin||"",bienvenida:m.bienvenida||"",notaIA:m.notaIA||"",esUxuaria:!cuentaBeta(),notaInicial:m.notaInicial||""},
     est:{nombre:est.nombre||"",cliente:est.cliente||"",plataforma:est.plataforma||"",fecha:est.fecha||""},
     report:{resumen:r.resumen||"",objetivos:r.objetivos||"",alcance:r.alcance||"",diagIntro:r.diagIntro||"",muestra:r.muestra||{on:false,texto:""},online:r.online||{},propuestas:r.propuestas||[],tj:r.tj||null,hallazgosClave:r.hallazgosClave||[],recomendaciones:r.recomendaciones||[],protopersonas:[],pestanas:r.pestanas||[]},
     metrics:{total:hz.length,problemas:byT("Problema"),oportunidades:byT("Oportunidad"),sevAlta:sevN(3)+sevN(4)},
