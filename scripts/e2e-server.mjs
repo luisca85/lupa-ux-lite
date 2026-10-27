@@ -1,15 +1,18 @@
 // Levanta la app con API + D1 local sobre una base LIMPIA (.wrangler/e2e) para los tests.
-// Uso: node scripts/e2e-server.mjs <carpeta-de-la-app> <puerto> [cuentas]
+// Uso: node scripts/e2e-server.mjs <carpeta-de-la-app> <puerto> [cuentas|privada]
 // Con "cuentas": AUTH_MODE="cuentas" y el código de entrada en la respuesta (sin email).
+// Con "privada": lo mismo más SOLO_AUTORIZADOS="1" (beta privada) y su propia base.
 import { rmSync } from "node:fs";
 import { execFileSync, spawn } from "node:child_process";
 
 const dir = process.argv[2] || "public";
 const port = process.argv[3] || "8790";
-const cuentas = process.argv[4] === "cuentas";
-const persist = cuentas ? ".wrangler/e2e-cuentas" : ".wrangler/e2e";
+const modo = process.argv[4] || "";
+const privada = modo === "privada", cuentas = modo === "cuentas" || privada;
+const persist = privada ? ".wrangler/e2e-privada" : cuentas ? ".wrangler/e2e-cuentas" : ".wrangler/e2e";
 const vars = cuentas
-  ? ["--binding", "AUTH_MODE=cuentas", "--binding", "AUTH_CODIGO_EN_RESPUESTA=1", "--binding", "ADMIN_EMAILS=admin@lupa.test", "--binding", "MAX_CUENTAS=8", "--binding", "MAX_MB_CUENTA=3"]
+  ? ["--binding", "AUTH_MODE=cuentas", "--binding", "AUTH_CODIGO_EN_RESPUESTA=1", "--binding", "ADMIN_EMAILS=admin@lupa.test", "--binding", "MAX_CUENTAS=8", "--binding", "MAX_MB_CUENTA=3",
+     ...(privada ? ["--binding", "SOLO_AUTORIZADOS=1"] : [])]
   : [];
 const wrangler = process.platform === "win32" ? "npx.cmd" : "npx";
 

@@ -105,7 +105,10 @@ antes de las cuentas se pasan con `scripts/migrar-cuentas.mjs`.
 
 Beta (fase 3, solo `AUTH_MODE="cuentas"` y sin `ADMIN_EMAILS`): 1 estudio propio a la
 vez y 15 pantallas por estudio (403 con `limite`), y `MAX_CUENTAS` cuentas (por defecto
-100; los emails nuevos con los cupos llenos van a la tabla `espera`). El estudio de
+100; los emails nuevos con los cupos llenos van a la tabla `espera`). Con
+`SOLO_AUTORIZADOS="1"` (beta privada, producción y previews) solo crean cuenta los emails
+de la tabla `autorizados`, que se manejan con `scripts/autorizar.mjs`; el resto va a
+`espera` y `MAX_CUENTAS` no aplica. El estudio de
 ejemplo vive en `ejemplo/estudios/ejemplo-{id}/…`. Todas las cuentas lo ven como
 `estudios/ejemplo-{id}` (la lista de `estudios` lo suma con `ejemplo: true`), de solo
 lectura: la API responde 403 y `backend.js` lo frena antes. Se publica con
