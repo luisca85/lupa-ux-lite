@@ -1,6 +1,6 @@
 # Feature: Backend en Cloudflare (Pages Functions + D1)  ·  id: d1
 
-Historia de usuario: Como quien hostea Lupa UX, quiero que los datos queden en D1
+Historia de usuario: Como quien hostea Mutis UX, quiero que los datos queden en D1
 protegidos con login y separados por cuenta, para que estén seguros y respaldados.
 
 Objetivo: que la versión hosteada guarde en una base de datos de servidor, compartida

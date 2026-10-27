@@ -16,7 +16,7 @@ export async function exportAllData(btn){
     const docs=await DB.dumpAll();
     const payload=JSON.stringify({app:"lupaux",version:1,exportedAt:new Date().toISOString(),docs});
     const fecha=new Date().toISOString().slice(0,10);
-    downloadFile({filename:"lupaux-respaldo-"+fecha+".json",data:new Blob([payload],{type:"application/json"})});
+    downloadFile({filename:"mutisux-respaldo-"+fecha+".json",data:new Blob([payload],{type:"application/json"})});
     toast("Respaldo exportado ("+docs.length+" documentos)");
   }catch(e){ toast("No se pudo exportar: "+e.message); }
   finally{ if(btn)btn.disabled=false; }
@@ -27,7 +27,7 @@ export function importAllData(){
     const f=inp.files&&inp.files[0]; if(!f)return;
     let j;
     try{ j=JSON.parse(await f.text()); }catch(e){ toast("El archivo no es un JSON válido"); return; }
-    if(!j||j.app!=="lupaux"||!Array.isArray(j.docs)){ toast("El archivo no es un respaldo de Lupa UX"); return; }
+    if(!j||j.app!=="lupaux"||!Array.isArray(j.docs)){ toast("El archivo no es un respaldo de Mutis UX"); return; }
     if(!confirm("Se van a importar "+j.docs.length+" documentos. Los que ya existan con la misma ruta se reemplazan. ¿Continuar?"))return;
     let ok=0, fail=0; const queue=j.docs.slice();
     const worker=async()=>{ while(queue.length){ const d=queue.shift(); if(!d||typeof d.path!=="string")continue; try{ await DB.doc(d.path).set(d.data||{}); ok++; }catch(e){ fail++; } } };

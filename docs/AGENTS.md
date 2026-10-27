@@ -1,4 +1,4 @@
-# Constitución de Lupa UX
+# Constitución de Mutis UX
 
 Propósito: herramienta  de diagnóstico y evaluación heurística de UX.
 Permite cargar estudios, registrar hallazgos con evidencia anotada, armar user

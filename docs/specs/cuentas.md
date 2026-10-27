@@ -1,6 +1,6 @@
 # Feature: Cuentas de usuario por email, datos separados y límites de la beta  ·  id: cta
 
-Historia de usuario: Como consultor/a UX que quiere probar Lupa UX, quiero crear mi
+Historia de usuario: Como consultor/a UX que quiere probar Mutis UX, quiero crear mi
 cuenta solo con mi email y encontrar un estudio de ejemplo, para empezar a evaluar
 un producto sin instalar nada ni recordar otra contraseña.
 
@@ -43,7 +43,7 @@ Se construye en 4 fases, en este orden. Cada fase se revisa antes de seguir:
   pantalla de entrada: marca, "Entrá o creá tu cuenta", un campo de email, el chequeo
   de Turnstile y el botón "Continuar con email".
 - Dado un email válido, cuando se toca "Continuar con email", entonces se manda un
-  email con el botón "Entrar a Lupa UX" y un código de 6 dígitos. Los dos valen 10
+  email con el botón "Entrar a Mutis UX" y un código de 6 dígitos. Los dos valen 10
   minutos y sirven una sola vez. La pantalla pasa a "Revisá tu email" con el email
   escrito, 6 casillas para el código y "Volver" para corregir el email.
 - Dado el código correcto, cuando se escribe (o se pega), entonces se entra sin tocar
@@ -120,7 +120,7 @@ Se construye en 4 fases, en este orden. Cada fase se revisa antes de seguir:
   los 100 emails por día de Resend gratis: `MAX_CUENTAS` = 20 el día 1, 50 el día 3 y
   100 la semana siguiente. Antes de cada tanda se mira el uso de emails en Resend.
 - Dada la fase 2 en producción, cuando se lanza, entonces la app vive en
-  `lupa.uxuaria.com` y los códigos salen desde `acceso@uxuaria.com`.
+  `mutis.uxuaria.com` y los códigos salen desde `acceso@uxuaria.com`.
 - Dadas las cuentas andando en producción, cuando se cierra la fase 4, entonces se
   quita Cloudflare Access: el proyecto y sus políticas en Cloudflare,
   `AUTH_MODE="access"`, `verifyAccess()` y las variables `ACCESS_*`.
@@ -252,12 +252,12 @@ casillas de código, y el email con botón y código. Se ajustan mirando la vist
   - el límite de 1 estudio es a la vez;
   - el administrador va fuera de los cupos y sin límites;
   - Cloudflare Access se quita;
-  - la app vive en `lupa.uxuaria.com` y los emails salen de `acceso@uxuaria.com`;
+  - la app vive en `mutis.uxuaria.com` y los emails salen de `acceso@uxuaria.com`;
   - el ejemplo es una app inventada;
   - las tandas son de 20, 30 y 50;
   - el diseño se hace en código.
 - Producción vive hoy en `lupaux.uxuaria.com` (decisión del 2026-09-23). Se pasa a
-  `lupa.uxuaria.com` (decisión del 2026-10-16) con una redirección 301 que conserva la
+  `mutis.uxuaria.com` (decisiones del 2026-10-16 y 2026-10-27) con una redirección 301 que conserva la
   ruta: los links públicos `/r/{id}` ya enviados siguen funcionando (ver
   `docs/lanzamiento.md`, paso 9). El DNS de uxuaria.com está en Cloudflare. `acceso@uxuaria.com` sale del
   dominio verificado en Resend: no hace falta una casilla real, pero conviene que las

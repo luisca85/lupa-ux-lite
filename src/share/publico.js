@@ -10,14 +10,14 @@ export function idPublicoDeLaURL(){
 }
 
 export function abrirReportePublico(id){
-  document.title = "Reporte · Lupa UX";
+  document.title = "Reporte · Mutis UX";
   const hd = document.querySelector("header.top"); if(hd) hd.remove();
   const app = document.querySelector(".app"); if(app) app.remove();
   const gate = document.createElement("div");
   gate.className = "pub-gate";
   gate.innerHTML = `<form class="pub-card" id="pubForm" autocomplete="off" novalidate>
       <div class="pub-brand"><span class="brand-mark"><span class="fig-ico ico-view" aria-hidden="true"></span></span>
-        <span class="brand-txt"><b>uxuaria</b><small>Lupa Ux</small></span></div>
+        <span class="brand-txt"><b>uxuaria</b><small>Mutis UX</small></span></div>
       <h1>Reporte de diagnóstico UX</h1>
       <p>Ingresá el PIN de 6 dígitos que te compartieron para ver el reporte.</p>
       <input id="pubPin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" aria-label="PIN de 6 dígitos" required>

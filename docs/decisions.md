@@ -225,3 +225,14 @@ un %: lo carga el autor como precio anterior real, con fecha de validez opcional
 "por tiempo limitado". (3) La página de gracias dice "Recibimos tu interés" y aclara que no
 es una compra ni un compromiso de pago. Motivo: evitar afirmaciones falsas, publicidad
 engañosa (Ley de Lealtad Comercial) y que una reserva se lea como contrato.
+
+2026-10-27 - La app se renombra de Lupa UX a Mutis UX (por José Celestino Mutis y las láminas
+de la Expedición Botánica), escrito siempre con UX en mayúsculas. Producción pasa a
+`mutis.uxuaria.com` en lugar de `lupa.uxuaria.com`, que nunca se activó; `lupaux.uxuaria.com`
+queda con la redirección 301 para los links `/r/{id}` ya enviados. Cambian solo el texto
+visible, los correos y los documentos: las claves `lupa:*`, la cookie `lupa_sesion`, las bases
+`lupaux`, el formato de respaldo `app:"lupaux"`, el formato `lupa-ux/reporte` y el proyecto de
+Pages `lupa-ux` se quedan como están. Los nombres de los archivos y frames de Figma tampoco
+cambian. Motivo: "Lupa UX" es descriptivo y se confunde con la categoría; los dominios de Mutis
+UX están libres. Renombrar los identificadores borraría los datos locales, cerraría todas las
+sesiones y rompería los respaldos ya descargados.

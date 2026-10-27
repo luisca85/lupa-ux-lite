@@ -1,6 +1,6 @@
 # Feature: Versión hosteable (self-hosted)
 
-Objetivo: que Lupa UX pueda subirse a un hosting estático (Netlify, Cloudflare
+Objetivo: que Mutis UX pueda subirse a un hosting estático (Netlify, Cloudflare
 Pages, GitHub Pages) o abrirse local.
 
 ## Criterios de aceptación

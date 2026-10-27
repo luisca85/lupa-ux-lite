@@ -1,6 +1,6 @@
 # Feature: Design system: radios, estados y componentes base  ·  id: ds
 
-Historia de usuario: Como consultor/a UX que diseña Lupa UX en Figma, quiero que la app
+Historia de usuario: Como consultor/a UX que diseña Mutis UX en Figma, quiero que la app
 use los mismos radios, estados y componentes que el design system, para que lo que
 diseño y lo que se construye se vean igual.
 

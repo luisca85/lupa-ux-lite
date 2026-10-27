@@ -1,6 +1,6 @@
 # Feature: Onboarding de bienvenida en 5 pasos  ·  id: onb
 
-Historia de usuario: Como consultor/a UX que entra por primera vez a Lupa UX, quiero
+Historia de usuario: Como consultor/a UX que entra por primera vez a Mutis UX, quiero
 una introducción breve sobre el espíritu de la herramienta y sus secciones, para
 entender cómo está organizada antes de cargar mi primer estudio.
 

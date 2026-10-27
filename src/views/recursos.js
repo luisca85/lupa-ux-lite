@@ -6,7 +6,7 @@ import { esc } from "../core/util.js";
    cambia en cada visita. Para sumar o quitar un enlace, editar RECURSOS. Sin imágenes externas. */
 const RECURSOS=[
   { fuente:"NN/g", titulo:"10 Usability Heuristics for User Interface Design", autor:"Jakob Nielsen",
-    nota:"Las diez heurísticas en las que se apoya el catálogo de Lupa.",
+    nota:"Las diez heurísticas en las que se apoya el catálogo de Mutis UX.",
     url:"https://www.nngroup.com/articles/ten-usability-heuristics/" },
   { fuente:"NN/g", titulo:"Heuristic Evaluation: artículos y guías", autor:"Nielsen Norman Group",
     nota:"Lo último de NN/g sobre evaluación heurística, siempre actualizado.",
@@ -53,7 +53,7 @@ export function renderRecursos(box){
       <div class="rec-dots">${lista.map((r,k)=>`<button type="button" class="rec-dot" data-k="${k}" aria-label="Ver ${esc(r.titulo)}"></button>`).join("")}</div>
       <button type="button" class="rec-arr" id="recNext" aria-label="Recurso siguiente">${chev(1)}</button></div>
     <h3 class="rec-sub">Más para leer</h3><ul class="rec-list" id="recList"></ul>
-    <div class="rec-tip"><b>Consejo de Lupa</b><p>${esc(consejo)}</p></div>`;
+    <div class="rec-tip"><b>Consejo de Mutis</b><p>${esc(consejo)}</p></div>`;
   const dest=box.querySelector("#recDest"), ul=box.querySelector("#recList");
   const tarjeta=r=>`<a class="rec-card${r.propio?" propio":""}" href="${esc(r.url)}" target="_blank" rel="noopener">
       <span class="rec-src">${esc(r.fuente)}</span><b>${esc(r.titulo)}</b><small>${esc(r.autor)}</small>

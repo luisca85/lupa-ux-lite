@@ -1,4 +1,4 @@
-# Lupa UX
+# Mutis UX
 
 Herramienta de diagnóstico y evaluación heurística de UX. El código está en
 módulos (`src/`) y Vite lo compila a **un solo HTML** (`dist/index.html`). Guarda

@@ -278,7 +278,7 @@ código como quien abre el link (con su sesión), hay dos capas:
 - Dada una reserva, cuando existe `RESEND_API_KEY`, entonces manda un correo con Resend:
   - asunto: "Nueva reserva: {propuesta}";
   - a `RESERVA_TO` (por defecto `info@uxuaria.com`), con copia a `RESERVA_CC`;
-  - desde `RESERVA_FROM` (por defecto `Lupa UX <reservas@uxuaria.com>`);
+  - desde `RESERVA_FROM` (por defecto `Mutis UX <reservas@uxuaria.com>`);
   - con "Tu cliente reservó {propuesta}", precio, estudio, cliente y fecha (hora de
     Buenos Aires).
 - Si el correo falla o no está configurado, la reserva igual queda guardada

@@ -1,4 +1,4 @@
-/* API de documentos de Lupa UX sobre Cloudflare D1.
+/* API de documentos de Mutis UX sobre Cloudflare D1.
    Replica el contrato tipo Firestore que usa la app (DB.collection/DB.doc):
 
    GET    /api/health                 -> {ok, db, auth}
@@ -283,7 +283,7 @@ async function avisarReserva(env, meta, r) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ from: env.RESERVA_FROM || "Lupa UX <reservas@uxuaria.com>", to, cc: cc.length ? cc : undefined, subject: asunto, html }),
+    body: JSON.stringify({ from: env.RESERVA_FROM || "Mutis UX <reservas@uxuaria.com>", to, cc: cc.length ? cc : undefined, subject: asunto, html }),
   });
   return res.ok;
 }
@@ -349,9 +349,9 @@ async function verificarTurnstile(env, token, ip) {
 async function mandarCodigo(env, email, codigo, link) {
   if (!env.RESEND_API_KEY) return false;
   const html = `<div style="font-family:system-ui,sans-serif;max-width:440px;margin:0 auto;padding:24px;color:#0a0a0a">
-    <h2 style="margin:0 0 12px;font-size:20px">Entrá a Lupa UX</h2>
+    <h2 style="margin:0 0 12px;font-size:20px">Entrá a Mutis UX</h2>
     <p style="margin:0 0 20px;font-size:15px;line-height:1.5">Tocá el botón para entrar en este dispositivo, o escribí el código en la pantalla donde lo pediste.</p>
-    <p style="margin:0 0 24px"><a href="${link}" style="display:inline-block;background:#0a0a0a;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600">Entrar a Lupa UX</a></p>
+    <p style="margin:0 0 24px"><a href="${link}" style="display:inline-block;background:#0a0a0a;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600">Entrar a Mutis UX</a></p>
     <p style="margin:0 0 6px;font-size:13px;color:#555">Tu código</p>
     <p style="margin:0 0 24px;font-size:28px;letter-spacing:6px;font-weight:700;font-family:ui-monospace,monospace">${codigo}</p>
     <p style="margin:0;font-size:12.5px;color:#777;line-height:1.5">Vale 10 minutos y sirve una sola vez. Si no lo pediste, ignorá este email: nadie puede entrar sin él.</p>
@@ -359,7 +359,7 @@ async function mandarCodigo(env, email, codigo, link) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ from: env.AUTH_FROM || "Lupa UX <acceso@uxuaria.com>", to: [email], subject: `Tu código para entrar a Lupa UX: ${codigo}`, html }),
+    body: JSON.stringify({ from: env.AUTH_FROM || "Mutis UX <acceso@uxuaria.com>", to: [email], subject: `Tu código para entrar a Mutis UX: ${codigo}`, html }),
   });
   return res.ok;
 }
