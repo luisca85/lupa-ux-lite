@@ -46,7 +46,7 @@ function SR_boot(D){
         hallazgos:arr(q.hallazgos).map(id),tpPills:arr(q.tpPills),acciones:arr(q.acciones),expectativas:arr(q.expectativas),pain:arr(q.pain),oportunidades:arr(q.oportunidades)})); });
     const r=D.report;
     r.protopersonas=arr(r.protopersonas).map(obj).map(q=>({...q,foto:url(q.foto)}));
-    r.propuestas=arr(r.propuestas).map(obj).map(q=>({...q,id:id(q.id),bullets:arr(q.bullets),faq:arr(q.faq).map(obj),lanz:q.lanz?{on:!!obj(q.lanz).on,pct:num(obj(q.lanz).pct)}:q.lanz}));
+    r.propuestas=arr(r.propuestas).map(obj).map(q=>({...q,id:id(q.id),bullets:arr(q.bullets),faq:arr(q.faq).map(obj),lanz:q.lanz?{on:!!obj(q.lanz).on,antes:obj(q.lanz).antes==null||obj(q.lanz).antes===""?null:num(obj(q.lanz).antes),hasta:/^\d{4}-\d{2}-\d{2}$/.test(String(obj(q.lanz).hasta||""))?String(obj(q.lanz).hasta):""}:q.lanz}));
     r.pestanas=arr(r.pestanas).map(obj).map(q=>({...q,id:id(q.id)}));
     r.hallazgosClave=arr(r.hallazgosClave).map(obj); r.recomendaciones=arr(r.recomendaciones).map(obj).map(b=>({...b,bullets:arr(b.bullets)}));
     if(r.tj&&typeof r.tj==="object"&&r.tj.recomendada) r.tj.recomendada=id(r.tj.recomendada);
@@ -64,7 +64,12 @@ function SR_boot(D){
     const disc=rows.length?'<div class="cr-prop-disc"><b>Descuentos por pago adelantado</b><ul>'+rows.map(r=>'<li><span>'+esc(r.label)+'</span><span>-'+r.pct+'%'+(r.ex?esc(r.ex):"")+'</span></li>').join("")+'</ul></div>':"";
     const incl=(p.bullets&&p.bullets.length)?'<ul>'+p.bullets.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':"";
     let priceHTML='<div class="cr-prop-price">'+esc(priceLine(p))+'</div>';
-    if(p.lanz&&p.lanz.on&&base!=null){ const pct=Number(p.lanz.pct||0); if(pct>0&&pct<100){ const antes=Math.round((base/(1-pct/100))/5)*5; if(antes>base){ priceHTML='<div class="cr-prop-price has-launch"><span class="cr-prop-was">'+esc(money(p.moneda,antes)+(p.tipo==="mensual"?" /mes":""))+'</span><span class="cr-prop-now">'+esc(priceLine(p))+'</span><span class="cr-prop-launch">Lanzamiento -'+pct+'%</span></div><div class="cr-prop-urg">Precio de lanzamiento por tiempo limitado. Reservás este valor al confirmar el servicio.</div>'; } } }
+    // Mismo criterio que propLaunch (reportes/propuestas.js): "antes" solo si el autor cargó un
+    // precio anterior real y mayor; "hasta" muestra la validez y, vencida, no hay descuento.
+    if(p.lanz&&p.lanz.on&&base!=null){ const hasta=p.lanz.hasta||"", hoy=new Date().toISOString().slice(0,10);
+      if(!hasta||hasta>=hoy){ const antes=Number(p.lanz.antes);
+        if(Number.isFinite(antes)&&antes>base) priceHTML='<div class="cr-prop-price has-launch"><span class="cr-prop-was">'+esc(money(p.moneda,antes)+(p.tipo==="mensual"?" /mes":""))+'</span><span class="cr-prop-now">'+esc(priceLine(p))+'</span><span class="cr-prop-launch">-'+Math.round((1-base/antes)*100)+'%</span></div>';
+        if(hasta) priceHTML+='<div class="cr-prop-urg">Precio válido hasta el '+esc(new Date(hasta+"T12:00:00").toLocaleDateString("es-AR",{day:"numeric",month:"long",year:"numeric"}))+'.</div>'; } }
     return '<div class="cr-prop"><div class="cr-prop-top"><h4>'+esc(p.titulo)+'</h4><span class="cr-prop-tag">'+esc(p.tipo==="mensual"?"Plan fijo mensual":"Precio fijo")+'</span></div>'+priceHTML+'<div class="cr-prose">'+para(p.texto)+incl+'</div>'+disc+'</div>';
   }
   const SEV=[{l:"No es problema"},{l:"Cosmético"},{l:"Menor"},{l:"Mayor"},{l:"Catástrofe"}];
@@ -163,7 +168,9 @@ function SR_boot(D){
     main.innerHTML='<div class="pr-hero"><span class="pr-kicker">Presentación</span><h1>'+esc(D.est.nombre)+'</h1>'+(D.est.cliente?'<div class="cr-sub">'+esc(D.est.cliente)+'</div>':'')+'<div class="cr-meta">'+[D.est.plataforma,D.est.fecha].filter(Boolean).map(v=>'<span>'+esc(v)+'</span>').join("")+'</div></div>'
       +'<div class="pr-letter">'+para(m.bienvenida||BIENVENIDA)+'</div>'
       +'<div class="pr-notes">'
-        +'<div class="pr-note"><span class="pr-note-ico">'+crIco("user")+'</span><div><b>Hecho por una persona, no por una herramienta automática</b>'+para(m.notaIA||NOTA_IA)+'</div></div>'
+        // El texto por defecto ("más de 10 años de experiencia") es de uxuaria: en los reportes de
+        // otras cuentas la aclaración se muestra solo si su autor la escribió.
+        +((m.notaIA||m.esUxuaria)?'<div class="pr-note"><span class="pr-note-ico">'+crIco("user")+'</span><div><b>Hecho por una persona, no por una herramienta automática</b>'+para(m.notaIA||NOTA_IA)+'</div></div>':'')
         +'<div class="pr-note"><span class="pr-note-ico">'+crIco("report")+'</span><div><b>Es un diagnóstico inicial</b>'+para(m.notaInicial||NOTA_INICIAL)+'</div></div>'
       +'</div>'
       +((r.muestra&&r.muestra.on&&r.muestra.texto)?'<div class="cr-teaser">'+crIco("spark")+'<span>'+esc(r.muestra.texto)+'</span></div>':'')
@@ -360,14 +367,16 @@ function SR_boot(D){
     }
     V.reserva={titulo:p.titulo||"",precio:priceLine(p)}; cerrarPropuestas(); V.section="gracias"; shell();
   }
-  const logoUx='<span class="ty-logo"><span class="ty-mark">'+SVG(18,'<path d="M21 17v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2"/><path d="M21 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><circle cx="12" cy="12" r="1"/><path d="M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0"/>',2)+'</span><span class="ty-word"><b>uxuaria</b><small>Lupa Ux</small></span></span>';
+  const logoUx='<span class="ty-logo"><span class="ty-mark">'+SVG(18,'<path d="M21 17v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2"/><path d="M21 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><circle cx="12" cy="12" r="1"/><path d="M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0"/>',2)+'</span><span class="ty-word"><b>uxuaria</b><small>Mutis UX</small></span></span>';
   function secGracias(main){
     const r=V.reserva||{};
     main.innerHTML='<div class="ty">'+logoUx
       +'<div class="ty-check">'+SVG(30,'<path d="M20 6 9 17l-5-5"/>',2.4)+'</div>'
-      +'<h1>¡Gracias! Tu reserva está confirmada</h1>'
-      +'<p class="ty-lead">Ya recibí tu decisión'+(r.titulo?' de avanzar con <b>'+esc(r.titulo)+'</b>':'')+'. Me voy a comunicar con vos muy pronto para coordinar los próximos pasos.</p>'
-      +(r.titulo?'<div class="ty-res"><span>Reservaste</span><b>'+esc(r.titulo)+'</b>'+(r.precio?'<em>'+esc(r.precio)+'</em>':'')+'</div>':'')
+      +'<h1>¡Gracias! Recibimos tu interés</h1>'
+      +'<p class="ty-lead">Ya sé que querés avanzar'+(r.titulo?' con <b>'+esc(r.titulo)+'</b>':'')+'. Me voy a comunicar con vos muy pronto para coordinar los próximos pasos.</p>'
+      +(r.titulo?'<div class="ty-res"><span>Elegiste</span><b>'+esc(r.titulo)+'</b>'+(r.precio?'<em>'+esc(r.precio)+'</em>':'')+'</div>':'')
+      // No es una compra: que nadie lo tome como un contrato cerrado.
+      +'<p class="ty-nota">Esto no es una compra ni un compromiso de pago. El alcance, el precio final y las condiciones los acordamos juntos antes de empezar.</p>'
       +'<ol class="ty-pasos"><li><b>Te escribo</b><span>Recibís un mensaje mío para coordinar una primera conversación.</span></li><li><b>Conversamos</b><span>Repasamos el diagnóstico y definimos prioridades juntos.</span></li><li><b>Arrancamos</b><span>Empezamos a transformar los hallazgos en mejoras concretas.</span></li></ol>'
       +((m.email||m.tel)?'<p class="ty-cto">¿Querés adelantarte? '+(m.email?'<a href="mailto:'+esc(m.email)+'">'+esc(m.email)+'</a>':'')+(m.email&&m.tel?' · ':'')+(m.tel?esc(m.tel):'')+'</p>':'')
       +'<button class="btn ty-back" id="tyBack">'+chevL+' Volver al reporte</button></div>';

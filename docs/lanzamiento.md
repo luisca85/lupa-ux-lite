@@ -24,7 +24,7 @@ muestra tus datos, porque el código nuevo los busca en `u/{id}/…`. Hacé los 
   avisos de reserva. Mirá el uso en el panel de Resend antes de cada tanda.
 
 ## 2. 🔑 Turnstile
-- Cloudflare → Turnstile → **Add widget**. Hostnames: `lupa.uxuaria.com`, `lupaux.uxuaria.com` y
+- Cloudflare → Turnstile → **Add widget**. Hostnames: `mutis.uxuaria.com`, `lupaux.uxuaria.com` y
   `lupa-ux.pages.dev` (y el dominio de previews si vas a probar ahí). Modo: Managed.
 - Anotá la **site key** (pública) y la **secret key**.
 
@@ -70,21 +70,21 @@ Usá el mismo email que pusiste en `ADMIN_EMAILS`. El script muestra la cantidad
 documentos antes y después (tienen que coincidir), y si se repite no hace nada.
 
 ## 8. 🔑 Quitar Cloudflare Access de la app
-- Zero Trust → Access → Applications: borrá la aplicación que protege Lupa UX (y la
+- Zero Trust → Access → Applications: borrá la aplicación que protege Mutis UX (y la
   política Bypass de `/api/publico`, que ya no hace falta).
 - Entrá a la app: tiene que aparecer **Entrá o creá tu cuenta**. Entrá con tu email y
   verificá que ves tus estudios y que tus links públicos `/r/{id}` siguen abriendo.
 
-## 9. 🔑 Dominio: de `lupaux.uxuaria.com` a `lupa.uxuaria.com`
+## 9. 🔑 Dominio: de `lupaux.uxuaria.com` a `mutis.uxuaria.com`
 Hoy producción vive en `lupaux.uxuaria.com`, y los links públicos (`/r/{id}`) que ya
 mandaste a clientes usan esa dirección: no hay que romperlos.
 1. Pages → `lupa-ux` → **Custom domains** → **Set up a custom domain** →
-   `lupa.uxuaria.com`. El DNS de uxuaria.com está en Cloudflare, así que Pages crea el
+   `mutis.uxuaria.com`. El DNS de uxuaria.com está en Cloudflare, así que Pages crea el
    registro solo.
-2. Probá que `https://lupa.uxuaria.com` abre la app y que un link `/r/{id}` funciona ahí.
+2. Probá que `https://mutis.uxuaria.com` abre la app y que un link `/r/{id}` funciona ahí.
 3. Redirigí la dirección vieja: Cloudflare → `uxuaria.com` → **Rules → Redirect Rules** →
-   regla "Lupa: dominio viejo". Cuando el hostname es igual a `lupaux.uxuaria.com`, URL
-   dinámica `concat("https://lupa.uxuaria.com", http.request.uri)`, código **301** y
+   regla "Mutis UX: dominio viejo". Cuando el hostname es igual a `lupaux.uxuaria.com`, URL
+   dinámica `concat("https://mutis.uxuaria.com", http.request.uri)`, código **301** y
    conservar la query string. Así los links viejos llevan al mismo reporte en el dominio
    nuevo.
 4. Dejá `lupaux.uxuaria.com` en Custom domains (la redirección necesita que siga

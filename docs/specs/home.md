@@ -17,7 +17,7 @@ la app. La home se rediseñó dos veces:
 ### Barra superior
 - Dada una pantalla fuera de un estudio, cuando se ve la barra superior, entonces muestra:
   - la marca: el logo redondo de uxuaria (38 px, `logo-uxuaria.webp`), "uxuaria" y
-    "Lupa Ux" debajo;
+    "Mutis UX" debajo;
   - un buscador de 260 px con el texto guía "Buscar estudios";
   - en modo `server`, el menú de usuario (avatar con la inicial, nombre, email y flecha).
 - Dado el menú de usuario abierto, cuando se lo usa, entonces ofrece:
@@ -56,7 +56,7 @@ la app. La home se rediseñó dos veces:
   - un recurso destacado: fuente, título, autor y fecha, nota y "Leer";
   - flechas "Recurso anterior" y "Recurso siguiente" y un punto por recurso (8);
   - "Más para leer", con los 4 recursos que siguen en la rotación;
-  - un "Consejo de Lupa" al azar entre 5.
+  - un "Consejo de Mutis" al azar entre 5.
 - Dados los 8 recursos de `RECURSOS` (NN/g, Baymard, uxuaria y Sakura 64), cuando se
   entra a la home, entonces el orden se baraja. Los de uxuaria y Sakura 64 se marcan
   como propios (`propio`).
@@ -122,7 +122,7 @@ la app. La home se rediseñó dos veces:
 ### Pie de página
 - Dada la home o una página legal, cuando se ve el final, entonces hay un pie de
   página (`#sitePie`) con:
-  - la marca uxuaria, "Lupa UX · diagnóstico de experiencia con criterio humano" y
+  - la marca uxuaria, "Mutis UX · diagnóstico de experiencia con criterio humano" y
     "Luis Carlos Romero León · Consultor en diseño de experiencia de usuario";
   - "Contacto": `info@uxuaria.com` (mailto) y `uxuaria.com` (pestaña nueva);
   - "Legal": "Términos de uso", "Política de privacidad" y "Cookies y almacenamiento",

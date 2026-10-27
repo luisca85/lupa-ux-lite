@@ -27,7 +27,7 @@ falla, se muestra el error. Si tampoco hay IndexedDB, `store` usa localStorage.
 - `views/`: home (Recursos a la izquierda y Estudios en una tarjeta: grilla con la tarjeta
   "Nuevo estudio", filtrado por el buscador de la barra, paginador según lo que entra en
   la pantalla y alta de estudio en dos pasos dentro del bloque, sin modal), recursos
-  (panel de lecturas con destacado que rota y Consejo de Lupa; lista fija en `RECURSOS`),
+  (panel de lecturas con destacado que rota y Consejo de Mutis; lista fija en `RECURSOS`),
   legal (términos, privacidad y almacenamiento: `SECCIONES_LEGALES`, `state.view="legal"`),
   estudio (subheader a 100% de ancho + barra de secciones con `STUDY_TABS`; sin barra
   global), resumen (dashboard del proyecto: problemas, hallazgos, protopersonas, flujos),
@@ -114,7 +114,7 @@ lectura: la API responde 403 y `backend.js` lo frena antes. Se publica con
 Producción y previews corren con `AUTH_MODE="cuentas"` (`wrangler.toml`). Los secretos
 (`RESEND_API_KEY`, `TURNSTILE_*`, `ADMIN_EMAILS`, `RESERVA_TO`) van en el panel de Pages. Los
 pasos para lanzar (respaldo, migraciones, deploy, `migrar-cuentas`, quitar Access, dominio
-`lupa.uxuaria.com`, ejemplo y tandas) están en `docs/lanzamiento.md`.
+`mutis.uxuaria.com`, ejemplo y tandas) están en `docs/lanzamiento.md`.
 - `estudios/{id}` — estudio. Incluye el objeto `reporte` embebido (resumen,
   diagnóstico, propuestas, muestra, toggles del reporte online, marca por defecto).
 - `estudios/{id}/pantallas/{pid}` — pantalla del estudio (nombre, origen imagen/url, url,

@@ -103,11 +103,14 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     const rep = cli.frameLocator("iframe.pub-frame");
     await expect(rep.getByRole("heading", { name: estudio })).toBeVisible();
     await expect(rep.getByRole("button", { name: "Contacto" })).toHaveCount(0); // se publicó sin Contacto
+    // Sin cuentas el reporte es de uxuaria: muestra su aclaración "Hecho por una persona".
+    await expect(rep.getByText("Hecho por una persona, no por una herramienta automática")).toBeVisible();
     await rep.getByRole("button", { name: "Trabajemos juntos" }).click();
     const mia = rep.getByRole("dialog").locator(".tj-col").last(); // la propuesta agregada va al final
     await expect(mia.getByRole("heading", { name: "Diagnóstico completo" })).toBeVisible();
     await mia.getByRole("button", { name: "Reservar ahora tu diagnóstico" }).click();
-    await expect(rep.getByRole("heading", { name: "¡Gracias! Tu reserva está confirmada" })).toBeVisible();
+    await expect(rep.getByRole("heading", { name: "¡Gracias! Recibimos tu interés" })).toBeVisible();
+    await expect(rep.locator(".ty-nota")).toContainText("no es una compra ni un compromiso de pago");
     await expect(rep.locator(".ty-res")).toContainText("Diagnóstico completo");
     expect(cliErr).toEqual([]);
   });
@@ -164,6 +167,8 @@ test("compartir: link con PIN, estado de la publicación y reserva desde Trabaje
     await cli.getByRole("button", { name: "Ver reporte" }).click();
     const rep = cli.frameLocator("iframe.pub-frame");
     await expect(rep.getByRole("heading", { name: "Malicioso" })).toBeVisible();
+    // Un reporte que no es de uxuaria (sin esUxuaria) no muestra las afirmaciones de uxuaria.
+    await expect(rep.getByText("Hecho por una persona, no por una herramienta automática")).toHaveCount(0);
     await rep.getByRole("button", { name: "Hallazgos" }).click();
     await rep.getByRole("button", { name: "Pestaña" }).click();
     await expect(rep.locator(".cr-px-texto")).toHaveText("Hola");

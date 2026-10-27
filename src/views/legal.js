@@ -5,17 +5,17 @@ import { state } from "../core/state.js";
    Textos escritos a partir de lo que la app hace hoy (qué guarda, dónde y quién lo recibe).
    Si cambia el tratamiento de datos (nuevos servicios, analítica, pagos), actualizar acá
    y la fecha de ACTUALIZADO. */
-const ACTUALIZADO="21 de octubre de 2026";
+const ACTUALIZADO="27 de octubre de 2026";
 const CONTACTO='<a href="mailto:info@uxuaria.com">info@uxuaria.com</a>';
 export const SECCIONES_LEGALES=[
   { id:"terminos", titulo:"Términos de uso", html:`
-    <p>Lupa UX es una herramienta de uxuaria para la evaluación heurística y el diagnóstico de experiencia de usuario. Al crear tu cuenta o usarla aceptás estos términos.</p>
+    <p>Mutis UX es una herramienta de uxuaria para la evaluación heurística y el diagnóstico de experiencia de usuario. Al crear tu cuenta o usarla aceptás estos términos.</p>
     <h3>Tu cuenta</h3>
     <p>Entrás con tu email: te mandamos un código o un botón para entrar, sin contraseña. La cuenta es personal; no compartas los códigos. Podés pedir que borremos tu cuenta y tus datos escribiendo a ${CONTACTO}.</p>
     <h3>Versión beta</h3>
-    <p>Lupa UX está en beta gratuita con cupos limitados. En esta versión cada cuenta puede tener 1 estudio a la vez, de hasta 15 pantallas, además del estudio de ejemplo, que es de solo lectura. Estos límites pueden cambiar.</p>
+    <p>Mutis UX está en beta gratuita con cupos limitados. En esta versión cada cuenta puede tener 1 estudio a la vez, de hasta 15 pantallas, además del estudio de ejemplo, que es de solo lectura. Estos límites pueden cambiar.</p>
     <h3>Para qué sirve</h3>
-    <p>Lupa UX te ayuda a registrar hallazgos, organizarlos y compartir un reporte con tu cliente. El análisis, las conclusiones y las recomendaciones son tuyos: la herramienta no genera diagnósticos automáticos.</p>
+    <p>Mutis UX te ayuda a registrar hallazgos, organizarlos y compartir un reporte con tu cliente. El análisis, las conclusiones y las recomendaciones son tuyos: la herramienta no genera diagnósticos automáticos.</p>
     <h3>Tu contenido</h3>
     <p>Lo que cargás (estudios, capturas, hallazgos, textos, propuestas) sigue siendo tuyo o de tu cliente. Sos responsable de tener permiso para usar las capturas y la información que subís, y de no incluir datos personales de terceros que no sean necesarios.</p>
     <h3>Reportes compartidos</h3>
@@ -23,13 +23,13 @@ export const SECCIONES_LEGALES=[
     <h3>Uso adecuado</h3>
     <p>No uses la herramienta para actividades ilegales, para intentar acceder a datos de otras personas ni para afectar su funcionamiento.</p>
     <h3>Disponibilidad</h3>
-    <p>Trabajamos para que Lupa UX funcione de forma continua, pero puede tener interrupciones o cambios. Te recomendamos exportar un respaldo de tus datos de forma periódica.</p>
+    <p>Trabajamos para que Mutis UX funcione de forma continua, pero puede tener interrupciones o cambios. Te recomendamos exportar un respaldo de tus datos de forma periódica.</p>
     <h3>Cambios</h3>
     <p>Podemos actualizar estos términos. La fecha de la última actualización figura al pie de esta página.</p>
     <h3>Ley aplicable y jurisdicción</h3>
     <p>Estos términos se rigen por las leyes de la República Argentina. Ante cualquier conflicto, intervienen los tribunales competentes de la República Argentina.</p>` },
   { id:"privacidad", titulo:"Política de privacidad", html:`
-    <p>Esta política explica qué datos trata Lupa UX, para qué y con quién se comparten. El responsable de los datos es Luis Carlos Romero León, que ofrece Lupa UX con su marca uxuaria. Los datos se tratan según la Ley 25.326 de Protección de Datos Personales de la República Argentina. Podés escribir a ${CONTACTO} por cualquier consulta.</p>
+    <p>Esta política explica qué datos trata Mutis UX, para qué y con quién se comparten. El responsable de los datos es Luis Carlos Romero León, que ofrece Mutis UX con su marca uxuaria. Los datos se tratan según la Ley 25.326 de Protección de Datos Personales de la República Argentina. Podés escribir a ${CONTACTO} por cualquier consulta.</p>
     <h3>Qué datos se guardan</h3>
     <ul>
       <li><b>Tu cuenta:</b> el email con el que ingresás y la fecha en que creaste la cuenta. Para entrar te mandamos un código de un solo uso; guardamos solo una versión cifrada (hash), nunca el código en claro.</li>
@@ -44,7 +44,7 @@ export const SECCIONES_LEGALES=[
       <li><b>Cloudflare</b> aloja la aplicación y su base de datos. Su servicio Turnstile verifica que quien pide un código no sea un robot.</li>
       <li><b>Resend</b> envía los correos con el código para entrar y el aviso cuando un cliente reserva una propuesta.</li>
       <li><b>Google Fonts</b> sirve las tipografías de la interfaz; tu navegador las descarga desde sus servidores.</li>
-      <li>Si usás Lupa UX sin servidor, tu trabajo queda guardado solo en tu navegador.</li>
+      <li>Si usás Mutis UX sin servidor, tu trabajo queda guardado solo en tu navegador.</li>
     </ul>
     <p>Estos proveedores pueden guardar o procesar los datos en servidores fuera de la Argentina.</p>
     <h3>Seguridad</h3>
@@ -57,7 +57,7 @@ export const SECCIONES_LEGALES=[
   { id:"reportes", titulo:"Reportes compartidos", html:`
     <p>Estas condiciones valen para quien abre un reporte que le compartieron con un link y un PIN.</p>
     <h3>Qué es un reporte compartido</h3>
-    <p>Es un diagnóstico de experiencia de usuario que preparó quien te lo compartió, usando Lupa UX. El contenido, el análisis y las recomendaciones son suyos. uxuaria solo ofrece la herramienta, salvo que el reporte lo haya preparado uxuaria.</p>
+    <p>Es un diagnóstico de experiencia de usuario que preparó quien te lo compartió, usando Mutis UX. El contenido, el análisis y las recomendaciones son suyos. uxuaria solo ofrece la herramienta, salvo que el reporte lo haya preparado uxuaria.</p>
     <h3>Confidencialidad</h3>
     <p>El reporte es confidencial y de solo lectura. No lo reenvíes ni compartas el PIN con personas ajenas a tu equipo sin permiso de quien te lo envió.</p>
     <h3>Qué registramos al abrirlo</h3>
@@ -65,9 +65,9 @@ export const SECCIONES_LEGALES=[
     <h3>Mención del trabajo</h3>
     <p>Al aceptar estas condiciones, aceptás que quien preparó el reporte pueda mencionar que lo realizó y compartir aprendizajes generales sobre la experiencia (por ejemplo, en sus redes o su portfolio), sin revelar información clave ni datos confidenciales de tu empresa o producto.</p>` },
   { id:"almacenamiento", titulo:"Cookies y almacenamiento", html:`
-    <p>Lupa UX no usa cookies de publicidad ni de analítica.</p>
+    <p>Mutis UX no usa cookies de publicidad ni de analítica.</p>
     <h3>Cookies necesarias</h3>
-    <p>Lupa UX usa una cookie de sesión propia (<code>lupa_sesion</code>) para mantenerte conectado durante 30 días. No se puede leer desde la página, viaja solo por conexiones seguras y se borra al cerrar sesión. Sin ella no se puede ingresar.</p>
+    <p>Mutis UX usa una cookie de sesión propia (<code>lupa_sesion</code>) para mantenerte conectado durante 30 días. No se puede leer desde la página, viaja solo por conexiones seguras y se borra al cerrar sesión. Sin ella no se puede ingresar.</p>
     <p>Al pedir un código, Cloudflare Turnstile puede guardar datos técnicos en tu navegador para verificar que no seas un robot.</p>
     <h3>Almacenamiento en tu navegador</h3>
     <p>La app guarda en tu navegador algunas preferencias para que la experiencia sea cómoda:</p>
@@ -76,7 +76,7 @@ export const SECCIONES_LEGALES=[
       <li>el último estudio que abriste;</li>
       <li>si ya viste la introducción.</li>
     </ul>
-    <p>Si usás Lupa UX sin servidor, tu trabajo completo también se guarda en el almacenamiento de tu navegador. Podés borrar todo esto desde la configuración de tu navegador; en ese caso perderías los datos guardados solo localmente.</p>` }
+    <p>Si usás Mutis UX sin servidor, tu trabajo completo también se guarda en el almacenamiento de tu navegador. Podés borrar todo esto desde la configuración de tu navegador; en ese caso perderías los datos guardados solo localmente.</p>` }
 ];
 
 // Página pública /legal/{id}: se lee sin cuenta (desde la pantalla de entrada o el link
@@ -87,11 +87,11 @@ export function idLegalDeLaURL(){
 }
 export function abrirLegalPublica(id){
   const actual = SECCIONES_LEGALES.find(s => s.id === id) || SECCIONES_LEGALES[0];
-  document.title = actual.titulo + " · Lupa UX";
+  document.title = actual.titulo + " · Mutis UX";
   const hd = document.querySelector("header.top"); if(hd) hd.remove();
   const pie = document.getElementById("sitePie"); if(pie) pie.remove();
   view.innerHTML = `<div class="legal legal-pub">
-    <div class="ent-marca"><span class="brand-logo" aria-hidden="true"></span><span class="brand-txt"><b>uxuaria</b><small>Lupa Ux</small></span></div>
+    <div class="ent-marca"><span class="brand-logo" aria-hidden="true"></span><span class="brand-txt"><b>uxuaria</b><small>Mutis UX</small></span></div>
     <div class="legal-in">
       <nav class="legal-nav" aria-label="Información legal">${SECCIONES_LEGALES.map(s => `<a class="cf-item${s.id === actual.id ? " on" : ""}" href="/legal/${s.id}"${s.id === actual.id ? ' aria-current="page"' : ""}><span class="cf-txt"><b>${s.titulo}</b></span></a>`).join("")}</nav>
       <article class="legal-doc"><h1>${actual.titulo}</h1>${actual.html}<p class="legal-fecha">Última actualización: ${ACTUALIZADO}</p></article>

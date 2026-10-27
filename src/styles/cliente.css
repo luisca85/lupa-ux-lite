@@ -342,3 +342,5 @@
 /* Vista previa a pantalla completa (#clientRoot, z 500): los modales del reporte van encima */
 #clientRoot ~ .tj-bg,#clientRoot ~ .li-bg{z-index:510}
 .tj-cols>#tjFaq .tj-faq{margin-top:4px;padding-top:6px;border-top:none}
+/* Página de gracias: aclaración de que elegir una propuesta no es una compra */
+.ty-nota{max-width:460px;margin:-12px auto 26px;font-size:13.5px;line-height:1.5;color:var(--muted)}

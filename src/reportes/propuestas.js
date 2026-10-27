@@ -4,9 +4,9 @@ import { x } from "../ui/iconos.js";
 
 /* ---- Propuestas de trabajo ---- */
 export function defaultPropuestas(){ return [
-  {titulo:"Diagnóstico completo",tipo:"fixed",texto:"Completamos todo el diagnóstico, user journeys y user flows de toda la plataforma, y entregamos un documento completo para realizar un upgrade de tu MVP.",bullets:["Diagnóstico completo de la plataforma","Protopersonas","User journeys","Análisis heurísticos","Recomendaciones","Propuestas de diseño con artefactos interactivos del flujo principal","Biblioteca de tokens organizada","Prompts y estrategia IA de crecimiento"],precioModo:"monto",moneda:"USD",precio:300,lanz:{on:true,pct:20},descuentos:{mensual:null,trimestral:null,semestral:null,anual:null}},
-  {titulo:"Plan Mensual - Aliado",tipo:"fixed",texto:"Trabajamos con un plan mensual y un fee fijo por tareas ilimitadas al mes. Sin contratos de permanencia.",bullets:["1 proyecto","1 sola tarea a la vez","Diseño UI y de interfaces","Análisis heurísticos","Comunicación vía chat y 1 reunión semanal"],precioModo:"monto",moneda:"USD",precio:500,lanz:{on:true,pct:20},descuentos:{mensual:null,trimestral:null,semestral:null,anual:null}},
-  {titulo:"Propuesta Mensual Pro",tipo:"fixed",texto:"Trabajamos con un plan mensual y un fee fijo por tareas ilimitadas al mes. Sin contratos de permanencia.",bullets:["Hasta 2 proyectos diferentes","Hasta 2 tareas en paralelo","UI Design","UX Design","Evaluaciones heurísticas","Hasta 1 prueba con usuarios al mes","Reuniones ilimitadas"],precioModo:"monto",moneda:"USD",precio:1000,lanz:{on:true,pct:20},descuentos:{mensual:null,trimestral:null,semestral:null,anual:null}}
+  {titulo:"Diagnóstico completo",tipo:"fixed",texto:"Completamos todo el diagnóstico, user journeys y user flows de toda la plataforma, y entregamos un documento completo para realizar un upgrade de tu MVP.",bullets:["Diagnóstico completo de la plataforma","Protopersonas","User journeys","Análisis heurísticos","Recomendaciones","Propuestas de diseño con artefactos interactivos del flujo principal","Biblioteca de tokens organizada","Prompts y estrategia IA de crecimiento"],precioModo:"monto",moneda:"USD",precio:300,lanz:{on:false,antes:null,hasta:""},descuentos:{mensual:null,trimestral:null,semestral:null,anual:null}},
+  {titulo:"Plan Mensual - Aliado",tipo:"fixed",texto:"Trabajamos con un plan mensual y un fee fijo por tareas ilimitadas al mes. Sin contratos de permanencia.",bullets:["1 proyecto","1 sola tarea a la vez","Diseño UI y de interfaces","Análisis heurísticos","Comunicación vía chat y 1 reunión semanal"],precioModo:"monto",moneda:"USD",precio:500,lanz:{on:false,antes:null,hasta:""},descuentos:{mensual:null,trimestral:null,semestral:null,anual:null}},
+  {titulo:"Propuesta Mensual Pro",tipo:"fixed",texto:"Trabajamos con un plan mensual y un fee fijo por tareas ilimitadas al mes. Sin contratos de permanencia.",bullets:["Hasta 2 proyectos diferentes","Hasta 2 tareas en paralelo","UI Design","UX Design","Evaluaciones heurísticas","Hasta 1 prueba con usuarios al mes","Reuniones ilimitadas"],precioModo:"monto",moneda:"USD",precio:1000,lanz:{on:false,antes:null,hasta:""},descuentos:{mensual:null,trimestral:null,semestral:null,anual:null}}
 ]; }
 export function esSeedViejo(arr){ if(!Array.isArray(arr)||arr.length!==2)return false; const t=arr.map(p=>(p&&p.titulo)||""); return t[0]==="Plan mensual con fee fijo"&&t[1]==="Propuesta ad-hoc al proyecto"; }
 /* Textos del modal "Trabajemos juntos" (r.tj). recomendada = id de la propuesta destacada
@@ -34,23 +34,32 @@ export function normalizePropuesta(p){
   if(!Array.isArray(p.bullets))p.bullets=[];
   if(!p.descuentos||typeof p.descuentos!=="object"||Array.isArray(p.descuentos))p.descuentos={mensual:null,trimestral:null,semestral:null,anual:null};
   PROP_DESC.forEach(([k])=>{ if(!(k in p.descuentos))p.descuentos[k]=null; });
-  if(!p.lanz||typeof p.lanz!=="object")p.lanz={on:false,pct:20};
-  if(p.lanz.pct==null||p.lanz.pct==="")p.lanz.pct=20;
+  // Precio anterior: lo carga el autor (un precio que cobró de verdad), no se inventa.
+  // "hasta": fecha (AAAA-MM-DD) hasta la que vale el precio, opcional.
+  if(!p.lanz||typeof p.lanz!=="object")p.lanz={on:false};
+  const a=Number(p.lanz.antes); p.lanz.antes=(p.lanz.antes!=null&&p.lanz.antes!==""&&Number.isFinite(a)&&a>0)?a:null;
+  if(typeof p.lanz.hasta!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(p.lanz.hasta))p.lanz.hasta="";
+  delete p.lanz.pct;
   if(typeof p.boton!=="string")p.boton="";
   if(typeof p.cta!=="boolean")p.cta=true; // botón de reserva en la card
   if(!Array.isArray(p.faq))p.faq=[];
   p.faq=p.faq.filter(f=>f&&(String(f.q||"").trim()||String(f.a||"").trim())).map(f=>({q:String(f.q||""),a:String(f.a||"")}));
   return p;
 }
-/* Precio de lanzamiento: el precio guardado YA tiene el descuento aplicado.
-   El "antes" se deriva y se redondea a múltiplos de 5. */
-export function propLaunch(p){
+/* Precio con descuento: el precio guardado es el final. El "antes" tachado solo se muestra
+   si el autor cargó un precio anterior real y mayor (no se calcula: mostrar un precio anterior
+   que no existió puede ser publicidad engañosa). "hasta" muestra hasta cuándo vale; vencida
+   la fecha, no se muestra el descuento. */
+export function fechaLarga(iso){ return new Date(iso+"T12:00:00").toLocaleDateString("es-AR",{day:"numeric",month:"long",year:"numeric"}); }
+export function propLaunch(p,hoy){
   if(!p.lanz||!p.lanz.on)return null;
   if(p.precioModo==="adefinir"||p.precio==null||p.precio==="")return null;
-  const pct=Number(p.lanz.pct||0); if(pct<=0||pct>=100)return null;
-  const antes=Math.round((Number(p.precio)/(1-pct/100))/5)*5;
-  if(antes<=Number(p.precio))return null;
-  return {antes,pct};
+  const hasta=p.lanz.hasta||"", dia=(hoy||new Date().toISOString()).slice(0,10);
+  if(hasta&&hasta<dia)return null;
+  const precio=Number(p.precio), antes=Number(p.lanz.antes);
+  const conAntes=Number.isFinite(antes)&&antes>precio;
+  if(!conAntes&&!hasta)return null;
+  return {antes:conAntes?antes:null,pct:conAntes?Math.round((1-precio/antes)*100):null,hasta};
 }
 export function propPriceLine(p){
   if(p.precioModo==="adefinir"||p.precio==null||p.precio==="")return "A definir";
@@ -81,10 +90,11 @@ export function propuestaCardHTML(p,escFn,paraFn){
   const disc=rows.length?`<div class="cr-prop-disc"><b>Descuentos por pago adelantado</b><ul>${rows.map(r=>`<li><span>${E(r.label)}</span><span>-${r.pct}%${r.extra?E(r.extra):""}</span></li>`).join("")}</ul></div>`:"";
   const incl=(p.bullets&&p.bullets.length)?`<ul>${p.bullets.map(x=>`<li>${E(x)}</li>`).join("")}</ul>`:"";
   const L=propLaunch(p);
-  const priceHTML=L
-    ? `<div class="cr-prop-price has-launch"><span class="cr-prop-was">${E(propMoney(p.moneda,L.antes)+(p.tipo==="mensual"?" /mes":""))}</span><span class="cr-prop-now">${E(propPriceLine(p))}</span><span class="cr-prop-launch">Lanzamiento -${L.pct}%</span></div><div class="cr-prop-urg">Precio de lanzamiento por tiempo limitado. Reservás este valor al confirmar el servicio.</div>`
+  const priceHTML=L&&L.antes
+    ? `<div class="cr-prop-price has-launch"><span class="cr-prop-was">${E(propMoney(p.moneda,L.antes)+(p.tipo==="mensual"?" /mes":""))}</span><span class="cr-prop-now">${E(propPriceLine(p))}</span><span class="cr-prop-launch">-${L.pct}%</span></div>`
     : `<div class="cr-prop-price">${E(propPriceLine(p))}</div>`;
+  const vale=L&&L.hasta?`<div class="cr-prop-urg">Precio válido hasta el ${E(fechaLarga(L.hasta))}.</div>`:"";
   return `<div class="cr-prop"><div class="cr-prop-top"><h4>${E(p.titulo)}</h4><span class="cr-prop-tag">${E(propTipoLabel(p.tipo))}</span></div>
-    ${priceHTML}
+    ${priceHTML}${vale}
     <div class="cr-prose">${PA(p.texto)}${incl}</div>${disc}</div>`;
 }

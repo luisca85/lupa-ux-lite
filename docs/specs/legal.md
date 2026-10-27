@@ -1,6 +1,6 @@
 # Feature: Páginas legales (términos, privacidad y almacenamiento)  ·  id: legal
 
-Historia de usuario: Como consultor/a UX que usa Lupa UX con datos de mis clientes,
+Historia de usuario: Como consultor/a UX que usa Mutis UX con datos de mis clientes,
 quiero leer qué se guarda, dónde y con quién se comparte, para usar la herramienta con
 confianza y poder explicárselo a mis clientes.
 
@@ -60,7 +60,7 @@ Se llega desde el pie de página (spec `home`). Surgió en la exploración
   tres textos se pueden leer desde la pantalla de entrada, antes de tener cuenta.
 - Dado el responsable del tratamiento, cuando se lee la política de privacidad,
   entonces nombra a **Luis Carlos Romero** como responsable y a uxuaria como su
-  marca ("El responsable de los datos es Luis Carlos Romero, que ofrece Lupa UX con
+  marca ("El responsable de los datos es Luis Carlos Romero, que ofrece Mutis UX con
   su marca uxuaria."). Lo verifica `tests/e2e/home.spec.mjs`.
 
 ## Alcance

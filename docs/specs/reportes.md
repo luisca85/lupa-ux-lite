@@ -202,10 +202,13 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
 - Dada la página de gracias, cuando se ve, entonces tiene:
   - el logo de **uxuaria** (marca de la home);
   - un check;
-  - "¡Gracias! Tu reserva está confirmada";
-  - "Ya recibí tu decisión de avanzar con {propuesta}. Me voy a comunicar con vos muy
-    pronto para coordinar los próximos pasos.";
-  - la propuesta reservada con su precio;
+  - "¡Gracias! Recibimos tu interés" (desde el 2026-10-26; antes "Tu reserva está
+    confirmada", que podía leerse como un contrato cerrado);
+  - "Ya sé que querés avanzar con {propuesta}. Me voy a comunicar con vos muy pronto
+    para coordinar los próximos pasos.";
+  - "Elegiste" con la propuesta y su precio;
+  - "Esto no es una compra ni un compromiso de pago. El alcance, el precio final y las
+    condiciones los acordamos juntos antes de empezar.";
   - tres pasos (Te escribo, Conversamos, Arrancamos);
   - el contacto de la Marca, si hay;
   - "Volver al reporte".
@@ -230,6 +233,15 @@ Sale de la exploración `explorar/reportes-panel` (Figma 49:1470).
   `publicos/{id}.consentimientos` (los últimos 10), sin datos de quien entra.
 - La card del PIN se achica al ancho del celular (antes desbordaba en pantallas
   angostas).
+
+### Aclaraciones de la Presentación (2026-10-26, chequeo legal)
+- La aclaración "Hecho por una persona, no por una herramienta automática" tiene un texto
+  por defecto de uxuaria ("más de 10 años de experiencia…"). Se muestra en los reportes de
+  uxuaria (`brand.esUxuaria`, que manda `collectShareData` cuando no es una cuenta de la
+  beta). En los reportes de las cuentas de la beta aparece **solo si su autor escribió la
+  aclaración** en Configuración → Marca. Los reportes publicados antes del cambio la
+  muestran recién al volver a compartirlos.
+- "Es un diagnóstico inicial" sigue con su texto por defecto, que es neutro.
 
 ### Seguridad del link público (2026-10-25, `fix/reporte-link-xss`)
 Quien publica puede escribir la foto (`publicos/{id}/partes/…`) a mano por la API, y el
@@ -266,7 +278,7 @@ código como quien abre el link (con su sesión), hay dos capas:
 - Dada una reserva, cuando existe `RESEND_API_KEY`, entonces manda un correo con Resend:
   - asunto: "Nueva reserva: {propuesta}";
   - a `RESERVA_TO` (por defecto `info@uxuaria.com`), con copia a `RESERVA_CC`;
-  - desde `RESERVA_FROM` (por defecto `Lupa UX <reservas@uxuaria.com>`);
+  - desde `RESERVA_FROM` (por defecto `Mutis UX <reservas@uxuaria.com>`);
   - con "Tu cliente reservó {propuesta}", precio, estudio, cliente y fecha (hora de
     Buenos Aires).
 - Si el correo falla o no está configurado, la reserva igual queda guardada

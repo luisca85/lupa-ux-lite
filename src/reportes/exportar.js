@@ -69,7 +69,7 @@ const nombreArchivo=(est,ext)=>{ const base=String(est.nombre||"reporte").normal
 export function reporteJSON(est){
   const d=datosReporte(est);
   return {
-    formato:"lupa-ux/reporte", version:1, generado:new Date().toISOString(), herramienta:"Lupa UX (uxuaria)",
+    formato:"lupa-ux/reporte", version:1, generado:new Date().toISOString(), herramienta:"Mutis UX (uxuaria)",
     instrucciones_para_ia:"Diagnóstico de experiencia de usuario hecho por una persona experta. Cada hallazgo es una observación atómica con severidad en la escala de Nielsen (0 a 4), descripción, recomendación y las heurísticas o sesgos que la sostienen. Los hallazgos se referencian por su código (H1, H2…) desde las interacciones de los user flows y los pasos de los user journeys. pantalla.pin indica la posición relativa (0 a 1) del hallazgo sobre la captura. Respetá las conclusiones del autor: no inventes hallazgos que no estén acá.",
     escala_severidad:SEVERIDAD.map(s=>({valor:s.n,etiqueta:s.label,descripcion:s.desc})),
     ...d,
@@ -125,7 +125,7 @@ export function reporteTexto(est){
       f.interacciones.forEach(n=>{ blanco(); linea(`${n.orden}. ${n.titulo}${n.pantalla?` (pantalla: ${n.pantalla})`:""}`);
         if(n.ve) linea("  Ve: "+n.ve); if(n.hace) linea("  Hace: "+n.hace); if(n.hallazgos.length) linea("  Hallazgos: "+n.hallazgos.join(", ")); });
       if(f.conexiones.length){ blanco(); linea("Conexiones:"); f.conexiones.forEach(c=>linea(`  ${c.desde} → ${c.hacia} (${c.tipo})${c.etiqueta?": "+c.etiqueta:""}`)); } }); }
-  blanco(); linea(`Generado con Lupa UX el ${new Date().toLocaleDateString("es-AR")}.`);
+  blanco(); linea(`Generado con Mutis UX el ${new Date().toLocaleDateString("es-AR")}.`);
   return L.join("\n").replace(/\n{3,}/g,"\n\n")+"\n";
 }
 export function exportarTexto(est){

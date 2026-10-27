@@ -35,7 +35,7 @@ export function mostrarEntrada({ turnstile = null } = {}){
   if(params.has("entrar")) history.replaceState(null, "", location.pathname);
   let email = "", tsToken = "", tsId = null, espera = 0, reloj = null;
 
-  const marca = `<div class="ent-marca"><span class="brand-logo" aria-hidden="true"></span><span class="brand-txt"><b>uxuaria</b><small>Lupa Ux</small></span></div>`;
+  const marca = `<div class="ent-marca"><span class="brand-logo" aria-hidden="true"></span><span class="brand-txt"><b>uxuaria</b><small>Mutis UX</small></span></div>`;
 
   function pasoEmail(error){
     clearInterval(reloj);
