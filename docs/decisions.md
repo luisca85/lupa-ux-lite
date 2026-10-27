@@ -236,3 +236,12 @@ Pages `lupa-ux` se quedan como están. Los nombres de los archivos y frames de F
 cambian. Motivo: "Lupa UX" es descriptivo y se confunde con la categoría; los dominios de Mutis
 UX están libres. Renombrar los identificadores borraría los datos locales, cerraría todas las
 sesiones y rompería los respaldos ya descargados.
+
+2026-10-27 - La beta pasa a ser privada: con `SOLO_AUTORIZADOS="1"` (producción y previews)
+solo crean cuenta los emails de la tabla `autorizados`, que Luis maneja con
+`scripts/autorizar.mjs`; el resto queda en `espera` y `MAX_CUENTAS` deja de aplicar. Las
+cuentas que ya existen siguen entrando y quitar una autorización no las borra. Se eligió una
+tabla en D1 y un script, como `publicar-ejemplo`, en lugar de un panel de administración
+(fuera de alcance en la spec `cta`) o de una variable con la lista (cada cambio sería un
+deploy). Motivo: al quitar Cloudflare Access cualquiera podía crear cuenta, y Luis quiere
+aprobar a cada persona.

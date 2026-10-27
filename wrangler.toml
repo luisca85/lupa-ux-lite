@@ -22,10 +22,13 @@ migrations_dir = "migrations"
 # Cuentas con código por email (spec cta). Los secretos NO van acá (el repo es público):
 #   npx wrangler pages secret put RESEND_API_KEY      (y TURNSTILE_SITE_KEY, TURNSTILE_SECRET,
 #   ADMIN_EMAILS, RESERVA_TO) — ver docs/lanzamiento.md.
-# MAX_CUENTAS sube por tandas: 20 → 50 → 100.
+# Beta privada: con SOLO_AUTORIZADOS="1" solo crean cuenta los emails autorizados con
+#   node scripts/autorizar.mjs --email ... --remote   (MAX_CUENTAS deja de aplicar).
+# Sin beta privada, MAX_CUENTAS sube por tandas: 20 → 50 → 100.
 # ACCESS_* queda hasta quitar Cloudflare Access (último paso del lanzamiento).
 [env.production.vars]
 AUTH_MODE = "cuentas"
+SOLO_AUTORIZADOS = "1"
 MAX_CUENTAS = "20"
 SESION_DIAS = "30"
 AUTH_FROM = "Mutis UX <acceso@uxuaria.com>"
@@ -43,6 +46,7 @@ migrations_dir = "migrations"
 # Sirve para probar el login con cuentas antes de pasarlo a main.
 [env.preview.vars]
 AUTH_MODE = "cuentas"
+SOLO_AUTORIZADOS = "1"
 MAX_CUENTAS = "20"
 SESION_DIAS = "30"
 AUTH_FROM = "Mutis UX <acceso@uxuaria.com>"

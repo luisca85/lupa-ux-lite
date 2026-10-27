@@ -84,8 +84,8 @@ mandaste a clientes usan esa dirección: no hay que romperlos.
 2. Probá que `https://mutis.uxuaria.com` abre la app y que un link `/r/{id}` funciona ahí.
 3. Redirigí la dirección vieja: Cloudflare → `uxuaria.com` → **Rules → Redirect Rules** →
    regla "Mutis UX: dominio viejo". Cuando el hostname es igual a `lupaux.uxuaria.com`, URL
-   dinámica `concat("https://mutis.uxuaria.com", http.request.uri)`, código **301** y
-   conservar la query string. Así los links viejos llevan al mismo reporte en el dominio
+   dinámica `concat("https://mutis.uxuaria.com", http.request.uri.path)`, código **301** y
+   conservar la query string (con `http.request.uri` la query se repetiría). Así los links viejos llevan al mismo reporte en el dominio
    nuevo.
 4. Dejá `lupaux.uxuaria.com` en Custom domains (la redirección necesita que siga
    resolviendo). Si algún día lo quitás, hacé que el registro DNS siga existiendo con el
@@ -104,7 +104,19 @@ mandaste a clientes usan esa dirección: no hay que romperlos.
 - Para actualizarlo, editá tu estudio y volvé a correr el comando. Para quitarlo, agregá
   `--borrar`.
 
-## 11. Tandas
+## 11. Beta privada: autorizar personas
+Desde el 2026-10-27 producción corre con `SOLO_AUTORIZADOS="1"`: solo crea cuenta quien
+autorizaste. Quien pide código sin estar autorizado queda en la lista de espera.
+```bash
+node scripts/autorizar.mjs --listar --remote                    # espera y autorizados
+node scripts/autorizar.mjs --email ana@x.com,beto@y.com --remote  # autorizar (sale de la espera)
+node scripts/autorizar.mjs --quitar ana@x.com --remote          # no borra su cuenta
+```
+El script no le avisa a la persona: escribile vos que ya puede entrar en
+`https://mutis.uxuaria.com`. Antes de autorizar a muchas juntas, mirá en Resend los
+emails del día (tope gratis de 100).
+
+## 11a. Tandas (solo sin beta privada)
 | Cuándo | `MAX_CUENTAS` en `wrangler.toml` (production) |
 |---|---|
 | Día 1 | 20 (ya está así) |

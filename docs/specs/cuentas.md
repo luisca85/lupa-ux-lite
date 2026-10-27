@@ -93,6 +93,14 @@ Se construye en 4 fases, en este orden. Cada fase se revisa antes de seguir:
   ningún email. Aparece "Los cupos de la beta están completos. Te avisamos cuando
   haya lugar." y el email queda en la lista de espera (`espera`). Las cuentas que ya
   existen siguen entrando normalmente. El tope se configura con `MAX_CUENTAS` (100).
+- Dada la beta privada (`SOLO_AUTORIZADOS="1"`, en producción y previews desde el
+  2026-10-27), cuando un email nuevo que no está en `autorizados` pide código, entonces no
+  se manda ningún email: aparece "Beta privada" ("Mutis UX está en beta privada: por ahora
+  entran solo las personas invitadas. Te avisamos cuando tengas acceso.") y el email queda
+  en `espera`. Luis autoriza emails con `scripts/autorizar.mjs` (que también lista la
+  espera); el email autorizado crea su cuenta como siempre y sale de la espera. Quitar la
+  autorización no borra una cuenta ya creada. Con la beta privada, `MAX_CUENTAS` no aplica.
+  El aviso a quien se autoriza lo manda Luis a mano.
 - Dada cualquier cuenta, cuando abre la home, entonces ve el estudio de ejemplo
   primero, con la marca "Ejemplo". El ejemplo no cuenta para el límite de 1 estudio.
 - Dado el estudio de ejemplo, cuando se recorre, entonces se ven sus pantallas,
@@ -222,16 +230,18 @@ casillas de código, y el email con botón y código. Se ajustan mirando la vist
 ## Dónde vive
 - `functions/api/[[path]].js`:
   - login: `auth()`, `usuarioDeSesion`, `entrar`, `verificarTurnstile`, `mandarCodigo`,
-    cupos y lista de espera en `auth/codigo`;
+    cupos, beta privada (`soloAutorizados`) y lista de espera en `auth/codigo`;
   - cuentas: `cuentaDe`, `authorize()` con `AUTH_MODE="cuentas"`, `rutaReal` (prefijo
     `u/{id}/`, `publicos/` con `dueño`, ejemplo de solo lectura), `esDuenioPublico`;
   - límites: `chocaLimite`, `conLimites`, `LIMITE_ESTUDIOS`, `LIMITE_PANTALLAS`,
     `maxCuentas`, `esAdmin`;
   - `/api/me` con `admin` y `limites`; `export` por cuenta; reservas al dueño en
     `avisarReserva`.
-- `migrations/0002_usuarios.sql`, `0003_login.sql` (`codigos`, `sesiones`) y
-  `0004_espera.sql`.
-- `src/ui/entrar.js`: pantallas de entrada, código, cupos completos y legales.
+- `migrations/0002_usuarios.sql`, `0003_login.sql` (`codigos`, `sesiones`),
+  `0004_espera.sql` y `0005_autorizados.sql`.
+- `scripts/autorizar.mjs`: autorizar, quitar y listar la espera (beta privada).
+- `src/ui/entrar.js`: pantallas de entrada, código, cupos completos o beta privada y
+  legales.
 - `src/data/backend.js`: 401 `{login}` → `mostrarEntrada`; freno de escrituras al ejemplo.
 - `src/main.js` (`state.cuenta`), `src/ui/sesion.js` (cerrar sesión con
   `/api/auth/salir`), `src/core/state.js` (`cuenta`).

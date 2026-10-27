@@ -116,6 +116,9 @@ const admins = (env) => String(env.ADMIN_EMAILS || "").split(",").map((x) => x.t
 const esAdmin = (env, email) => !!email && admins(env).includes(String(email).toLowerCase());
 const conLimites = (env, user) => env.AUTH_MODE === "cuentas" && !user.admin;
 const maxCuentas = (env) => Math.max(0, Number(env.MAX_CUENTAS) || 100);
+// Beta privada: con SOLO_AUTORIZADOS="1" solo crean cuenta los emails de la tabla
+// `autorizados` (los agrega scripts/autorizar.mjs) y MAX_CUENTAS deja de aplicar.
+const soloAutorizados = (env) => env.SOLO_AUTORIZADOS === "1";
 const contar = async (env, parent) => (await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE parent = ?").bind(parent).first()).n;
 
 // Alta de un documento nuevo que choca con un límite: devuelve la Response 403, o null.
@@ -401,14 +404,22 @@ async function auth(route, request, env) {
     if (!(await verificarTurnstile(env, body.turnstile, request.headers.get("cf-connecting-ip"))))
       return json({ error: "No pudimos verificar que no seas un robot. Probá de nuevo.", turnstile: true }, 400);
 
-    // Cupos de la beta: un email nuevo con los cupos completos queda en la lista de espera.
+    // Cupos de la beta: un email nuevo sin autorización (beta privada) o con los cupos
+    // completos queda en la lista de espera.
     if (!esAdmin(env, email) && !(await env.DB.prepare("SELECT 1 FROM usuarios WHERE email = ?").bind(email).first())) {
-      const total = (await env.DB.prepare("SELECT COUNT(*) AS n FROM usuarios").first()).n;
-      const lista = admins(env), ph = lista.map(() => "?").join(",");
-      const deAdmins = lista.length ? (await env.DB.prepare(`SELECT COUNT(*) AS n FROM usuarios WHERE email IN (${ph})`).bind(...lista).first()).n : 0;
-      if (total - deAdmins >= maxCuentas(env)) {
-        await env.DB.prepare("INSERT OR IGNORE INTO espera (email, creado) VALUES (?, ?)").bind(email, now).run();
-        return json({ error: "Los cupos de la beta están completos. Te avisamos cuando haya lugar.", cupos: true }, 403);
+      if (soloAutorizados(env)) {
+        if (!(await env.DB.prepare("SELECT 1 FROM autorizados WHERE email = ?").bind(email).first())) {
+          await env.DB.prepare("INSERT OR IGNORE INTO espera (email, creado) VALUES (?, ?)").bind(email, now).run();
+          return json({ error: "Mutis UX está en beta privada: por ahora entran solo las personas invitadas. Te avisamos cuando tengas acceso.", privada: true }, 403);
+        }
+      } else {
+        const total = (await env.DB.prepare("SELECT COUNT(*) AS n FROM usuarios").first()).n;
+        const lista = admins(env), ph = lista.map(() => "?").join(",");
+        const deAdmins = lista.length ? (await env.DB.prepare(`SELECT COUNT(*) AS n FROM usuarios WHERE email IN (${ph})`).bind(...lista).first()).n : 0;
+        if (total - deAdmins >= maxCuentas(env)) {
+          await env.DB.prepare("INSERT OR IGNORE INTO espera (email, creado) VALUES (?, ?)").bind(email, now).run();
+          return json({ error: "Los cupos de la beta están completos. Te avisamos cuando haya lugar.", cupos: true }, 403);
+        }
       }
     }
 

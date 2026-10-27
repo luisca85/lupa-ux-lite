@@ -66,7 +66,7 @@ export function mostrarEntrada({ turnstile = null } = {}){
       const r = await post("codigo", { email, turnstile:tsToken });
       if(r.ok){ return pasoCodigo(r.codigo); }
       if(r.status === 429 && r.espera) return pasoCodigo(null, r.error, r.espera); // ya hay un código en camino
-      if(r.cupos) return pasoCupos(r.error);
+      if(r.cupos || r.privada) return pasoCupos(r.error, r.privada ? "Beta privada" : "Cupos completos");
       btn.disabled = false; btn.textContent = "Continuar con email"; err.textContent = r.error;
       if(turnstile && window.turnstile && tsId != null){ window.turnstile.reset(tsId); tsToken = ""; }
     };
@@ -130,10 +130,11 @@ export function mostrarEntrada({ turnstile = null } = {}){
     window.scrollTo(0, 0);
   }
 
-  // Beta llena (MAX_CUENTAS): el email quedó en la lista de espera; no se mandó nada.
-  function pasoCupos(msg){
+  // Beta llena (MAX_CUENTAS) o privada (email sin autorizar): el email quedó en la lista
+  // de espera; no se mandó nada.
+  function pasoCupos(msg, titulo = "Cupos completos"){
     el.innerHTML = `<div class="ent-box">${marca}
-      <h1 class="ent-t">Cupos completos</h1>
+      <h1 class="ent-t">${esc(titulo)}</h1>
       <p class="ent-s">${esc(msg || "Los cupos de la beta están completos. Te avisamos cuando haya lugar.")}</p>
       <p class="ent-s">Anotamos <b>${esc(email)}</b> en la lista de espera.</p>
       <div class="ent-acts"><button type="button" class="ent-link" id="entVolver">← Usar otro email</button></div>
